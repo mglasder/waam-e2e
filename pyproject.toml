@@ -1,38 +1,10 @@
-[project]
-name = "myproject"
-version = "0.0.1"
+[tool.poetry]
+name = "e2e"
+version = "0.1.0"
 description = ""
+authors = ["Magnus Glasder <mglasder@ethz.ch>"]
 readme = "README.md"
-requires-python = ">=3.8,<3.11"
-license = "MIT"
-keywords = []
-authors = [
-    { name = "Your Name", email = "yourname@inspire.ethz.ch" },
-    { name = "Ivo Aschwanden", email = "aschwanden@inspire.ethz.ch" },
-]
-classifiers = [
-    "Programming Language :: Python",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: Implementation :: CPython",
-]
-dependencies = [
-	"hat-core"
-]
-
-
-[tool.hatch.envs.default]
-type = "monorepo"
-dependencies = [
-	"hat-dev",
-    "hat-docs"
-]
-
-[tool.hatch.envs.default.env-vars]
-PIP_INDEX_URL = "https://pypi.org/simple/"
-PIP_EXTRA_INDEX_URL = "http://nexus.iar.ethz.ch/repository/pypi/simple/"
-PIP_TRUSTED_HOST = "nexus.iar.ethz.ch"
+packages = [{include = "e2e"}]
 
 [tool.black]
 line-length = 120
@@ -43,6 +15,11 @@ include = '\.pyi?$'
 profile = "black"
 line_length = 120
 
+[tool.poetry.dependencies]
+python = "^3.10"
+pre-commit = "^3.3.2"
+
+
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

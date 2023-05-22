@@ -1,9 +1,10 @@
-name: myproject39
+name: waam310
 channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3.9
+  - python=3.10
   - pip
+  - poetry
   - pip:
       - git+https://github.com/InspireHornets/hatch-monorepo.git
