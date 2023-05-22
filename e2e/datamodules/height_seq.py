@@ -1,10 +1,11 @@
-import glob
+from abc import abstractmethod
 from pathlib import Path
 from typing import Optional, TypeVar
 
 from lightning import LightningDataModule
 from torch.utils.data import DataLoader, Dataset
 
+from e2e.datamodules.loader import SampleLoader
 from e2e.datamodules.sample import CrossSectionSample
 
 Inputs = TypeVar("Inputs", bound=list)
@@ -13,7 +14,13 @@ IDs = TypeVar("IDs", bound=list[str])
 Samples = TypeVar("Samples", bound=list[CrossSectionSample])
 
 
-class ShapeDataset(Dataset):
+class WaamDataset(Dataset):
+    @abstractmethod
+    def create(self, samples: Samples):
+        pass
+
+
+class ShapeDataset(WaamDataset):
     def __init__(self):
         self.inputs: Optional[Inputs] = None
         self.targets: Optional[Targets] = None
@@ -44,7 +51,7 @@ class ShapeDataset(Dataset):
 
 
 class ShapePredictionDataModule(LightningDataModule):
-    def __init__(self, dataset: Dataset):
+    def __init__(self, dataset: WaamDataset):
         super().__init__()
         self.dataset = dataset
 
@@ -59,15 +66,14 @@ class ShapePredictionDataModule(LightningDataModule):
 
     def setup(self, stage: str) -> None:
         # TODO: load data, select samples, create dataset, split
-        # cross_section_samples = load_cross_sections()
-        # self.dataset.create(cross_section_samples)
+        loader = SampleLoader(self._sample_dir)
+        cross_section_samples = loader.load(which="all")
+        _ = self.dataset.create(cross_section_samples)
         # self_train = ...
-        pass
 
-    def _get_filepaths(self) -> list:
-        # assumes all data is in the provided directory without nested directories
-        results = glob.glob(str(self._sample_dir / "*.pickle"))
-        return results
+    def _random_split(self):
+        # TODO
+        pass
 
     def train_dataloader(self) -> DataLoader:
         return DataLoader(self._train, batch_size=self._batch_size, num_workers=self._num_workers, shuffle=True)
