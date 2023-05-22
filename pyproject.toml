@@ -18,7 +18,8 @@ line_length = 120
 [tool.poetry.dependencies]
 python = "^3.10"
 pre-commit = "^3.3.2"
-
+lightning = "^2.0.2"
+hornets-nest= {path = "libs/hornets-nest-2022.6.1.tar.gz"}
 
 [build-system]
 requires = ["poetry-core"]
