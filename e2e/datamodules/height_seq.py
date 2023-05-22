@@ -2,6 +2,7 @@ from abc import abstractmethod
 from pathlib import Path
 from typing import Optional, TypeVar
 
+import numpy as np
 import torch
 from lightning import LightningDataModule
 from torch.utils.data import DataLoader, Dataset, random_split
@@ -9,10 +10,9 @@ from torch.utils.data import DataLoader, Dataset, random_split
 from e2e.datamodules.loader import EXPERIMENT, SampleLoader
 from e2e.datamodules.sample import CrossSectionSample
 
-Inputs = TypeVar("Inputs", bound=list)
-Targets = TypeVar("Targets", bound=list)
 IDs = TypeVar("IDs", bound=list[str])
 Samples = TypeVar("Samples", bound=list[CrossSectionSample])
+LineSegmentZ = TypeVar("LineSegmentZ", bound=torch.Tensor)
 
 
 class WaamDataset(Dataset):
@@ -22,10 +22,12 @@ class WaamDataset(Dataset):
 
 
 class ShapeDataset(WaamDataset):
-    def __init__(self):
-        self.inputs: Optional[Inputs] = None
-        self.targets: Optional[Targets] = None
+    def __init__(self, segment_length=224):
+        self.inputs: Optional[list[LineSegmentZ]] = None
+        self.targets: Optional[list[LineSegmentZ]] = None
         self.ids: Optional[IDs] = None
+
+        self._seg_len = segment_length
 
     def __len__(self):
         return len(self.ids)
@@ -38,23 +40,53 @@ class ShapeDataset(WaamDataset):
         return inpt, target, sample_id
 
     def create(self, samples: Samples):
-        # TODO: extract input, target, crop, mirror etc.
-        pass
+        self.inputs = self._extract_inputs(samples)
+        self.targets = self._extract_targets(samples)
+        self.ids = self._get_ids(samples)
 
-    def _extract_input(self, sample: Samples):
-        pass
+        # TODO: mirror
 
-    def _extract_target(self):
-        pass
+    def _extract_inputs(self, samples: Samples) -> list[LineSegmentZ]:
+        inputs = []
+        for s in samples:
+            torch_idx = s.torchposition.global_y_idx
+            zs = self._get_segment_heights(s.slice_based_before.points, torch_idx)
+            inputs.append(zs)
 
-    def _get_ids(self):
-        pass
+        return inputs
+
+    def _extract_targets(self, samples: Samples) -> list[LineSegmentZ]:
+        targets = []
+        for s in samples:
+            torch_idx = s.torchposition.global_y_idx
+            zs = self._get_segment_heights(s.slice_based_after.points, torch_idx)
+            targets.append(zs)
+
+        return targets
+
+    @staticmethod
+    def _get_ids(samples: Samples) -> list[str]:
+        ids = []
+        for s in samples:
+            id_ = s.experiment + "_" + str(s.bead_id)
+            ids.append(id_)
+        return ids
+
+    def _get_segment_heights(self, points, torch_idx) -> torch.Tensor:
+        """ys corresponds to global z-coordinates."""
+        left = torch_idx - self._seg_len // 2
+        right = torch_idx + self._seg_len // 2
+        ys = np.array([p.y[0] for p in points])[left:right]
+        return torch.tensor(ys, dtype=torch.float32)
 
 
 class ShapePredictionDataModule(LightningDataModule):
     def __init__(
         self,
+        data_dir: Path,
         dataset: WaamDataset,
+        batch_size=64,
+        workers=8,
         split=[0.7, 0.3, 0],
         separate_test_set: Optional[EXPERIMENT] = None,
         seed=42,
