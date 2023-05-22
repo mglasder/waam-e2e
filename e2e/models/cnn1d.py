@@ -8,7 +8,7 @@ class CNN1D(LightningModule):
         super().__init__()
         self.save_hyperparameters()
 
-        # model goes here
+        # TODO: finish model implementation
         self.model = nn.Conv1d(in_channels=100, out_channels=100)
         # ...
 
