@@ -2,10 +2,11 @@ from abc import abstractmethod
 from pathlib import Path
 from typing import Optional, TypeVar
 
+import torch
 from lightning import LightningDataModule
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, random_split
 
-from e2e.datamodules.loader import SampleLoader
+from e2e.datamodules.loader import EXPERIMENT, SampleLoader
 from e2e.datamodules.sample import CrossSectionSample
 
 Inputs = TypeVar("Inputs", bound=list)
@@ -51,42 +52,57 @@ class ShapeDataset(WaamDataset):
 
 
 class ShapePredictionDataModule(LightningDataModule):
-    def __init__(self, dataset: WaamDataset):
+    def __init__(
+        self,
+        dataset: WaamDataset,
+        split=[0.7, 0.3, 0],
+        separate_test_set: Optional[EXPERIMENT] = None,
+        seed=42,
+    ):
         super().__init__()
+
         self.dataset = dataset
 
         # TODO: configure batch_size etc.
         self._num_workers = 8
         self._batch_size = 128
         self._sample_dir = Path("/.")
+        self._split = split
 
-        self._train: Optional[Dataset] = None
-        self._val: Optional[Dataset] = None
-        self._test: Optional[Dataset] = None
+        self._sep_ts_set = separate_test_set
+        self._dataset_tr, self._dataset_vl, self._dataset_ts = None, None, None
+
+        self._gen = torch.Generator().manual_seed(seed)
 
     def setup(self, stage: str) -> None:
-        # TODO: load data, select samples, create dataset, split
         loader = SampleLoader(self._sample_dir)
         cross_section_samples = loader.load(which="all")
-        _ = self.dataset.create(cross_section_samples)
-        # self_train = ...
+        dataset = self.dataset.create(cross_section_samples)
+        self._dataset_tr, self._dataset_vl, self._dataset_ts = self._random_split(dataset)
 
-    def _random_split(self):
-        # TODO
-        pass
+        if self._sep_ts_set:
+            assert self._split[2] == 0
+            self._dataset_ts = loader.load(which=[self._sep_ts_set])
+
+    def _random_split(self, dataset):
+        size = len(dataset)
+        size_tr = int(size * self._split[0])
+        size_vl = int(size * self._split[1])
+        size_ts = size - size_tr - size_vl
+        return random_split(dataset, [size_tr, size_vl, size_ts], generator=self._gen)
 
     def train_dataloader(self) -> DataLoader:
-        return DataLoader(self._train, batch_size=self._batch_size, num_workers=self._num_workers, shuffle=True)
+        return DataLoader(self._dataset_tr, batch_size=self._batch_size, num_workers=self._num_workers, shuffle=True)
 
     def val_dataloader(self) -> DataLoader:
-        return DataLoader(self._val, batch_size=self._batch_size, num_workers=self._num_workers, shuffle=False)
+        return DataLoader(self._dataset_vl, batch_size=self._batch_size, num_workers=self._num_workers, shuffle=False)
 
     def test_dataloader(self) -> DataLoader:
-        return DataLoader(self._test, batch_size=self._batch_size, num_workers=self._num_workers, shuffle=False)
+        return DataLoader(self._dataset_ts, batch_size=self._batch_size, num_workers=self._num_workers, shuffle=False)
 
     def predict_dataloader(self):
         return [
-            DataLoader(self._train, batch_size=self._batch_size, num_workers=self._num_workers, shuffle=False),
-            DataLoader(self._val, batch_size=self._batch_size, num_workers=self._num_workers, shuffle=False),
-            DataLoader(self._test, batch_size=self._batch_size, num_workers=self._num_workers, shuffle=False),
+            DataLoader(self._dataset_tr, batch_size=self._batch_size, num_workers=self._num_workers, shuffle=False),
+            DataLoader(self._dataset_vl, batch_size=self._batch_size, num_workers=self._num_workers, shuffle=False),
+            DataLoader(self._dataset_ts, batch_size=self._batch_size, num_workers=self._num_workers, shuffle=False),
         ]
