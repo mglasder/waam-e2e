@@ -96,9 +96,9 @@ class ShapePredictionDataModule(LightningDataModule):
         self.dataset = dataset
 
         # TODO: configure batch_size etc.
-        self._num_workers = 8
-        self._batch_size = 128
-        self._sample_dir = Path("/.")
+        self._num_workers = workers
+        self._batch_sz = batch_size
+        self._data_dir = data_dir
         self._split = split
 
         self._sep_ts_set = separate_test_set
@@ -107,7 +107,7 @@ class ShapePredictionDataModule(LightningDataModule):
         self._gen = torch.Generator().manual_seed(seed)
 
     def setup(self, stage: str) -> None:
-        loader = SampleLoader(self._sample_dir)
+        loader = SampleLoader(self._data_dir)
         cross_section_samples = loader.load(which="all")
         dataset = self.dataset.create(cross_section_samples)
         self._dataset_tr, self._dataset_vl, self._dataset_ts = self._random_split(dataset)
@@ -124,17 +124,17 @@ class ShapePredictionDataModule(LightningDataModule):
         return random_split(dataset, [size_tr, size_vl, size_ts], generator=self._gen)
 
     def train_dataloader(self) -> DataLoader:
-        return DataLoader(self._dataset_tr, batch_size=self._batch_size, num_workers=self._num_workers, shuffle=True)
+        return DataLoader(self._dataset_tr, batch_size=self._batch_sz, num_workers=self._num_workers, shuffle=True)
 
     def val_dataloader(self) -> DataLoader:
-        return DataLoader(self._dataset_vl, batch_size=self._batch_size, num_workers=self._num_workers, shuffle=False)
+        return DataLoader(self._dataset_vl, batch_size=self._batch_sz, num_workers=self._num_workers, shuffle=False)
 
     def test_dataloader(self) -> DataLoader:
-        return DataLoader(self._dataset_ts, batch_size=self._batch_size, num_workers=self._num_workers, shuffle=False)
+        return DataLoader(self._dataset_ts, batch_size=self._batch_sz, num_workers=self._num_workers, shuffle=False)
 
     def predict_dataloader(self):
         return [
-            DataLoader(self._dataset_tr, batch_size=self._batch_size, num_workers=self._num_workers, shuffle=False),
-            DataLoader(self._dataset_vl, batch_size=self._batch_size, num_workers=self._num_workers, shuffle=False),
-            DataLoader(self._dataset_ts, batch_size=self._batch_size, num_workers=self._num_workers, shuffle=False),
+            DataLoader(self._dataset_tr, batch_size=self._batch_sz, num_workers=self._num_workers, shuffle=False),
+            DataLoader(self._dataset_vl, batch_size=self._batch_sz, num_workers=self._num_workers, shuffle=False),
+            DataLoader(self._dataset_ts, batch_size=self._batch_sz, num_workers=self._num_workers, shuffle=False),
         ]
