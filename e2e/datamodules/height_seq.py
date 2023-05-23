@@ -86,8 +86,8 @@ class ShapePredictionDataModule(LightningDataModule):
         self,
         data_dir: Path,
         dataset: WaamDataset,
-        batch_size=64,
-        workers=8,
+        batch_size=8,
+        workers=1,
         split=[0.7, 0.3, 0],
         separate_test_set: Optional[EXPERIMENT] = None,
         seed=42,
@@ -96,7 +96,6 @@ class ShapePredictionDataModule(LightningDataModule):
 
         self.dataset = dataset
 
-        # TODO: configure batch_size etc.
         self._num_workers = workers
         self._batch_sz = batch_size
         self._data_dir = data_dir
