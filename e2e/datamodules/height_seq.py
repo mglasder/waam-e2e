@@ -39,12 +39,13 @@ class ShapeDataset(WaamDataset):
 
         return inpt, target, sample_id
 
-    def create(self, samples: Samples):
+    def create(self, samples: Samples) -> WaamDataset:
         self.inputs = self._extract_inputs(samples)
         self.targets = self._extract_targets(samples)
         self.ids = self._get_ids(samples)
-
         # TODO: mirror
+
+        return self
 
     def _extract_inputs(self, samples: Samples) -> list[LineSegmentZ]:
         inputs = []
