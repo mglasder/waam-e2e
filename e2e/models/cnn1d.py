@@ -59,5 +59,5 @@ class CNN1D(LightningModule):
         return {"loss": pred_loss, "preds": preds, "targets": targets}
 
     def configure_optimizers(self):
-        optimizer = Adam(self.model.parameters(), lr=1e-3, weight_decay=1e-5)
+        optimizer = Adam(self.model.parameters(), lr=0.005, weight_decay=0)
         return optimizer
