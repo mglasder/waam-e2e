@@ -16,8 +16,9 @@ class CNN1D(LightningModule):
         # ...
 
     def forward(self, x):
-        x = self.model(x)
-        return x
+        # TODO: view or transpose?
+        x = self.model(x.view(-1, 1, 224))
+        return x.view(-1, 224)
 
     def training_step(self, batch, batch_idx):
         inputs, targets, _ = batch
