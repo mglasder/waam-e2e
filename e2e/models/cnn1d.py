@@ -5,14 +5,29 @@ from torch.optim import Adam
 
 
 class CNN1D(LightningModule):
-    def __init__(self, loss=F.mse_loss):
+    def __init__(self, loss=F.mse_loss, seq_length=224, batch_size=16):
         super().__init__()
         self.save_hyperparameters()
 
+        self.batch_sz = batch_size
+
         self.loss = loss
+        self.length_in = seq_length
+        length_out = seq_length
+        k = 3  # kernel_size
+        d = 1  # dilation
+        s = 1  # stride
+        p = (k - 1) // 2  # padding, k is odd
 
         # TODO: finish model implementation
-        self.model = nn.Conv1d(in_channels=224, out_channels=224, kernel_size=24, stride=1, padding=0)
+        self.model = nn.Sequential(
+            nn.Conv1d(in_channels=1, out_channels=224, kernel_size=k, stride=s, dilation=d, padding=p),
+            nn.Conv1d(in_channels=224, out_channels=1, kernel_size=k, stride=s, dilation=d, padding=p),
+            nn.ReLU(),
+            nn.Conv1d(in_channels=1, out_channels=224, kernel_size=k, stride=s, dilation=d, padding=p),
+            nn.Conv1d(in_channels=224, out_channels=1, kernel_size=k, stride=s, dilation=d, padding=p),
+            nn.ReLU(),
+        )
         # ...
 
     def forward(self, x):
