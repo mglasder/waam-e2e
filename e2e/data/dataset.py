@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-from e2e.datamodules.sample import CrossSectionSample
+from e2e.data.sample import CrossSectionSample
 
 IDs = TypeVar("IDs", bound=list[str])
 Samples = TypeVar("Samples", bound=list[CrossSectionSample])
