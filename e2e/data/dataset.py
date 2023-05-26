@@ -18,6 +18,32 @@ class WaamDataset(Dataset):
         pass
 
 
+class ZeroRandomDataset(WaamDataset):
+    def __init__(self, segment_length=224, num_samples=32):
+        self.inputs: Optional[list[LineSegmentZ]] = None
+        self.targets: Optional[list[LineSegmentZ]] = None
+        self.ids: Optional[IDs] = None
+
+        self._seg_len = segment_length
+        self._num_samples = num_samples
+
+    def __len__(self):
+        return len(self.ids)
+
+    def __getitem__(self, idx):
+        inpt = self.inputs[idx]
+        target = self.targets[idx]
+        sample_id = self.ids[idx]
+
+        return inpt, target, sample_id
+
+    def create(self, samples: Samples) -> WaamDataset:
+        self.inputs = [torch.zeros(self._seg_len) for _ in range(self._num_samples)]
+        self.targets = [torch.randn(self._seg_len) for _ in range(self._num_samples)]
+        self.ids = [f"dummy_{i}" for i in range(self._num_samples)]
+        return self
+
+
 class ShapeDataset(WaamDataset):
     def __init__(self, segment_length=224):
         self.inputs: Optional[list[LineSegmentZ]] = None
