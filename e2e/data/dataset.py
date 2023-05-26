@@ -18,7 +18,6 @@ class WaamDataset(Dataset):
         pass
 
 
-# TODO: own module
 class ShapeDataset(WaamDataset):
     def __init__(self, segment_length=224):
         self.inputs: Optional[list[LineSegmentZ]] = None
