@@ -139,3 +139,5 @@ dmypy.json
 
 # Pytorch, Lightning, wandb
 */lightning_logs
+*/checkpoints
+*/wandb
