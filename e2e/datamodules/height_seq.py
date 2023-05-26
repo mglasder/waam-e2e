@@ -21,6 +21,7 @@ class WaamDataset(Dataset):
         pass
 
 
+# TODO: own module
 class ShapeDataset(WaamDataset):
     def __init__(self, segment_length=224):
         self.inputs: Optional[list[LineSegmentZ]] = None
@@ -81,14 +82,15 @@ class ShapeDataset(WaamDataset):
         return torch.tensor(ys, dtype=torch.float32)
 
 
+# TODO: own module
 class ShapePredictionDataModule(LightningDataModule):
     def __init__(
         self,
         data_dir: Path,
         dataset: WaamDataset,
-        batch_size=8,
+        batch_size=16,
         workers=1,
-        split=[0.7, 0.3, 0],
+        split=[0.5, 0.5, 0],
         separate_test_set: Optional[EXPERIMENT] = None,
         seed=42,
     ):
