@@ -3,7 +3,8 @@ from pathlib import Path
 from lightning import Trainer
 from lightning.pytorch.loggers import WandbLogger
 
-from e2e.datamodules.height_seq import ShapeDataset, ShapePredictionDataModule
+from e2e.data.datamodule import ShapePredictionDataModule
+from e2e.data.dataset import ShapeDataset
 from e2e.models.cnn1d import CNN1D
 
 NAS_DATA_DIR = Path("/Volumes/hornets/homes/mglasder/datasets/TrainingDev")
