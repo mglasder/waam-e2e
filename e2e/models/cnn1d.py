@@ -1,3 +1,4 @@
+import torch
 import torch.nn.functional as F
 from lightning import LightningModule
 from torch import nn
@@ -28,6 +29,14 @@ class CNN1D(LightningModule):
             # nn.Conv1d(in_channels=224, out_channels=1, kernel_size=k, stride=s, dilation=d, padding=p),
         )
         # ...
+        # init model
+        self.model.apply(self._init_weights)
+
+    @staticmethod
+    def _init_weights(m):
+        if type(m) == nn.Conv1d:
+            torch.nn.init.xavier_uniform_(m.weight)
+            m.bias.data.fill_(0.01)
 
     def forward(self, x):
         # TODO: view or transpose?
