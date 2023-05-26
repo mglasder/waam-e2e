@@ -39,23 +39,22 @@ class CNN1D(LightningModule):
             m.bias.data.fill_(0.01)
 
     def forward(self, x):
-        # TODO: view or transpose?
         x = self.model(x.view(-1, 1, 224))
         return x.view(-1, 224)
 
     def training_step(self, batch, batch_idx):
-        inputs, targets, _ = batch
+        inputs, targets, ids = batch
         predictions = self(inputs)
         train_loss = self.loss(predictions, targets)
         self.log("train_loss", train_loss, prog_bar=True, on_epoch=True, on_step=False, batch_size=self.batch_sz)
-        return {"loss": train_loss, "preds": predictions, "targets": targets}
+        return {"loss": train_loss, "preds": predictions, "targets": targets, "inputs": inputs, "ids": ids}
 
     def validation_step(self, batch, batch_idx):
-        inputs, targets, _ = batch
+        inputs, targets, ids = batch
         predictions = self(inputs)
         val_loss = self.loss(predictions, targets)
         self.log("val_loss", val_loss, prog_bar=True, on_epoch=True, on_step=False, batch_size=self.batch_sz)
-        return {"loss": val_loss, "preds": predictions, "targets": targets}
+        return {"loss": val_loss, "preds": predictions, "targets": targets, "inputs": inputs, "ids": ids}
 
     def test_step(self, batch, batch_idx):
         return self.validation_step(batch, batch_idx)
