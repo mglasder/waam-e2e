@@ -23,12 +23,14 @@ class CNN1D(LightningModule):
         inputs, targets, _ = batch
         predictions = self(inputs)
         train_loss = self.loss(predictions, targets)
+        self.log("train_loss", train_loss, prog_bar=True, on_epoch=True, on_step=False, batch_size=self.batch_sz)
         return {"loss": train_loss, "preds": predictions, "targets": targets}
 
     def validation_step(self, batch, batch_idx):
         inputs, targets, _ = batch
         predictions = self(inputs)
         val_loss = self.loss(predictions, targets)
+        self.log("val_loss", val_loss, prog_bar=True, on_epoch=True, on_step=False, batch_size=self.batch_sz)
         return {"loss": val_loss, "preds": predictions, "targets": targets}
 
     def test_step(self, batch, batch_idx):
