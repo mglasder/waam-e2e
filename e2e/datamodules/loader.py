@@ -3,6 +3,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Callable, List, Union
 
+from tqdm import tqdm
+
 from e2e.datamodules.sample import CrossSectionSample
 
 
@@ -42,4 +44,4 @@ class SampleLoader:
 
     @staticmethod
     def _read_files(filepaths: list[str], condition: Callable[[str], bool]) -> list[CrossSectionSample]:
-        return [CrossSectionSample.read_file(f) for f in filepaths if condition(f)]
+        return [CrossSectionSample.read_file(f) for f in tqdm(filepaths) if condition(f)]
