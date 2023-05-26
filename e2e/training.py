@@ -20,7 +20,7 @@ def main():
 
     datamodule = ShapePredictionDataModule(batch_size=BATCH_SIZE, data_dir=MAC_DATA_DIR, dataset=ShapeDataset())
 
-    trainer = Trainer(max_epochs=50, logger=logger, enable_checkpointing=False, gpu=False)
+    trainer = Trainer(max_epochs=50, logger=logger, enable_checkpointing=False, accelerator="cpu")
     trainer.fit(model=model, datamodule=datamodule)
 
 
