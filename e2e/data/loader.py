@@ -5,7 +5,7 @@ from typing import Callable, List, Union
 
 from tqdm import tqdm
 
-from e2e.datamodules.sample import CrossSectionSample
+from e2e.data.sample import CrossSectionSample
 
 
 class EXPERIMENT(Enum):

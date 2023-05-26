@@ -5,8 +5,8 @@ import torch
 from lightning import LightningDataModule
 from torch.utils.data import DataLoader, random_split
 
-from e2e.datamodules.height_seq import WaamDataset
-from e2e.datamodules.loader import EXPERIMENT, SampleLoader
+from e2e.data.dataset import WaamDataset
+from e2e.data.loader import EXPERIMENT, SampleLoader
 
 
 class ShapePredictionDataModule(LightningDataModule):
