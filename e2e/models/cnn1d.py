@@ -14,19 +14,18 @@ class CNN1D(LightningModule):
         self.loss = loss
         self.length_in = seq_length
         length_out = seq_length
-        k = 3  # kernel_size
+        k = 224  # kernel_size
         d = 1  # dilation
         s = 1  # stride
         p = (k - 1) // 2  # padding, k is odd
 
         # TODO: finish model implementation
         self.model = nn.Sequential(
-            nn.Conv1d(in_channels=1, out_channels=224, kernel_size=k, stride=s, dilation=d, padding=p),
-            nn.Conv1d(in_channels=224, out_channels=1, kernel_size=k, stride=s, dilation=d, padding=p),
-            nn.ReLU(),
-            nn.Conv1d(in_channels=1, out_channels=224, kernel_size=k, stride=s, dilation=d, padding=p),
-            nn.Conv1d(in_channels=224, out_channels=1, kernel_size=k, stride=s, dilation=d, padding=p),
-            nn.ReLU(),
+            nn.BatchNorm1d(num_features=1),
+            nn.Conv1d(in_channels=1, out_channels=224, kernel_size=k, stride=s, dilation=d, padding=0),
+            # nn.Conv1d(in_channels=1, out_channels=1, kernel_size=k, stride=s, dilation=d, padding=p),
+            # nn.Conv1d(in_channels=1, out_channels=224, kernel_size=k, stride=s, dilation=d, padding=p),
+            # nn.Conv1d(in_channels=224, out_channels=1, kernel_size=k, stride=s, dilation=d, padding=p),
         )
         # ...
 
