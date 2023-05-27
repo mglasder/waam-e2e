@@ -63,7 +63,7 @@ class PredictionPlotting(Callback):
         ax.plot(pred.cpu().detach().numpy(), color="red", label="pred")
         ax.plot(trgt.cpu().numpy(), color="blue", label="target (after)")
         ax.plot(inpt.cpu().detach().numpy(), color="black", label="input (before)")
-        caption = f"{stage} sample: {id_} - epoch: {epoch} - batch_loss: {batch_loss}"
+        caption = f"{stage} sample: {id_} - epoch: {epoch} \n batch_loss: {batch_loss:.4f}"
         ax.set_title(caption)
         ax.legend()
         return fig, caption
