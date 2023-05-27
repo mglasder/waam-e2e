@@ -27,9 +27,8 @@ class CNN1D(LightningModule):
             # nn.Conv1d(in_channels=1, out_channels=1, kernel_size=k, stride=s, dilation=d, padding=p),
             # nn.Conv1d(in_channels=1, out_channels=224, kernel_size=k, stride=s, dilation=d, padding=p),
             # nn.Conv1d(in_channels=224, out_channels=1, kernel_size=k, stride=s, dilation=d, padding=p),
+            # nn.Tanh(),
         )
-        # ...
-        # init model
         self.model.apply(self._init_weights)
 
     @staticmethod
