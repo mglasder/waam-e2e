@@ -141,3 +141,7 @@ dmypy.json
 */lightning_logs
 */checkpoints
 */wandb
+
+# files
+*.png
+*.svg
