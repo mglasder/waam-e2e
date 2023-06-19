@@ -12,26 +12,30 @@ NAS_DATA_DIR = Path("/Volumes/hornets/homes/mglasder/datasets/TrainingDev")
 MAC_DATA_DIR = Path("/Users/magnus/datasets/WAAM/TrainingDev")
 
 BATCH_SIZE = 16
+MAX_EPOCHS = 200
+N_WORKERS = 4
 
 
 def main():
     model = CNN1D(batch_size=BATCH_SIZE)
-    logger = WandbLogger(project="waam-e2e-pre", log_model="all", log_every_n_steps=10)
+    logger = WandbLogger(project="waam-e2e-pre", log_model="all")
 
     datamodule = ShapePredictionDataModule(
         batch_size=BATCH_SIZE,
         data_dir=MAC_DATA_DIR,
+        workers=N_WORKERS,
         dataset=ShapeDataset(),
     )
 
-    callbacks = [PredictionPlotting()]
+    callbacks = [PredictionPlotting(epochs=[], subset_size=5)]
 
     trainer = Trainer(
-        max_epochs=20,
+        max_epochs=MAX_EPOCHS,
         logger=logger,
         enable_checkpointing=False,
         accelerator="mps",
         callbacks=callbacks,
+        log_every_n_steps=10,
     )
     trainer.fit(model=model, datamodule=datamodule)
 
