@@ -38,8 +38,6 @@ class Model(LightningModule):
 
         self.model = model
         self.model.apply(self._init_weights)
-        # if torch.cuda.is_available():
-        #     self.model.cuda()
 
     @staticmethod
     def _init_weights(m):
