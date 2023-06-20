@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import torch
 from lightning import Trainer
 from lightning.pytorch.loggers import WandbLogger
 
@@ -14,6 +15,9 @@ MAC_DATA_DIR = Path("/Users/magnus/datasets/WAAM/TrainingDev")
 BATCH_SIZE = 16
 MAX_EPOCHS = 200
 N_WORKERS = 4
+
+if torch.cuda.is_available():
+    torch.set_float32_matmul_precision("medium")
 
 
 def main():
