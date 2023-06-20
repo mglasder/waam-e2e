@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 import torch
 from lightning import LightningDataModule
@@ -17,6 +17,7 @@ class ShapePredictionDataModule(LightningDataModule):
         batch_size=16,
         workers=1,
         split=[0.5, 0.5, 0],
+        train_val_sets: Union[str, list[EXPERIMENT]] = "all",
         separate_test_set: Optional[EXPERIMENT] = None,
         seed=42,
     ):
@@ -30,13 +31,14 @@ class ShapePredictionDataModule(LightningDataModule):
         self._split = split
 
         self._sep_ts_set = separate_test_set
+        self._tr_val_sets = train_val_sets
         self._dataset_tr, self._dataset_vl, self._dataset_ts = None, None, None
 
         self._gen = torch.Generator().manual_seed(seed)
 
     def setup(self, stage: str) -> None:
         loader = SampleLoader(self._data_dir)
-        cross_section_samples = loader.load(which="all")
+        cross_section_samples = loader.load(which=self._tr_val_sets)
         dataset = self.dataset.create(cross_section_samples)
         self._dataset_tr, self._dataset_vl, self._dataset_ts = self._random_split(dataset)
 
