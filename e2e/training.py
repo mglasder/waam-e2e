@@ -37,7 +37,7 @@ def main():
         max_epochs=MAX_EPOCHS,
         logger=logger,
         enable_checkpointing=False,
-        accelerator="mps",
+        accelerator="cuda",
         callbacks=callbacks,
         log_every_n_steps=10,
     )
