@@ -18,38 +18,32 @@ class Block(nn.Module):
         return x
 
 
-class CNN1D(LightningModule):
-    def __init__(self, loss=F.mse_loss, seq_length=224, batch_size=16):
+class Model(LightningModule):
+    def __init__(self, model: nn.Module, loss=F.mse_loss, seq_length=224, batch_size=16):
         super().__init__()
-        self.save_hyperparameters()
+        self.save_hyperparameters(ignore=["model"])
 
         self.batch_sz = batch_size
 
         self.loss = loss
         self.length_in = seq_length
-        length_out = seq_length
-        k = 56  # kernel_size
-        s = 8  # stride
-        p = (k - s) // 2  # padding, k is odd
-        p = 0
-        out_sz1 = ((seq_length + 2 * p - k) // s) + 1
-        # out_sz2 = ((out_sz1 + 2 * p - k) // s) + 1
+        # length_out = seq_length
+        # k = 56  # kernel_size
+        # s = 8  # stride
+        # p = (k - s) // 2  # padding, k is odd
+        # p = 0
+        # out_sz1 = ((seq_length + 2 * p - k) // s) + 1
+        # # out_sz2 = ((out_sz1 + 2 * p - k) // s) + 1
+        #
 
-        # TODO: finish model implementation
-        self.model = nn.Sequential(
-            # nn.ReLU(),
-            Block(in_channels=1, out_channels=1, kernel_size=k, stride=s, padding=p),
-            nn.ReLU(),
-            # Block(in_channels=16, out_channels=1, kernel_size=k, stride=s, padding=p),
-            # nn.ReLU(),
-            nn.BatchNorm1d(num_features=1),
-            nn.Linear(in_features=out_sz1, out_features=224),
-        )
+        self.model = model
         self.model.apply(self._init_weights)
+        # if torch.cuda.is_available():
+        #     self.model.cuda()
 
     @staticmethod
     def _init_weights(m):
-        if type(m) == nn.Conv1d or type(m) == nn.Linear:
+        if type(m) == nn.Conv1d or type(m) == nn.Linear or type(m) == nn.ConvTranspose1d:
             torch.nn.init.xavier_uniform_(m.weight)
             m.bias.data.fill_(0.01)
 
@@ -82,5 +76,5 @@ class CNN1D(LightningModule):
         return {"loss": pred_loss, "preds": preds, "targets": targets}
 
     def configure_optimizers(self):
-        optimizer = Adam(self.model.parameters(), lr=0.01, weight_decay=0)
+        optimizer = Adam(self.model.parameters(), lr=0.005, weight_decay=0)
         return optimizer
