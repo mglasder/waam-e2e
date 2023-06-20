@@ -9,8 +9,10 @@ from e2e.data.datamodule import ShapePredictionDataModule
 from e2e.data.dataset import ShapeDataset
 from e2e.models.cnn1d import CNN1D
 
-NAS_DATA_DIR = Path("/Volumes/hornets/homes/mglasder/datasets/TrainingDev")
-MAC_DATA_DIR = Path("/Users/magnus/datasets/WAAM/TrainingDev")
+NAS_DATA_DIR_DEV = Path("/Volumes/hornets/homes/mglasder/datasets/TrainingDev")
+MAC_DATA_DIR_DEV = Path("/Users/magnus/datasets/WAAM/TrainingDev")
+VM_DATA_DIR = Path("/home/magnus/datasets/waam/30_processing_results/ImageGenerator")
+VM_DATA_DIR_DEV = Path("/home/magnus/nas2/homes/mglasder/datasets/TrainingDev")
 
 BATCH_SIZE = 16
 MAX_EPOCHS = 200
@@ -26,7 +28,7 @@ def main():
 
     datamodule = ShapePredictionDataModule(
         batch_size=BATCH_SIZE,
-        data_dir=MAC_DATA_DIR,
+        data_dir=VM_DATA_DIR,
         workers=N_WORKERS,
         dataset=ShapeDataset(),
     )
