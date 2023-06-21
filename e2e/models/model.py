@@ -5,19 +5,6 @@ from torch import nn
 from torch.optim import Adam
 
 
-class Block(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1):
-        super().__init__()
-
-        self.bn = nn.BatchNorm1d(in_channels)
-        self.conv = nn.Conv1d(in_channels, out_channels, kernel_size, stride, padding)
-
-    def forward(self, x):
-        x = self.bn(x)
-        x = self.conv(x)
-        return x
-
-
 class Model(LightningModule):
     def __init__(self, model: nn.Module, loss=F.mse_loss, seq_length=224, batch_size=16):
         super().__init__()
