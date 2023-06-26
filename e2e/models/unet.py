@@ -86,8 +86,9 @@ class UNet1D(nn.Module):
         # d4 = self.dec[3](d3, s1)
         # return self.out(d4)
 
+        out = self.out(d1)
         # with residual added
-        out = self.out(d1) + x
+        out += x
         return out
 
 
