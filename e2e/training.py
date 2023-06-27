@@ -50,7 +50,7 @@ def main():
     else:
         logger = WandbLogger(project="waam-e2e-pre", log_model="all")
         split = [0.7, 0.3, 0]
-        train_val_sets = ([EXP.CONSTANT_EX3, EXP.CONSTANT_EX4, EXP.RANDOM_EX3, EXP.RANDOM_EX5],)
+        train_val_sets = [EXP.CONSTANT_EX3, EXP.CONSTANT_EX4, EXP.RANDOM_EX3, EXP.RANDOM_EX5]
         separate_test_set = None
 
     datamodule = ShapePredictionDataModule(
