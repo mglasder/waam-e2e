@@ -60,20 +60,19 @@ class Model(LightningModule):
         return optimizer
 
     def _loss(self, inputs, predictions, targets):
-        return (
-            self.loss(predictions, targets)
-            + self.lambda_ * self._smoothness(predictions.detach())
-            + self.gamma * self._area_loss(inputs.cpu(), predictions.detach().cpu(), targets.cpu())
-        )
+        loss = self.loss(predictions, targets)
+        smoothness_loss = self._smoothness(predictions.detach())
+        area_loss = self._area_loss(inputs.cpu(), predictions.detach().cpu(), targets.cpu())
+        return (1.0 - self.lambda_ - self.gamma) * loss + self.lambda_ * smoothness_loss + self.gamma * area_loss
 
     @staticmethod
     def _smoothness(preds):
         dy = preds[:, 1:] - preds[:, :-1]
         d2y = dy[:, 1:] - dy[:, :-1]
-        return torch.mean(torch.sum(d2y**2))
+        return torch.mean(torch.sum(d2y**2)) / 1_000
 
     @staticmethod
     def _area_loss(inputs, targets, predictions):
         target_diff = torch.sum(targets - inputs, axis=1)
         pred_diff = torch.sum(predictions - inputs, axis=1)
-        return F.mse_loss(pred_diff, target_diff) / 1000
+        return F.mse_loss(pred_diff, target_diff) / 10_000
