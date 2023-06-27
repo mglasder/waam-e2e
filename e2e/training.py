@@ -17,11 +17,11 @@ VM_DATA_DIR = Path("/home/magnus/datasets/waam/30_processing_results/ImageGenera
 VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 
 BATCH_SIZE = 16
-MAX_EPOCHS = 100
-N_WORKERS = 16
+MAX_EPOCHS = 400
+N_WORKERS = 1
 DEVICE = "cuda"
-LAMBDA = 0.01
-GAMMA = 0.01
+LAMBDA = 0.1
+GAMMA = 0.1
 DEV_RUN = False
 
 if torch.cuda.is_available():
