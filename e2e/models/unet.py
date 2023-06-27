@@ -15,13 +15,13 @@ def maxpool1d_output_length(l_in, padding, dilation, kernel_size, stride):
 
 class EncoderConfig(BaseSettings):
     in_cs: list[int] = [1]  # 4, 8, 16]
-    out_cs: list[int] = [8]  # 8, 16, 32]
+    out_cs: list[int] = [32]  # 8, 16, 32]
     k_sz: list[int] = [56]  # , 3, 3, 3]
 
 
 class DecoderConfig(BaseSettings):
-    in_cs: list[int] = [16]  # 32, 16, 8]
-    out_cs: list[int] = [8]  # , 16, 8, 4]
+    in_cs: list[int] = [32]  # 32, 16, 8]
+    out_cs: list[int] = [32]  # , 16, 8, 4]
     k_sz: list[int] = [2]  # , 3, 3, 3]
 
 
