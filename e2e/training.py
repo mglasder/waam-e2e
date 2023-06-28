@@ -4,11 +4,11 @@ import torch
 from lightning import Trainer
 from lightning.pytorch.loggers import WandbLogger
 
-from e2e.callbacks.plotting import PredictionPlotting
+from e2e.callbacks.plotting import PredictionPlottingV2
 from e2e.data.datamodule import ShapePredictionDataModule
-from e2e.data.dataset import ShapeDataset
+from e2e.data.dataset import ShapeV2Dataset
 from e2e.data.loader import EXPERIMENT as EXP
-from e2e.models.model import Model
+from e2e.models.modelV2 import ModelV2
 from e2e.models.unet import DecoderConfig, EncoderConfig, UNet1D
 
 NAS_DATA_DIR_DEV = Path("/Volumes/hornets/homes/mglasder/datasets/TrainingDev")
@@ -20,9 +20,11 @@ BATCH_SIZE = 16
 MAX_EPOCHS = 200
 N_WORKERS = 16
 DEVICE = "cuda"
+THETA = 0.1
 LAMBDA = 0.1
-GAMMA = 0.1
-DEV_RUN = False
+GAMMA = 0.0
+DEV_RUN = True
+LOGGING = True
 
 if torch.cuda.is_available():
     torch.set_float32_matmul_precision("medium")
@@ -32,32 +34,34 @@ def main():
     unet = UNet1D(enconf=EncoderConfig(), deconf=DecoderConfig())
     unet.to(DEVICE)
 
-    # resnet = ResNet1D(conf=ResNetConfig())
-
-    model = Model(
+    model = ModelV2(
         model=unet,
         batch_size=BATCH_SIZE,
+        theta=THETA,
         lambda_=LAMBDA,
         gamma=GAMMA,
     )
 
     if DEV_RUN:
-        logger = None
         split = [0.5, 0.5, 0]
         train_val_sets = "all"
         separate_test_set = None
 
     else:
-        logger = WandbLogger(project="waam-e2e-pre", log_model="all")
         split = [0.7, 0.3, 0]
         train_val_sets = [EXP.CONSTANT_EX3, EXP.CONSTANT_EX4, EXP.RANDOM_EX3, EXP.RANDOM_EX5]
         separate_test_set = None
 
+    if LOGGING:
+        logger = WandbLogger(project="waam-e2e-pre", log_model="all")
+    else:
+        logger = None
+
     datamodule = ShapePredictionDataModule(
         batch_size=BATCH_SIZE,
-        data_dir=VM_DATA_DIR,
+        data_dir=VM_DATA_DIR_DEV,
         workers=N_WORKERS,
-        dataset=ShapeDataset(),
+        dataset=ShapeV2Dataset(),
         split=split,
         train_val_sets=train_val_sets,
         separate_test_set=separate_test_set,
@@ -66,7 +70,8 @@ def main():
     callbacks = []
     if logger is not None:
         # callbacks.append(EarlyStopping(monitor="val_loss", patience=10, min_delta=0.001, mode="min"))
-        callbacks.append(PredictionPlotting(epochs=[]))
+        # callbacks.append(PredictionPlotting(epochs=[]))
+        callbacks.append(PredictionPlottingV2(epochs=[]))
 
     trainer = Trainer(
         max_epochs=MAX_EPOCHS,
