@@ -25,9 +25,13 @@ class DecoderConfig(BaseSettings):
     k_sz: list[int] = [2]  # , 3, 3, 3]
 
 
+# TODO: revert make layer, do manually it's easer to understand
 class UNet1D(nn.Module):
-    def __init__(self, enconf: EncoderConfig, deconf: DecoderConfig, inout_length=224, act=nn.ReLU()):
+    def __init__(self, enconf: EncoderConfig, deconf: DecoderConfig, in_len=224, out_len=100, act=nn.ReLU()):
         super().__init__()
+
+        self.out_len = out_len
+        self.in_len = in_len
 
         self.enc = self._make_encoder_blocks(enconf, act=act)
         self.b = ConvBlock(
@@ -40,13 +44,16 @@ class UNet1D(nn.Module):
         )
         self.dec = self._make_decoder_blocks(deconf, act=act)
 
-        k = self._calc_out_layer_kernel_size(inout_length)
-        self.out = nn.ConvTranspose1d(deconf.out_cs[-1], 1, kernel_size=k, stride=1, padding=0)
+        # k = self._calc_out_layer_kernel_size(self.in_len, self.out_len)
+        # self.out = nn.ConvTranspose1d(deconf.out_cs[-1], 1, kernel_size=8, stride=1, padding=0)
+        # TODO: implement proper scale down and scale up, and use ConvTranspose1d here
+        self.out = nn.Conv1d(32, 1, 21, 1, 1)
         # instead of nn.Conv1d(deconf.out_cs[-1], 1, kernel_size=1, stride=1, padding=0)
 
-    def _calc_out_layer_kernel_size(self, inout_length):
-        decoder_output_length = self.enc[-1].get_output_size_s(inout_length)
-        k = inout_length - decoder_output_length + 1
+    def _calc_out_layer_kernel_size(self, in_length, out_length):
+        # TODO: implement this properly; maybe external librabry
+        decoder_output_length = self.enc[-1].get_output_size_s(in_length)
+        k = out_length - decoder_output_length + 1
         return k
 
     def to(self, device):
@@ -88,7 +95,7 @@ class UNet1D(nn.Module):
 
         out = self.out(d1)
         # with residual added
-        out += x
+        # out += x
         return out
 
 
