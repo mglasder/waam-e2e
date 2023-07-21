@@ -4,12 +4,13 @@ import torch
 from lightning import Trainer
 from lightning.pytorch.loggers import WandbLogger
 
+from e2e.callbacks.metrics import FootprintAvgAbsValErrorLogger, ModHausdorffLogger
 from e2e.callbacks.plotting import PredictionPlottingV2
 from e2e.data.datamodule import ShapePredictionDataModule
 from e2e.data.dataset import ShapeV2Dataset
 from e2e.data.loader import EXPERIMENT as EXP
 from e2e.models.modelV2 import ModelV2
-from e2e.models.unet import DecoderConfig, EncoderConfig, UNet1D
+from e2e.models.simpleconv import SimpleConv
 
 NAS_DATA_DIR_DEV = Path("/Volumes/hornets/homes/mglasder/datasets/TrainingDev")
 MAC_DATA_DIR_DEV = Path("/Users/magnus/datasets/WAAM/TrainingDev")
@@ -17,29 +18,37 @@ VM_DATA_DIR = Path("/home/magnus/datasets/waam/30_processing_results/ImageGenera
 VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 
 BATCH_SIZE = 16
-MAX_EPOCHS = 200
+MAX_EPOCHS = 100
 N_WORKERS = 16
 DEVICE = "cuda"
-THETA = 0.1
-LAMBDA = 0.1
-GAMMA = 0.0
+# footprint
+THETA = 0.2
+# smoothness
+LAMBDA = 0.0
+# area
+GAMMA = 0.6
 DEV_RUN = True
 LOGGING = True
+TARGET_LENGTH = 50
 
 if torch.cuda.is_available():
     torch.set_float32_matmul_precision("medium")
 
 
 def main():
-    unet = UNet1D(enconf=EncoderConfig(), deconf=DecoderConfig())
-    unet.to(DEVICE)
+    # unet = UNet1D(enconf=EncoderConfig(), deconf=DecoderConfig())
+    # unet.to(DEVICE)
+
+    conv = SimpleConv(in_channels=1, out_channels=TARGET_LENGTH, kernel_size=224)
+    conv.to(DEVICE)
 
     model = ModelV2(
-        model=unet,
+        model=conv,
         batch_size=BATCH_SIZE,
         theta=THETA,
         lambda_=LAMBDA,
         gamma=GAMMA,
+        out_len=TARGET_LENGTH,
     )
 
     if DEV_RUN:
@@ -59,9 +68,9 @@ def main():
 
     datamodule = ShapePredictionDataModule(
         batch_size=BATCH_SIZE,
-        data_dir=VM_DATA_DIR_DEV,
+        data_dir=VM_DATA_DIR,
         workers=N_WORKERS,
-        dataset=ShapeV2Dataset(),
+        dataset=ShapeV2Dataset(output_length=TARGET_LENGTH),
         split=split,
         train_val_sets=train_val_sets,
         separate_test_set=separate_test_set,
@@ -72,6 +81,8 @@ def main():
         # callbacks.append(EarlyStopping(monitor="val_loss", patience=10, min_delta=0.001, mode="min"))
         # callbacks.append(PredictionPlotting(epochs=[]))
         callbacks.append(PredictionPlottingV2(epochs=[]))
+        callbacks.append(FootprintAvgAbsValErrorLogger())
+        callbacks.append(ModHausdorffLogger())
 
     trainer = Trainer(
         max_epochs=MAX_EPOCHS,
