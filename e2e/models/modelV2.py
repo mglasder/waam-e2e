@@ -94,7 +94,6 @@ class ModelV2(LightningModule):
 
     @staticmethod
     def _area_loss(targets, predictions):
-        # TODO: will not work anymore because of different length and resolution, refactor
         diff = torch.abs(targets - predictions)
         # this is not the exact area, since the resolution is not 0.1 anymore
         area = torch.sum(diff, dim=1) * 0.1
