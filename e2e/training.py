@@ -30,6 +30,7 @@ GAMMA = 0.6
 DEV_RUN = True
 LOGGING = True
 TARGET_LENGTH = 50
+LR = 0.001
 
 if torch.cuda.is_available():
     torch.set_float32_matmul_precision("medium")
@@ -68,6 +69,7 @@ def main():
 
     datamodule = ShapePredictionDataModule(
         batch_size=BATCH_SIZE,
+        lr=LR,
         data_dir=VM_DATA_DIR,
         workers=N_WORKERS,
         dataset=ShapeV2Dataset(output_length=TARGET_LENGTH),

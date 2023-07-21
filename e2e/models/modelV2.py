@@ -16,6 +16,7 @@ class ModelV2(LightningModule):
         in_len=224,
         out_len=100,
         batch_size=16,
+        lr=0.001,
     ):
         super().__init__()
         self.save_hyperparameters(ignore=["model"])
@@ -23,6 +24,7 @@ class ModelV2(LightningModule):
         self.batch_sz = batch_size
 
         self.loss = loss
+        self.lr = lr
         self.lambda_ = lambda_  # controls smoothness penalty
         self.gamma = gamma  # controls area penalty
         self.theta = theta  # controls footprint penalty
@@ -68,7 +70,7 @@ class ModelV2(LightningModule):
         return {"loss": pred_loss, "preds": predictions, "targets": targets}
 
     def configure_optimizers(self):
-        optimizer = Adam(self.model.parameters(), lr=0.001, weight_decay=0)
+        optimizer = Adam(self.model.parameters(), lr=self.lr, weight_decay=0)
         return optimizer
 
     def _loss(self, inputs, predictions, targets):
