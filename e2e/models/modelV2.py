@@ -68,21 +68,21 @@ class ModelV2(LightningModule):
         return {"loss": pred_loss, "preds": predictions, "targets": targets}
 
     def configure_optimizers(self):
-        optimizer = Adam(self.model.parameters(), lr=0.0005, weight_decay=0)
+        optimizer = Adam(self.model.parameters(), lr=0.001, weight_decay=0)
         return optimizer
 
     def _loss(self, inputs, predictions, targets):
         loss = self.loss(predictions, targets)
-        footprint_loss = self._footprint_loss(predictions.detach(), targets)
-        smoothness_loss = self._smoothness(predictions.detach())
-        # area_loss = self._area_loss(inputs.cpu(), predictions.detach().cpu(), targets.cpu())
+        footprint_loss = self._footprint_loss(predictions, targets)
+        # smoothness_loss = self._smoothness(predictions.detach())
+        area_loss = self._area_loss(predictions, targets)
         # return (1.0 - self.lambda_ - self.gamma) * loss + self.lambda_ * smoothness_loss + self.gamma * area_loss
-        return (1 - self.theta - self.lambda_) * loss + self.theta * footprint_loss + self.lambda_ * smoothness_loss
+        return (1 - self.theta - self.gamma) * loss + self.theta * footprint_loss + self.gamma * area_loss
 
     def _footprint_loss(self, preds, targets):
         ldiff = preds[:, 0] - targets[:, 0]
         rdiff = preds[:, -1] - targets[:, -1]
-        return torch.mean(ldiff**2 + rdiff**2) / 1_000
+        return torch.mean(ldiff**2 + rdiff**2)
 
     @staticmethod
     def _smoothness(preds):
@@ -91,7 +91,9 @@ class ModelV2(LightningModule):
         return torch.mean(torch.sum(d2y**2)) / 100
 
     @staticmethod
-    def _area_loss(inputs, targets, predictions):
-        target_diff = torch.sum(targets - inputs, axis=1)
-        pred_diff = torch.sum(predictions - inputs, axis=1)
-        return F.mse_loss(pred_diff, target_diff) / 10_000
+    def _area_loss(targets, predictions):
+        # TODO: will not work anymore because of different length and resolution, refactor
+        diff = torch.abs(targets - predictions)
+        # this is not the exact area, since the resolution is not 0.1 anymore
+        area = torch.sum(diff, dim=1) * 0.1
+        return torch.mean(area)
