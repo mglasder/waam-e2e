@@ -3,7 +3,7 @@ from typing import Optional, TypeVar
 
 import numpy as np
 import torch
-from scipy.signal import resample
+from scipy.interpolate import interp1d
 from torch.utils.data import Dataset
 
 from e2e.data.sample import CrossSectionSample, FootprintEdge
@@ -172,8 +172,11 @@ class ShapeV2Dataset(WaamDataset):
         right = footprint.right_idx
 
         ys = np.array([p.y[0] for p in points])[left:right]
-        ys = resample(ys, num=self._out_len)
-        return torch.tensor(ys, dtype=torch.float32)
+        xs = np.arange(0, len(ys)) / 10
+        f = interp1d(xs, ys, kind="linear")
+        xs_new = np.linspace(0, (len(ys) - 1) / 10, self._out_len)
+        ys_new = f(xs_new)
+        return torch.tensor(ys_new, dtype=torch.float32)
 
     @staticmethod
     def _extract_footprint_idx(samples: Samples) -> list[torch.tensor]:
