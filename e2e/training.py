@@ -18,7 +18,7 @@ VM_DATA_DIR = Path("/home/magnus/datasets/waam/30_processing_results/ImageGenera
 VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 
 BATCH_SIZE = 16
-MAX_EPOCHS = 100
+MAX_EPOCHS = 200
 N_WORKERS = 16
 DEVICE = "cuda"
 # footprint
@@ -27,10 +27,11 @@ THETA = 0.2
 LAMBDA = 0.0
 # area
 GAMMA = 0.6
-DEV_RUN = True
+DEV_RUN = False
 LOGGING = True
 TARGET_LENGTH = 50
 LR = 0.001
+P = 0.1
 
 if torch.cuda.is_available():
     torch.set_float32_matmul_precision("medium")
@@ -40,12 +41,13 @@ def main():
     # unet = UNet1D(enconf=EncoderConfig(), deconf=DecoderConfig())
     # unet.to(DEVICE)
 
-    conv = SimpleConv(in_channels=1, out_channels=TARGET_LENGTH, kernel_size=224)
+    conv = SimpleConv(in_channels=1, out_channels=TARGET_LENGTH, kernel_size=224, p=P)
     conv.to(DEVICE)
 
     model = ModelV2(
         model=conv,
         batch_size=BATCH_SIZE,
+        lr=LR,
         theta=THETA,
         lambda_=LAMBDA,
         gamma=GAMMA,
@@ -53,6 +55,7 @@ def main():
     )
 
     if DEV_RUN:
+        print("THIS IS A DEV RUN! Used dataset and split are adjusted accordingly.")
         split = [0.5, 0.5, 0]
         train_val_sets = "all"
         separate_test_set = None
@@ -69,7 +72,6 @@ def main():
 
     datamodule = ShapePredictionDataModule(
         batch_size=BATCH_SIZE,
-        lr=LR,
         data_dir=VM_DATA_DIR,
         workers=N_WORKERS,
         dataset=ShapeV2Dataset(output_length=TARGET_LENGTH),
