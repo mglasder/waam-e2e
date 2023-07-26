@@ -5,9 +5,9 @@ from lightning import Trainer
 from lightning.pytorch.loggers import WandbLogger
 
 from e2e.callbacks.metrics import FootprintAvgAbsValErrorLogger, ModHausdorffLogger
-from e2e.callbacks.plotting import PredictionPlottingV2
+from e2e.callbacks.plotting import PredictionPlotting
 from e2e.data.datamodule import ShapePredictionDataModule
-from e2e.data.dataset import ShapeV2Dataset
+from e2e.data.dataset import ShapeDataset
 from e2e.data.loader import EXPERIMENT as EXP
 from e2e.models.modelV2 import ModelV2
 from e2e.models.simpleconv import SimpleConv
@@ -18,7 +18,7 @@ VM_DATA_DIR = Path("/home/magnus/datasets/waam/30_processing_results/ImageGenera
 VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 
 BATCH_SIZE = 16
-MAX_EPOCHS = 200
+MAX_EPOCHS = 50
 N_WORKERS = 16
 DEVICE = "cuda"
 # footprint
@@ -26,12 +26,12 @@ THETA = 0.2
 # smoothness
 LAMBDA = 0.0
 # area
-GAMMA = 0.6
+GAMMA = 0.0
 DEV_RUN = False
 LOGGING = True
-TARGET_LENGTH = 50
-LR = 0.001
-P = 0.1
+TARGET_LENGTH = 120
+LR = 0.0005
+P = 0
 
 if torch.cuda.is_available():
     torch.set_float32_matmul_precision("medium")
@@ -41,7 +41,7 @@ def main():
     # unet = UNet1D(enconf=EncoderConfig(), deconf=DecoderConfig())
     # unet.to(DEVICE)
 
-    conv = SimpleConv(in_channels=1, out_channels=TARGET_LENGTH, kernel_size=224, p=P)
+    conv = SimpleConv(in_channels=1, out_channels=TARGET_LENGTH, kernel_size=120, p=P)
     conv.to(DEVICE)
 
     model = ModelV2(
@@ -51,6 +51,7 @@ def main():
         theta=THETA,
         lambda_=LAMBDA,
         gamma=GAMMA,
+        in_len=TARGET_LENGTH,
         out_len=TARGET_LENGTH,
     )
 
@@ -74,7 +75,7 @@ def main():
         batch_size=BATCH_SIZE,
         data_dir=VM_DATA_DIR,
         workers=N_WORKERS,
-        dataset=ShapeV2Dataset(output_length=TARGET_LENGTH),
+        dataset=ShapeDataset(segment_length=TARGET_LENGTH),
         split=split,
         train_val_sets=train_val_sets,
         separate_test_set=separate_test_set,
@@ -84,7 +85,7 @@ def main():
     if logger is not None:
         # callbacks.append(EarlyStopping(monitor="val_loss", patience=10, min_delta=0.001, mode="min"))
         # callbacks.append(PredictionPlotting(epochs=[]))
-        callbacks.append(PredictionPlottingV2(epochs=[]))
+        callbacks.append(PredictionPlotting(epochs=[]))
         callbacks.append(FootprintAvgAbsValErrorLogger())
         callbacks.append(ModHausdorffLogger())
 
