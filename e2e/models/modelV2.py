@@ -47,43 +47,57 @@ class ModelV2(LightningModule):
         return x.view(-1, self.length_out)
 
     def training_step(self, batch, batch_idx):
-        inputs, targets, ids = batch
+        inputs, targets, ids, fp = batch
         predictions = self(inputs)
-        train_loss = self._loss(inputs, predictions, targets)
+        train_loss = self._loss(inputs, predictions, targets, fp)
         self.log("train_loss", train_loss, prog_bar=True, on_epoch=True, on_step=False, batch_size=self.batch_sz)
-        return {"loss": train_loss, "preds": predictions, "targets": targets, "inputs": inputs, "ids": ids}
+        return {
+            "loss": train_loss,
+            "preds": predictions,
+            "targets": targets,
+            "inputs": inputs,
+            "ids": ids,
+            "footprint": fp,
+        }
 
     def validation_step(self, batch, batch_idx):
-        inputs, targets, ids = batch
+        inputs, targets, ids, fp = batch
         predictions = self(inputs)
-        val_loss = self._loss(inputs, predictions, targets)
+        val_loss = self._loss(inputs, predictions, targets, fp)
         self.log("val_loss", val_loss, prog_bar=True, on_epoch=True, on_step=False, batch_size=self.batch_sz)
-        return {"loss": val_loss, "preds": predictions, "targets": targets, "inputs": inputs, "ids": ids}
+        return {
+            "loss": val_loss,
+            "preds": predictions,
+            "targets": targets,
+            "inputs": inputs,
+            "ids": ids,
+            "footprint": fp,
+        }
 
     def test_step(self, batch, batch_idx):
         return self.validation_step(batch, batch_idx)
 
     def predict_step(self, batch, batch_idx: int, dataloader_idx: int = 0):
-        inputs, targets, ids = batch
+        inputs, targets, ids, fp = batch
         predictions = self(inputs)
-        pred_loss = self._loss(inputs, predictions, targets)
+        pred_loss = self._loss(inputs, predictions, targets, fp)
         return {"loss": pred_loss, "preds": predictions, "targets": targets}
 
     def configure_optimizers(self):
         optimizer = Adam(self.model.parameters(), lr=self.lr, weight_decay=0)
         return optimizer
 
-    def _loss(self, inputs, predictions, targets):
+    def _loss(self, inputs, predictions, targets, fp):
         loss = self.loss(predictions, targets)
-        footprint_loss = self._footprint_loss(predictions, targets)
+        footprint_loss = self._footprint_loss(predictions, targets, fp)
         # smoothness_loss = self._smoothness(predictions.detach())
-        area_loss = self._area_loss(predictions, targets)
+        # area_loss = self._area_loss(predictions, targets)
         # return (1.0 - self.lambda_ - self.gamma) * loss + self.lambda_ * smoothness_loss + self.gamma * area_loss
-        return (1 - self.theta - self.gamma) * loss + self.theta * footprint_loss + self.gamma * area_loss
+        return (1 - self.theta - self.gamma) * loss + self.theta * footprint_loss  # + self.gamma * area_loss
 
-    def _footprint_loss(self, preds, targets):
-        ldiff = preds[:, 0] - targets[:, 0]
-        rdiff = preds[:, -1] - targets[:, -1]
+    def _footprint_loss(self, preds, targets, fp):
+        ldiff = preds[:, fp[0]] - targets[:, fp[1]]
+        rdiff = preds[:, fp[0]] - targets[:, fp[1]]
         return torch.mean(ldiff**2 + rdiff**2)
 
     @staticmethod
@@ -93,8 +107,12 @@ class ModelV2(LightningModule):
         return torch.mean(torch.sum(d2y**2)) / 100
 
     @staticmethod
-    def _area_loss(targets, predictions):
-        diff = torch.abs(targets - predictions)
-        # this is not the exact area, since the resolution is not 0.1 anymore
-        area = torch.sum(diff, dim=1) * 0.1
-        return torch.mean(area)
+    def _area_loss(inputs, targets, predictions):
+        # calculate are between inputs and predictions
+        diff_true = targets - inputs
+        x = torch.linspace(0, (119 * 0.1), 119)
+
+        diff_pred = predictions - inputs
+        area_true = torch.trapz(diff_true, x)
+        area_pred = torch.trapz(diff_pred, x)
+        return torch.mean(torch.abs(area_true - area_pred))

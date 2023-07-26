@@ -50,6 +50,7 @@ class ShapeDataset(WaamDataset):
         self.inputs: Optional[list[LineSegmentZ]] = None
         self.targets: Optional[list[LineSegmentZ]] = None
         self.ids: Optional[IDs] = None
+        self.fp_idx: Optional[list[torch.tensor]] = None
 
         self._seg_len = segment_length
 
@@ -60,13 +61,15 @@ class ShapeDataset(WaamDataset):
         inpt = self.inputs[idx]
         target = self.targets[idx]
         sample_id = self.ids[idx]
+        footprint = self.fp_idx[idx]
 
-        return inpt, target, sample_id
+        return inpt, target, sample_id, footprint
 
     def create(self, samples: Samples) -> WaamDataset:
         self.inputs = self._extract_inputs(samples)
         self.targets = self._extract_targets(samples)
         self.ids = self._get_ids(samples)
+        self.fp_idx = self._extract_relative_footprint_idx(samples)
         # TODO: mirror
 
         return self
@@ -88,6 +91,21 @@ class ShapeDataset(WaamDataset):
             targets.append(zs)
 
         return targets
+
+    def _extract_relative_footprint_idx(self, samples: Samples) -> list[torch.tensor]:
+        footprint_idx = []
+        mid = self._seg_len // 2
+        for s in samples:
+            footprint = s.footprint_based
+            left = mid - int(np.abs(footprint.left_idx - s.torchposition.global_y_idx))
+            right = mid + int(np.abs(footprint.right_idx - s.torchposition.global_y_idx))
+            # TODO: do this the right way (filter out samples)
+            if left < 0:
+                left = 0
+            if right > self._seg_len:
+                right = self._seg_len - 1
+            footprint_idx.append(torch.tensor([left, right]))
+        return footprint_idx
 
     @staticmethod
     def _get_ids(samples: Samples) -> list[str]:
