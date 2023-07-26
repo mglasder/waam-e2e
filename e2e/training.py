@@ -18,20 +18,20 @@ VM_DATA_DIR = Path("/home/magnus/datasets/waam/30_processing_results/ImageGenera
 VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 
 BATCH_SIZE = 16
-MAX_EPOCHS = 50
+MAX_EPOCHS = 70
 N_WORKERS = 16
 DEVICE = "cuda"
 # footprint
-THETA = 0.2
+THETA = 0.4
 # smoothness
-LAMBDA = 0.0
+LAMBDA = 0.4
 # area
-GAMMA = 0.0
+GAMMA = 0.05
 DEV_RUN = False
 LOGGING = True
 TARGET_LENGTH = 120
-LR = 0.0005
-P = 0
+LR = 0.0003
+P = 0.5
 
 if torch.cuda.is_available():
     torch.set_float32_matmul_precision("medium")
