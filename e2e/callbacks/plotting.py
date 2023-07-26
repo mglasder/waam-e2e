@@ -26,13 +26,14 @@ class PredictionPlotting(Callback):
             selected_indices = self._select_indices(len(outputs["preds"]))
 
             for index in selected_indices:
-                p, t, i, id_ = (
+                p, t, i, id_, fp = (
                     outputs["preds"][index],
                     outputs["targets"][index],
                     outputs["inputs"][index],
                     outputs["ids"][index],
+                    outputs["footprint"][index],
                 )
-                fig, caption = self._plot_example(p, t, i, id_, loss, trainer.current_epoch, "train")
+                fig, caption = self._plot_example(p, t, i, id_, fp, loss, trainer.current_epoch, "train")
                 images.append(fig)
                 captions.append(caption)
                 plt.close()
@@ -56,8 +57,14 @@ class PredictionPlotting(Callback):
             images = []
             captions = []
             loss = outputs["loss"].cpu().detach().numpy()
-            for p, t, i, id_ in zip(outputs["preds"], outputs["targets"], outputs["inputs"], outputs["ids"]):
-                fig, caption = self._plot_example(p, t, i, id_, loss, trainer.current_epoch, "val")
+            for p, t, i, id_, fp in zip(
+                outputs["preds"],
+                outputs["targets"],
+                outputs["inputs"],
+                outputs["ids"],
+                outputs["footprint"],
+            ):
+                fig, caption = self._plot_example(p, t, i, id_, fp, loss, trainer.current_epoch, "val")
                 images.append(fig)
                 captions.append(caption)
                 plt.close()
@@ -75,11 +82,13 @@ class PredictionPlotting(Callback):
             return random.sample(range(batch_size), self._subset_sz)
 
     @staticmethod
-    def _plot_example(pred, trgt, inpt, id_, batch_loss, epoch, stage):
+    def _plot_example(pred, trgt, inpt, id_, fp, batch_loss, epoch, stage):
         fig, ax = plt.subplots()
         ax.plot(pred.cpu().detach().numpy(), color="red", label="pred")
         ax.plot(trgt.cpu().numpy(), color="blue", label="target (after)")
         ax.plot(inpt.cpu().detach().numpy(), color="black", label="input (before)")
+        ax.axvline(fp[0].cpu().detach().numpy(), color="green", label="fp left")
+        ax.axvline(fp[1].cpu().detach().numpy(), color="green", label="fp right")
         caption = f"{stage} sample: {id_} - epoch: {epoch} \n batch_loss: {batch_loss:.4f}"
         ax.set_title(caption)
         ax.legend()
