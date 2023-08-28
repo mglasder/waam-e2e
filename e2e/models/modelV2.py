@@ -189,6 +189,20 @@ class ModelV2(LightningModule):
         pred_loss = self._loss(inputs, predictions, targets, fp)
         return {"loss": pred_loss, "preds": predictions, "targets": targets}
 
+    def predict_with_uncertainty(self, x, num_samples=30):
+        self.model.train()  # Set the model to training mode to enable dropout
+        with torch.no_grad():
+            results = torch.zeros((num_samples,) + x.shape)
+
+            for i in range(num_samples):
+                y_pred = self.forward(x)
+                results[i, :] = y_pred
+
+        self.model.eval()  # Set the model back to evaluation mode
+        mean_prediction = results.mean(dim=0)
+        prediction_std = results.std(dim=0)
+        return mean_prediction, prediction_std
+
     def configure_optimizers(self):
         optimizer = Adam(self.model.parameters(), lr=self.lr, weight_decay=0)
         return optimizer
