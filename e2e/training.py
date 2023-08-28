@@ -1,17 +1,16 @@
 from pathlib import Path
 
-import numpy as np
 import torch
 from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.loggers import WandbLogger
-from torch.utils.data import DataLoader
 
 from e2e.callbacks.metrics import FootprintAvgAbsValErrorLogger, ModHausdorffLogger
 from e2e.callbacks.plotting import PredictionPlotting
 from e2e.data.datamodule import ShapePredictionDataModule
 from e2e.data.dataset import ShapeDataset
 from e2e.data.loader import EXPERIMENT as EXP
+from e2e.mcpredict import McUncertainty
 from e2e.models.mlp import RNN
 from e2e.models.modelV2 import ModelV2
 
@@ -118,40 +117,13 @@ def main():
     trainer.fit(model=model, datamodule=datamodule)
 
     val_data_loader = datamodule.val_dataloader()
-    mc_predictions(model, val_data_loader, "val", save=True)
     train_data_loader = datamodule.train_dataloader()
-    mc_predictions(model, train_data_loader, "train", save=True)
 
-
-def mc_predictions(model, data_loader: DataLoader, stage: str, save=True):
-    mean_predictions = []
-    uncertainties = []
-    errors = []
-    xs = []
-    ys = []
-    ids = []
-
-    for i, batch in enumerate(data_loader):
-        x, y, id_, _ = batch
-        mean_prediction, uncertainty = model.predict_with_uncertainty(x, num_samples=150)
-        error = np.abs(mean_prediction.detach().cpu().numpy() - y.detach().cpu().numpy()).tolist()
-
-        mean_predictions.append(mean_prediction.detach().cpu().numpy().tolist())
-        uncertainties.append(uncertainty.detach().cpu().numpy().tolist())
-        errors.append(error)
-        xs.append(x.detach().cpu())
-        ys.append(y.detach().cpu())
-        ids.append(id_)
-
-        if save:
-            # save results to file
-            prefix = Path("outputs/mc_preds")
-            torch.save(mean_predictions, prefix / f"mean_prediction_{stage}.pt")
-            torch.save(uncertainties, prefix / f"std_prediction_{stage}.pt")
-            torch.save(errors, prefix / f"true_errors_prediction_{stage}.pt")
-            torch.save(xs, prefix / f"x_{stage}.pt")
-            torch.save(ys, prefix / f"y_{stage}.pt")
-            torch.save(ids, prefix / f"ids_{stage}.pt")
+    mc = McUncertainty(model, train_data_loader, val_data_loader, logger=logger)
+    mc.predict()
+    mc.calibrate(strategy="mlp")
+    mc.plot_predictions("train", log=True, take=10)
+    mc.plot_predictions("val", log=True, take=10)
 
 
 if __name__ == "__main__":
