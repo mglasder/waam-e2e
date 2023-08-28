@@ -21,7 +21,7 @@ class SmoothingLayer(nn.Module):
 class SimpleConv(nn.Module):
     def __init__(
         self,
-        in_channels,
+        in_channels=1,
         out_channels=100,
         kernel_size=224,
         p=0.2,
@@ -34,8 +34,8 @@ class SimpleConv(nn.Module):
 
         self.fc = nn.Linear(in_features=kernel_size, out_features=out_channels)
         self.act = nn.ReLU()
-        self.dropout = nn.Dropout(p=p)
-        self.dropout1d = nn.Dropout1d(p=p)
+        # self.dropout = nn.Dropout(p=p)
+        # self.dropout1d = nn.Dropout1d(p=p)
 
         self.bn1 = nn.BatchNorm1d(in_channels)
         self.bn2 = nn.BatchNorm1d(in_channels)
@@ -46,7 +46,7 @@ class SimpleConv(nn.Module):
         self.conv2 = nn.Conv1d(in_channels, kernel_size, kernel_size, stride, padding)
         # self.conv3 = nn.Conv1d(in_channels, kernel_size, kernel_size, stride, padding)
 
-        self.smooth1 = SmoothingLayer(max_window_size=30)
+        # self.smooth1 = SmoothingLayer(max_window_size=30)
 
     # def to(self, device):
     #     # TODO: implement
@@ -58,11 +58,11 @@ class SimpleConv(nn.Module):
         x = self.bn1(x)
         x = self.fc(x)
         x = self.act(x)
-        x = self.dropout(x) + r
+        x = F.dropout(x, p=self.p, training=self.training) + r
 
         x = self.bn2(x)
         x = self.conv1(x)
-        x = self.dropout1d(x) + r.view(-1, self.k, 1)
+        x = F.dropout1d(x, p=self.p, training=self.training) + r.view(-1, self.k, 1)
 
         x = self.bn3(x.view(-1, 1, self.k))
         x = self.conv2(x) + r.view(-1, self.k, 1)
@@ -70,7 +70,7 @@ class SimpleConv(nn.Module):
         # x = self.bn4(x.view(-1, 1, self.k))
         # x = self.conv3(x) + r.view(-1, self.k, 1)
 
-        x = x.view(-1, 1, self.k)
-        x = self.smooth1(x)
+        # x = x.view(-1, 1, self.k)
+        # x = self.smooth1(x)
 
         return x
