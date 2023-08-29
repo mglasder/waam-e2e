@@ -28,11 +28,11 @@ DEVICE = "cuda"
 # footprint
 THETA = 0.0
 # smoothness
-LAMBDA = 0.3
+LAMBDA = 0.4
 # area
 GAMMA = 0.0
-INPUT_LENGTH = 100
-TARGET_LENGTH = 100
+INPUT_LENGTH = 90
+TARGET_LENGTH = 90
 LR = 0.0005
 P = 0.5
 
@@ -150,8 +150,8 @@ def main():
     mc = McUncertainty(model, train_data_loader, val_data_loader, logger=logger)
     mc.predict()
     mc.calibrate(strategy="mlp")
-    mc.plot_predictions("train", log=True, take=10)
-    mc.plot_predictions("val", log=True, take=10)
+    mc.plot_predictions("train", log=True, take=30)
+    mc.plot_predictions("val", log=True, take=30)
 
 
 if __name__ == "__main__":
