@@ -8,11 +8,11 @@ from lightning.pytorch.loggers import WandbLogger
 from e2e.callbacks.metrics import FootprintAvgAbsValErrorLogger, ModHausdorffLogger
 from e2e.callbacks.plotting import PredictionPlotting
 from e2e.data.datamodule import ShapePredictionDataModule
-from e2e.data.dataset import ShapeDataset
+from e2e.data.dataset import ShapeDataset, ResampledFootprintDataset
 from e2e.data.loader import EXPERIMENT as EXP
 from e2e.mcpredict import McUncertainty
-from e2e.models.mlp import RNN
 from e2e.models.modelV2 import ModelV2
+from e2e.models.recurrent import RNN
 
 NAS_DATA_DIR_DEV = Path("/Volumes/hornets/homes/mglasder/datasets/TrainingDev")
 MAC_DATA_DIR_DEV = Path("/Users/magnus/datasets/WAAM/TrainingDev")
@@ -24,14 +24,15 @@ MAX_EPOCHS = 50
 N_WORKERS = 16
 DEVICE = "cuda"
 # footprint
-THETA = 0.4
+THETA = 0.0
 # smoothness
 LAMBDA = 0.3
 # area
-GAMMA = 0.05
+GAMMA = 0.0
 DEV_RUN = False
 LOGGING = True
-TARGET_LENGTH = 120
+INPUT_LENGTH = 100
+TARGET_LENGTH = 100
 LR = 0.0005
 P = 0.5
 
@@ -49,7 +50,7 @@ def main():
     # mlp = MLP(n_features=TARGET_LENGTH, p=P)
     # mlp.to(DEVICE)
 
-    rnn = RNN(p=P, n_features=TARGET_LENGTH, n_hidden=TARGET_LENGTH, n_layers=10)
+    rnn = RNN(p=P, n_input_features=INPUT_LENGTH, n_output_features=TARGET_LENGTH, n_hidden=TARGET_LENGTH, n_layers=10)
     rnn.to(DEVICE)
 
     model = ModelV2(
@@ -59,7 +60,7 @@ def main():
         theta=THETA,
         lambda_=LAMBDA,
         gamma=GAMMA,
-        in_len=TARGET_LENGTH,
+        in_len=INPUT_LENGTH,
         out_len=TARGET_LENGTH,
     )
 
@@ -103,8 +104,13 @@ def main():
             )
         )
         callbacks.append(PredictionPlotting(epochs=[]))
-        callbacks.append(FootprintAvgAbsValErrorLogger())
-        callbacks.append(ModHausdorffLogger())
+        # callbacks.append(FootprintAvgAbsValErrorLogger())
+        # callbacks.append(ModHausdorffLogger())
+        # add learning rate scheduler ReduceLROnPlateau
+        # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        #     optimizer=model.optimizers(), mode="min", patience=5, factor=0.1, verbose=True
+        # )
+        # callbacks.append(scheduler)
 
     trainer = Trainer(
         max_epochs=MAX_EPOCHS,

@@ -127,12 +127,8 @@ class McUncertainty:
             trgt = self._uncertainty_preds[stage]["ys"][i]
             inpt = self._uncertainty_preds[stage]["xs"][i]
             id_ = self._uncertainty_preds[stage]["ids"][i]
-            batch_loss = 0  # self._uncertainty_preds[stage]["batch_losses"][i]
-            epoch = 0  # self._uncertainty_preds[stage]["epochs"][i]
 
-            fig, caption = self._plot_example(
-                pred_mean, pred_std, uncalib_std, error, trgt, inpt, id_, batch_loss, epoch, stage
-            )
+            fig, caption = self._plot_example(pred_mean, pred_std, uncalib_std, error, trgt, inpt, id_, stage)
             figs.append(fig)
             captions.append(caption)
             plt.close()
@@ -145,7 +141,7 @@ class McUncertainty:
             )
 
     @staticmethod
-    def _plot_example(pred_mean, pred_std, uncalib_std, error, trgt, inpt, id_, batch_loss, epoch, stage):
+    def _plot_example(pred_mean, pred_std, uncalib_std, error, trgt, inpt, id_, stage):
         fig, (ax, ax2, ax3) = plt.subplots(3, sharex=True, gridspec_kw={"height_ratios": [6, 2, 2]})
         ax.plot(pred_mean, color="blue", label="pred_mean")
         # plot std around mean
@@ -158,9 +154,10 @@ class McUncertainty:
             label="std",
         )
         ax.plot(trgt, color="green", label="target (after)")
-        ax.plot(inpt, color="black", label="input (before)")
+        if inpt is not None:
+            ax.plot(inpt, color="black", label="input (before)")
         # ax.plot(error, color="red", label="error", ls="--")
-        caption = f"{stage} sample: {id_} - epoch: {epoch} \n batch_loss: {batch_loss:.4f}"
+        caption = f"{stage} sample: {id_}"
 
         ax2.plot(pred_std, color="orange", label="calib uncertainty (std)", ls="--")
         ax2.plot(uncalib_std, color="black", label="uncalib uncertainty (std)", ls="--")
@@ -169,6 +166,6 @@ class McUncertainty:
 
         ax.set_title(caption)
         ax.legend()
-        ax2.legend()
+        ax2.legend(loc="lower left", bbox_to_anchor=(0.5, -0.15))
         ax3.legend()
         return fig, caption

@@ -123,7 +123,7 @@ class ShapeDataset(WaamDataset):
         return torch.tensor(ys, dtype=torch.float32)
 
 
-class ShapeV2Dataset(WaamDataset):
+class ResampledFootprintDataset(WaamDataset):
     def __init__(self, output_length=100):
         self.inputs: Optional[list[LineSegmentZ]] = None
         self.targets: Optional[list[LineSegmentZ]] = None
@@ -140,14 +140,14 @@ class ShapeV2Dataset(WaamDataset):
         inpt = self.inputs[idx]
         target = self.targets[idx]
         sample_id = self.ids[idx]
-        # footprint = self.footprint_idx[idx]
+        footprint = self.footprint_idx[idx]
 
-        return inpt, target, sample_id
+        return inpt, target, sample_id, footprint
 
     def create(self, samples: Samples) -> WaamDataset:
         self.inputs = self._extract_inputs(samples)
         self.targets = self._extract_targets(samples)
-        # self.footprint_idx = self._extract_footprint_idx(samples)
+        self.footprint_idx = self._extract_footprint_idx(samples)
         self.ids = self._get_ids(samples)
         # TODO: mirror
 

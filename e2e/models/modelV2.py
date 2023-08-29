@@ -192,7 +192,7 @@ class ModelV2(LightningModule):
     def predict_with_uncertainty(self, x, num_samples=30):
         self.model.train()  # Set the model to training mode to enable dropout
         with torch.no_grad():
-            results = torch.zeros((num_samples,) + x.shape)
+            results = torch.zeros((num_samples,) + (x.shape[0], self.length_out))
 
             for i in range(num_samples):
                 y_pred = self.forward(x)
