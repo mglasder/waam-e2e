@@ -39,7 +39,7 @@ class RNN(nn.Module):
         self.bn1(x)
         x = self.fc(x)
         x = F.relu(x)
-        x = F.dropout(x + r0, p=self.p, training=self.training)
+        x = F.dropout(x, p=self.p, training=self.training) + r0
 
         r1 = x
 
