@@ -225,7 +225,7 @@ class ModelV2(LightningModule):
     def configure_optimizers(self):
         optimizer = Adam(self.model.parameters(), lr=self.lr, weight_decay=0)
 
-        scheduler = ReduceLROnPlateau(optimizer, mode="min", patience=5, factor=2, verbose=True)
+        scheduler = ReduceLROnPlateau(optimizer, mode="min", patience=5, factor=0.5, verbose=True)
 
         if scheduler:
             # Every metric logged with log() or log_dict() in LightningModule
