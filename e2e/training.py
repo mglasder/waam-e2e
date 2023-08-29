@@ -88,6 +88,7 @@ def main():
 
     if LOGGING:
         logger = WandbLogger(project="waam-e2e-pre", log_model="all")
+        logger.watch(model)
     else:
         logger = None
 
@@ -132,7 +133,7 @@ def main():
                 save_on_train_epoch_end=False,
             )
         )
-        callbacks.append(PredictionPlotting(epochs=[]))
+        # callbacks.append(PredictionPlotting(epochs=[]))
         callbacks.append(FootprintAvgAbsValErrorLogger())
         callbacks.append(ModHausdorffLogger())
 
