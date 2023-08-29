@@ -14,6 +14,7 @@ from e2e.data.datamodule import ShapePredictionDataModule
 from e2e.data.dataset import ShapeDataset, ResampledFootprintDataset
 from e2e.data.loader import EXPERIMENT as EXP
 from e2e.mcpredict import McUncertainty
+from e2e.models.mlp import SoftResNet
 from e2e.models.modelV2 import ModelV2
 from e2e.models.recurrent import RNN
 
@@ -59,6 +60,9 @@ def main():
 
     rnn = RNN(p=P, n_input_features=INPUT_LENGTH, n_output_features=TARGET_LENGTH, n_hidden=TARGET_LENGTH, n_layers=20)
     rnn.to(DEVICE)
+
+    # softresnet = SoftResNet(input_dim=INPUT_LENGTH, hidden_dim=TARGET_LENGTH, num_blocks=20)
+    # softresnet.to(DEVICE)
 
     model = ModelV2(
         model=rnn,

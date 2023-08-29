@@ -36,8 +36,8 @@ class RNN(nn.Module):
         # self.alpha = nn.Parameter(torch.tensor(0.5))
         # self.beta = nn.Parameter(torch.tensor(0.5))
 
-        self.alpha = nn.Linear(in_features=n_input_features, out_features=n_output_features)
-        self.beta = nn.Linear(in_features=n_input_features, out_features=n_output_features)
+        self.alpha = nn.Linear(in_features=n_input_features, out_features=n_output_features, bias=False)
+        self.beta = nn.Linear(in_features=n_input_features, out_features=n_output_features, bias=False)
 
     def forward(self, x):
         r0 = x

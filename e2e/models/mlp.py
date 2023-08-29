@@ -1,3 +1,4 @@
+import torch
 import torch.nn.functional as F
 from torch import nn
 
@@ -42,3 +43,29 @@ class MLP(nn.Module):
         x = self.hidden2(x)
 
         return x + r2
+
+
+class SoftResidualBlock(nn.Module):
+    def __init__(self, input_dim, hidden_dim):
+        super(SoftResidualBlock, self).__init__()
+
+        self.main_path = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, input_dim),
+        )
+
+        self.alpha = nn.Parameter(torch.tensor(0.5))  # Initialize to 0.5 for equal mixing
+
+    def forward(self, x):
+        return F.sigmoid(self.alpha) * x + (1 - F.sigmoid(self.alpha)) * self.main_path(x)
+
+
+class SoftResNet(nn.Module):
+    def __init__(self, input_dim, hidden_dim, num_blocks):
+        super(SoftResNet, self).__init__()
+
+        self.blocks = nn.Sequential(*[SoftResidualBlock(input_dim, hidden_dim) for _ in range(num_blocks)])
+
+    def forward(self, x):
+        return self.blocks(x)

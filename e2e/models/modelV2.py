@@ -146,7 +146,8 @@ class ModelV2(LightningModule):
     def _init_weights(m):
         if type(m) == nn.Conv1d or type(m) == nn.Linear or type(m) == nn.ConvTranspose1d:
             torch.nn.init.xavier_uniform_(m.weight)
-            m.bias.data.fill_(0.01)
+            if m.bias is not None:
+                m.bias.data.fill_(0.01)
 
     def forward(self, x):
         x = x.view(-1, 1, self.length_in)
