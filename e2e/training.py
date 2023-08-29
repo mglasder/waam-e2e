@@ -34,7 +34,7 @@ LAMBDA = 0.5
 GAMMA = 0.0
 INPUT_LENGTH = 90
 TARGET_LENGTH = 90
-LR = 0.0005
+LR = 0.001
 P = 0.5
 
 DEV_RUN = False
@@ -56,7 +56,7 @@ def main():
     # mlp = MLP(n_features=TARGET_LENGTH, p=P)
     # mlp.to(DEVICE)
 
-    rnn = RNN(p=P, n_input_features=INPUT_LENGTH, n_output_features=TARGET_LENGTH, n_hidden=TARGET_LENGTH, n_layers=40)
+    rnn = RNN(p=P, n_input_features=INPUT_LENGTH, n_output_features=TARGET_LENGTH, n_hidden=TARGET_LENGTH, n_layers=100)
     rnn.to(DEVICE)
 
     model = ModelV2(
