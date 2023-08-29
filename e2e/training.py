@@ -24,7 +24,7 @@ VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 
 SEED = 2345078
 BATCH_SIZE = 16
-MAX_EPOCHS = 100
+MAX_EPOCHS = 50
 N_WORKERS = 16
 DEVICE = "cuda"
 # footprint
@@ -35,7 +35,7 @@ LAMBDA = 0.5
 GAMMA = 0.1
 INPUT_LENGTH = 90
 TARGET_LENGTH = 90
-LR = 0.001
+LR = 0.01
 P = 0.5
 
 DEV_RUN = False
@@ -129,13 +129,8 @@ def main():
             )
         )
         callbacks.append(PredictionPlotting(epochs=[]))
-        # callbacks.append(FootprintAvgAbsValErrorLogger())
-        # callbacks.append(ModHausdorffLogger())
-        # add learning rate scheduler ReduceLROnPlateau
-        # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        #     optimizer=model.optimizers(), mode="min", patience=5, factor=0.1, verbose=True
-        # )
-        # callbacks.append(scheduler)
+        callbacks.append(FootprintAvgAbsValErrorLogger())
+        callbacks.append(ModHausdorffLogger())
 
     trainer = Trainer(
         max_epochs=MAX_EPOCHS,
@@ -143,7 +138,7 @@ def main():
         enable_checkpointing=True,
         accelerator=DEVICE,
         callbacks=callbacks,
-        log_every_n_steps=10,
+        log_every_n_steps=5,
     )
     trainer.fit(model=model, datamodule=datamodule)
 

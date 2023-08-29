@@ -34,12 +34,12 @@ class RNN(nn.Module):
         self.bn2 = nn.BatchNorm1d(1)
 
     def forward(self, x):
-        # r0 = x
+        r0 = x
 
         self.bn1(x)
         x = self.fc(x)
         x = F.relu(x)
-        x = F.dropout(x, p=self.p, training=self.training)
+        x = F.dropout(x, p=self.p, training=self.training) + r0
 
         r1 = x
 
