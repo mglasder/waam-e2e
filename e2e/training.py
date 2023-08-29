@@ -55,7 +55,7 @@ def main():
     # mlp = MLP(n_features=TARGET_LENGTH, p=P)
     # mlp.to(DEVICE)
 
-    rnn = RNN(p=P, n_input_features=INPUT_LENGTH, n_output_features=TARGET_LENGTH, n_hidden=TARGET_LENGTH, n_layers=20)
+    rnn = RNN(p=P, n_input_features=INPUT_LENGTH, n_output_features=TARGET_LENGTH, n_hidden=TARGET_LENGTH, n_layers=40)
     rnn.to(DEVICE)
 
     model = ModelV2(
