@@ -5,6 +5,7 @@ from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.loggers import WandbLogger
 
+from e2e.autogit import git_add_commit_with
 from e2e.callbacks.metrics import FootprintAvgAbsValErrorLogger, ModHausdorffLogger
 from e2e.callbacks.plotting import PredictionPlotting
 from e2e.data.datamodule import ShapePredictionDataModule
@@ -20,21 +21,23 @@ VM_DATA_DIR = Path("/home/magnus/datasets/waam/30_processing_results/ImageGenera
 VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 
 BATCH_SIZE = 16
-MAX_EPOCHS = 50
-N_WORKERS = 16
-DEVICE = "cuda"
+MAX_EPOCHS = 2
+N_WORKERS = 8
+DEVICE = "mps"
 # footprint
 THETA = 0.0
 # smoothness
 LAMBDA = 0.3
 # area
 GAMMA = 0.0
-DEV_RUN = False
-LOGGING = True
 INPUT_LENGTH = 100
 TARGET_LENGTH = 100
 LR = 0.0005
 P = 0.5
+
+DEV_RUN = False
+LOGGING = True
+AUTOCOMMIT = True
 
 if torch.cuda.is_available():
     torch.set_float32_matmul_precision("medium")
@@ -79,6 +82,18 @@ def main():
         logger = WandbLogger(project="waam-e2e-pre", log_model="all")
     else:
         logger = None
+
+    if AUTOCOMMIT and LOGGING and not DEV_RUN:
+        # get wandb run name
+        run_name = logger.experiment.name
+
+        # check whether remote or local machine
+        if Path("/home/magnus").exists():
+            # TODO: implement
+            pass
+        else:
+            commit_hash = git_add_commit_with(message=f"autocommit: {run_name}")
+            logger.experiment.config.update({"commit": commit_hash})
 
     datamodule = ShapePredictionDataModule(
         batch_size=BATCH_SIZE,
