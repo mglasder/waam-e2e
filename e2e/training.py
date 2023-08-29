@@ -30,9 +30,9 @@ DEVICE = "cuda"
 # footprint
 THETA = 0.0
 # smoothness
-LAMBDA = 0.0
+LAMBDA = 0.5
 # area
-GAMMA = 0.1
+GAMMA = 0.0
 INPUT_LENGTH = 90
 TARGET_LENGTH = 90
 LR = 0.01

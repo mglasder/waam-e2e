@@ -33,13 +33,16 @@ class RNN(nn.Module):
         self.bn1 = nn.BatchNorm1d(1)
         self.bn2 = nn.BatchNorm1d(1)
 
+        self.alpha = nn.Parameter(torch.tensor(0.5))
+        self.beta = nn.Parameter(torch.tensor(0.5))
+
     def forward(self, x):
         r0 = x
 
         self.bn1(x)
         x = self.fc(x)
         x = F.relu(x)
-        x = F.dropout(x, p=self.p, training=self.training) + r0
+        x = F.dropout(x, p=self.p, training=self.training) + self.alpha * r0
 
         r1 = x
 
@@ -54,4 +57,4 @@ class RNN(nn.Module):
         # x = self.bn2(x)
         # x = self.fc_out(x)
 
-        return x + r1
+        return x + self.beta * r1
