@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import requests
 import torch
 from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -21,9 +22,9 @@ VM_DATA_DIR = Path("/home/magnus/datasets/waam/30_processing_results/ImageGenera
 VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 
 BATCH_SIZE = 16
-MAX_EPOCHS = 2
-N_WORKERS = 8
-DEVICE = "cpu"
+MAX_EPOCHS = 100
+N_WORKERS = 16
+DEVICE = "cuda"
 # footprint
 THETA = 0.0
 # smoothness
@@ -38,6 +39,7 @@ P = 0.5
 DEV_RUN = False
 LOGGING = True
 AUTOCOMMIT = True
+AUTOCOMMIT_IP = "172.31.1.8"
 
 if torch.cuda.is_available():
     torch.set_float32_matmul_precision("medium")
@@ -84,16 +86,21 @@ def main():
         logger = None
 
     if AUTOCOMMIT and LOGGING and not DEV_RUN:
+        # TODO: wrap everything in its own class
         # get wandb run name
         run_name = logger.experiment.name
 
         # check whether remote or local machine
         if Path("/home/magnus").exists():
-            # TODO: implement
-            pass
+            message = f"""{run_name}"""
+            response = requests.post(f"http://{AUTOCOMMIT_IP}:3000/execute", json={"message": message})
+            commit_hash = response.json()["result"]
+
         else:
             commit_hash = git_add_commit_with(message=f"{run_name}")
-            logger.experiment.config.update({"commit": commit_hash})
+
+        print(f"Commit hash:, {commit_hash}")
+        logger.experiment.config.update({"commit": commit_hash})
 
     datamodule = ShapePredictionDataModule(
         batch_size=BATCH_SIZE,

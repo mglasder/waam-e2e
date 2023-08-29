@@ -15,6 +15,5 @@ def execute_code():
 
 
 if __name__ == "__main__":
-    # autorestart on change
     app.debug = True
     app.run(host="0.0.0.0", port=3000)
