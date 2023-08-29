@@ -149,7 +149,7 @@ class ModelV2(LightningModule):
         self.model = model
         # self.model.apply(self._init_weights)
 
-        self._smoothness_loss = SmoothnessLossPiecewise(n=1)
+        self._smoothness_loss = SmoothnessLoss()
         self._area_loss = AreaLoss()
 
     # @staticmethod
