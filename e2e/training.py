@@ -90,7 +90,6 @@ def main():
         # check whether remote or local machine
         if Path("/home/magnus").exists():
             # TODO: implement
-            print("small change")
             pass
         else:
             commit_hash = git_add_commit_with(message=f"{run_name}")
