@@ -33,8 +33,11 @@ class RNN(nn.Module):
         self.bn1 = nn.BatchNorm1d(1)
         self.bn2 = nn.BatchNorm1d(1)
 
-        self.alpha = nn.Parameter(torch.tensor(0.5))
-        self.beta = nn.Parameter(torch.tensor(0.5))
+        # self.alpha = nn.Parameter(torch.tensor(0.5))
+        # self.beta = nn.Parameter(torch.tensor(0.5))
+
+        self.alpha = nn.Linear(in_features=n_input_features, out_features=n_output_features)
+        self.beta = nn.Linear(in_features=n_input_features, out_features=n_output_features)
 
     def forward(self, x):
         r0 = x
@@ -42,7 +45,7 @@ class RNN(nn.Module):
         self.bn1(x)
         x = self.fc(x)
         x = F.relu(x)
-        x = F.dropout(x, p=self.p, training=self.training) + self.alpha * r0
+        x = F.dropout(x, p=self.p, training=self.training) + self.alpha(r0)
 
         r1 = x
 
@@ -57,4 +60,4 @@ class RNN(nn.Module):
         # x = self.bn2(x)
         # x = self.fc_out(x)
 
-        return x + self.beta * r1
+        return x + self.beta(r1)
