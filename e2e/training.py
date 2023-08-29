@@ -28,7 +28,7 @@ DEVICE = "cuda"
 # footprint
 THETA = 0.0
 # smoothness
-LAMBDA = 0.4
+LAMBDA = 0.5
 # area
 GAMMA = 0.0
 INPUT_LENGTH = 90
@@ -55,7 +55,7 @@ def main():
     # mlp = MLP(n_features=TARGET_LENGTH, p=P)
     # mlp.to(DEVICE)
 
-    rnn = RNN(p=P, n_input_features=INPUT_LENGTH, n_output_features=TARGET_LENGTH, n_hidden=TARGET_LENGTH, n_layers=10)
+    rnn = RNN(p=P, n_input_features=INPUT_LENGTH, n_output_features=TARGET_LENGTH, n_hidden=TARGET_LENGTH, n_layers=20)
     rnn.to(DEVICE)
 
     model = ModelV2(

@@ -217,27 +217,10 @@ class ModelV2(LightningModule):
             (1 - self.theta - self.gamma - self.lambda_) * loss
             + self.theta * footprint_loss
             + self.lambda_ * self._smoothness_loss(predictions, fp)
-            + self.gamma * self._area_loss(inputs, predictions, targets, fp)
+            # + self.gamma * self._area_loss(inputs, predictions, targets, fp)
         )
 
     def _footprint_loss(self, preds, targets, fp):
         ldiff = preds[:, fp[0]] - targets[:, fp[1]]
         rdiff = preds[:, fp[0]] - targets[:, fp[1]]
         return torch.mean(ldiff**2 + rdiff**2)
-
-    # @staticmethod
-    # def _smoothness(preds):
-    #     dy = preds[:, 1:] - preds[:, :-1]
-    #     d2y = dy[:, 1:] - dy[:, :-1]
-    #     return torch.mean(torch.sum(d2y**2)) / 100
-
-    # @staticmethod
-    # def _area_loss(inputs, targets, predictions):
-    #     # calculate are between inputs and predictions
-    #     diff_true = targets - inputs
-    #     x = torch.linspace(0, (119 * 0.1), 119)
-    #
-    #     diff_pred = predictions - inputs
-    #     area_true = torch.trapz(diff_true, x)
-    #     area_pred = torch.trapz(diff_pred, x)
-    #     return torch.mean(torch.abs(area_true - area_pred))
