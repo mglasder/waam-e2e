@@ -6,6 +6,16 @@ from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 
+class SmoothnessLoss(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, outputs):
+        second_derivative = torch.mean((outputs[:, :-2] - 2 * outputs[:, 1:-1] + outputs[:, 2:]) ** 2)
+        smoothness_loss = torch.mean(second_derivative**2, dim=1)
+        return torch.mean(smoothness_loss)
+
+
 class SmoothnessLossMid(nn.Module):
     def __init__(self):
         super().__init__()
