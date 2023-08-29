@@ -10,11 +10,11 @@ def execute_code():
     # Extract data from the request
     data = request.json
     message = data.get("message", "")
-
     commit_hash = git_add_commit_with(message=message)
-
-    return jsonify({"result": str(message)})
+    return jsonify({"result": str(commit_hash)})
 
 
 if __name__ == "__main__":
+    # autorestart on change
+    app.debug = True
     app.run(host="0.0.0.0", port=3000)
