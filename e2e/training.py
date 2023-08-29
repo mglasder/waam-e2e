@@ -22,6 +22,7 @@ MAC_DATA_DIR_DEV = Path("/Users/magnus/datasets/WAAM/TrainingDev")
 VM_DATA_DIR = Path("/home/magnus/datasets/waam/30_processing_results/ImageGenerator")
 VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 
+SEED = 2345078
 BATCH_SIZE = 16
 MAX_EPOCHS = 100
 N_WORKERS = 16
@@ -31,7 +32,7 @@ THETA = 0.0
 # smoothness
 LAMBDA = 0.5
 # area
-GAMMA = 0.0
+GAMMA = 0.1
 INPUT_LENGTH = 90
 TARGET_LENGTH = 90
 LR = 0.001
@@ -56,7 +57,7 @@ def main():
     # mlp = MLP(n_features=TARGET_LENGTH, p=P)
     # mlp.to(DEVICE)
 
-    rnn = RNN(p=P, n_input_features=INPUT_LENGTH, n_output_features=TARGET_LENGTH, n_hidden=TARGET_LENGTH, n_layers=100)
+    rnn = RNN(p=P, n_input_features=INPUT_LENGTH, n_output_features=TARGET_LENGTH, n_hidden=TARGET_LENGTH, n_layers=20)
     rnn.to(DEVICE)
 
     model = ModelV2(
@@ -111,6 +112,7 @@ def main():
         split=split,
         train_val_sets=train_val_sets,
         separate_test_set=separate_test_set,
+        seed=SEED,
     )
 
     callbacks = []
@@ -119,7 +121,7 @@ def main():
         # callbacks.append(PredictionPlotting(epochs=[]))
         callbacks.append(
             ModelCheckpoint(
-                every_n_epochs=10,
+                every_n_epochs=5,
                 monitor="val_loss",
                 mode="min",
                 auto_insert_metric_name=True,
