@@ -5,7 +5,7 @@ from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.loggers import WandbLogger
 
-from e2e.autogit import git_add_commit_with
+from e2e.autogit.autogit import git_add_commit_with
 from e2e.callbacks.metrics import FootprintAvgAbsValErrorLogger, ModHausdorffLogger
 from e2e.callbacks.plotting import PredictionPlotting
 from e2e.data.datamodule import ShapePredictionDataModule
@@ -23,7 +23,7 @@ VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 BATCH_SIZE = 16
 MAX_EPOCHS = 2
 N_WORKERS = 8
-DEVICE = "mps"
+DEVICE = "cpu"
 # footprint
 THETA = 0.0
 # smoothness
@@ -92,7 +92,7 @@ def main():
             # TODO: implement
             pass
         else:
-            commit_hash = git_add_commit_with(message=f"autocommit: {run_name}")
+            commit_hash = git_add_commit_with(message=f"{run_name}")
             logger.experiment.config.update({"commit": commit_hash})
 
     datamodule = ShapePredictionDataModule(
