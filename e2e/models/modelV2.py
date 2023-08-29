@@ -3,6 +3,7 @@ import torch.nn.functional as F
 from lightning import LightningModule
 from torch import nn
 from torch.optim import Adam
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 
 class SmoothnessLossMid(nn.Module):
@@ -203,10 +204,6 @@ class ModelV2(LightningModule):
         prediction_std = results.std(dim=0)
         return mean_prediction, prediction_std
 
-    def configure_optimizers(self):
-        optimizer = Adam(self.model.parameters(), lr=self.lr, weight_decay=0)
-        return optimizer
-
     def _loss(self, inputs, predictions, targets, fp):
         loss = self.loss(predictions, targets)
         footprint_loss = self._footprint_loss(predictions, targets, fp)
@@ -224,3 +221,18 @@ class ModelV2(LightningModule):
         ldiff = preds[:, fp[0]] - targets[:, fp[1]]
         rdiff = preds[:, fp[0]] - targets[:, fp[1]]
         return torch.mean(ldiff**2 + rdiff**2)
+
+    def configure_optimizers(self):
+        optimizer = Adam(self.model.parameters(), lr=self.lr, weight_decay=0)
+
+        scheduler = ReduceLROnPlateau(optimizer, mode="min", patience=5, factor=2, verbose=True)
+
+        if scheduler:
+            # Every metric logged with log() or log_dict() in LightningModule
+            # is a candidate for the monitor key.
+            return {
+                "optimizer": optimizer,
+                "lr_scheduler": {"scheduler": scheduler, "monitor": "val_loss"},
+            }
+        else:
+            return optimizer

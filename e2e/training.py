@@ -4,6 +4,7 @@ import requests
 import torch
 from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.cli import ReduceLROnPlateau
 from lightning.pytorch.loggers import WandbLogger
 
 from e2e.autogit.autogit import git_add_commit_with
