@@ -51,13 +51,15 @@ class RNN(nn.Module):
         self.bn1(x)
         x = self.fc(x)
         x = F.relu(x)
-        x = F.dropout(x, p=self.p, training=self.training)  # + self.alpha(r0)
+        x = F.dropout(x + r0, p=self.p, training=self.training)  # + self.alpha(r0)
 
-        # r1 = x
+        r1 = x
 
         h0 = torch.zeros(self.n_layers, x.size(0), self.n_hidden).requires_grad_().to(x.device)
         x = self.bn2(x)
-        x, _ = self.rnn(x, h0)
+        x, _ = self.rnn(x + r1, h0)
+
+        r2 = x
 
         # x = F.relu(x)
         # x = F.dropout(x, p=self.p, training=self.training) + r0
@@ -65,5 +67,5 @@ class RNN(nn.Module):
 
         # x = self.bn2(x)
         # x = self.fc_out(x)
-        x = self.out(x)
+        x = self.out(x + r2)
         return x
