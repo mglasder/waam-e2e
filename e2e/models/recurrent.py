@@ -67,5 +67,5 @@ class RNN(nn.Module):
         # x = self.bn2(x)
         # x = self.fc_out(x)
         x = self.out(x)
-        x = self.smooth(x)
+        # x = self.smooth(x)
         return x
