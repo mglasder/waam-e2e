@@ -24,15 +24,26 @@ class RNN(nn.Module):
         self.fc = nn.Linear(in_features=n_input_features, out_features=n_output_features)
 
         self.bn2 = nn.BatchNorm1d(1)
-        self.rnn = nn.RNN(
+        # self.rnn = nn.RNN(
+        #     input_size=n_output_features,
+        #     hidden_size=n_hidden,
+        #     num_layers=n_layers,
+        #     bidirectional=False,
+        #     batch_first=True,
+        #     dropout=p,
+        #     nonlinearity="relu",
+        # )
+
+        self.lstm = nn.LSTM(
             input_size=n_output_features,
             hidden_size=n_hidden,
             num_layers=n_layers,
             bidirectional=False,
             batch_first=True,
             dropout=p,
-            nonlinearity="relu",
+            # nonlinearity="relu",
         )
+
         self.fc2 = nn.Linear(in_features=n_hidden, out_features=n_output_features)
 
         self.out = nn.Linear(in_features=n_output_features, out_features=n_output_features)
