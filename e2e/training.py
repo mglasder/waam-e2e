@@ -30,7 +30,7 @@ DEVICE = "cuda"
 # footprint
 THETA = 0.1
 # smoothness
-LAMBDA = 0.4
+LAMBDA = 0.3
 # area
 GAMMA = 0.05
 INPUT_LENGTH = 90
@@ -57,7 +57,9 @@ def main():
     # mlp = MLP(n_features=TARGET_LENGTH, p=P)
     # mlp.to(DEVICE)
 
-    rnn = RNN(p=P, n_input_features=INPUT_LENGTH, n_output_features=TARGET_LENGTH, n_hidden=TARGET_LENGTH, n_layers=20)
+    rnn = RNN(
+        p=P, n_input_features=INPUT_LENGTH, n_output_features=TARGET_LENGTH, n_hidden=TARGET_LENGTH * 2, n_layers=20
+    )
     rnn.to(DEVICE)
 
     # softresnet = SoftResNet(input_dim=INPUT_LENGTH, hidden_dim=TARGET_LENGTH, num_blocks=20)
