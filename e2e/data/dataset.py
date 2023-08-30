@@ -120,8 +120,8 @@ class ShapeDataset(WaamDataset):
         # reverse a torch tensor
 
         for inpt, target, id_, fp_idx in zip(inputs, targets, sample_ids, footprint_idx):
-            inputs_h.append(inpt[::-1])
-            targets_h.append(target[::-1])
+            inputs_h.append(inpt.flipud())
+            targets_h.append(target.flipud())
             sample_ids_h.append(id_ + "_hflip")
             footprint_idx_h.append(torch.tensor([self._seg_len - fp_idx[1], self._seg_len - fp_idx[0]]))
 
