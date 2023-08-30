@@ -17,6 +17,9 @@ class RNN(nn.Module):
         super().__init__()
         self.p = p
 
+        self.n_layers = n_layers
+        self.n_hidden = n_hidden
+
         self.rnn = nn.RNN(
             input_size=n_output_features,
             hidden_size=n_hidden,
@@ -29,9 +32,6 @@ class RNN(nn.Module):
 
         self.fc = nn.Linear(in_features=n_input_features, out_features=n_output_features)
 
-        self.n_layers = n_layers
-        self.n_hidden = n_hidden
-
         self.bn1 = nn.BatchNorm1d(1)
         self.bn2 = nn.BatchNorm1d(1)
 
@@ -42,6 +42,8 @@ class RNN(nn.Module):
         # self.beta = nn.Linear(in_features=n_input_features, out_features=n_output_features, bias=False)
 
         self.smooth = SmoothingLayer(max_window_size=30)
+
+        self.out = nn.Linear(in_features=n_hidden, out_features=n_output_features)
 
     def forward(self, x):
         r0 = x
@@ -64,4 +66,4 @@ class RNN(nn.Module):
         # x = self.bn2(x)
         # x = self.fc_out(x)
 
-        return self.smooth(x + r0)
+        return self.out(x + r0)
