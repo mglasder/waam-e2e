@@ -2,6 +2,8 @@ from torch import nn
 import torch.nn.functional as F
 import torch
 
+from e2e.models.simpleconv import SmoothingLayer
+
 
 class RNN(nn.Module):
     def __init__(
@@ -39,6 +41,8 @@ class RNN(nn.Module):
         # self.alpha = nn.Linear(in_features=n_input_features, out_features=n_output_features, bias=False)
         # self.beta = nn.Linear(in_features=n_input_features, out_features=n_output_features, bias=False)
 
+        self.smooth = SmoothingLayer(max_window_size=10)
+
     def forward(self, x):
         r0 = x
 
@@ -60,4 +64,4 @@ class RNN(nn.Module):
         # x = self.bn2(x)
         # x = self.fc_out(x)
 
-        return x + r0
+        return self.smooth(x + r0)
