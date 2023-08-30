@@ -41,7 +41,7 @@ class RNN(nn.Module):
         # self.alpha = nn.Linear(in_features=n_input_features, out_features=n_output_features, bias=False)
         # self.beta = nn.Linear(in_features=n_input_features, out_features=n_output_features, bias=False)
 
-        self.smooth = SmoothingLayer(max_window_size=30)
+        # self.smooth = SmoothingLayer(max_window_size=30)
 
         self.out = nn.Linear(in_features=n_hidden, out_features=n_output_features)
 
