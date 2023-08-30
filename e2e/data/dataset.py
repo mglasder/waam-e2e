@@ -66,15 +66,16 @@ class ShapeDataset(WaamDataset):
         return inpt, target, sample_id, footprint
 
     def create(self, samples: Samples) -> WaamDataset:
-        self.inputs = self._extract_inputs(samples)
-        self.targets = self._extract_targets(samples)
-        self.ids = self._get_ids(samples)
-        self.fp_idx = self._extract_relative_footprint_idx(samples)
+        inputs = self._extract_inputs(samples)
+        targets = self._extract_targets(samples)
+        ids = self._get_ids(samples)
+        fp_idx = self._extract_relative_footprint_idx(samples)
 
         if self.mirror:
-            self.inputs, self.targets, self.ids, self.fp_idx = self._mirror_dataset(
-                self.inputs, self.targets, self.ids, self.fp_idx
-            )
+            self.inputs, self.targets, self.ids, self.fp_idx = self._mirror_dataset(inputs, targets, ids, fp_idx)
+
+        else:
+            self.inputs, self.targets, self.ids, self.fp_idx = inputs, targets, ids, fp_idx
 
         return self
 
