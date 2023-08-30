@@ -224,7 +224,7 @@ class ModelV2(LightningModule):
         # return (1.0 - self.lambda_ - self.gamma) * loss + self.lambda_ * smoothness_loss + self.gamma * area_loss
         return (
             (1 - self.theta - self.gamma - self.lambda_) * loss
-            + self.theta * footprint_loss
+            # + self.theta * footprint_loss
             + self.lambda_ * self._smoothness_loss(predictions)
             # + self.gamma * self._area_loss(inputs, predictions, targets, fp)
         )
