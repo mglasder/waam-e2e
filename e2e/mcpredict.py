@@ -170,7 +170,7 @@ class McUncertainty:
         # ax3.legend()
 
         # join all three legends and put below ax3 in two columns
-        fig.legend(loc="lower center", bbox_to_anchor=(0.2, -0.15), ncol=2)
+        fig.legend(loc="lower center", bbox_to_anchor=(0.5, -0.3), ncol=2)
 
         # extend plot at bottom to make space for legend
         fig.subplots_adjust(bottom=0.5)
