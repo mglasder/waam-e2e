@@ -47,7 +47,10 @@ class RNN(nn.Module):
         self.fc2 = nn.Linear(in_features=n_hidden, out_features=n_output_features)
 
         self.out = nn.Linear(in_features=n_output_features, out_features=n_output_features)
-        self.smooth = SmoothingLayer(max_window_size=30)
+        # apply several smoothing layers
+
+        # self.smooth = SmoothingLayer(max_window_size=30)
+        self.smooth = nn.Sequential(*[SmoothingLayer(max_window_size=30) for _ in range(5)])
 
     def forward(self, x):
         r0 = x
@@ -56,21 +59,14 @@ class RNN(nn.Module):
         x = self.fc(x)
         x = F.relu(x)
         x = F.dropout(x, p=self.p, training=self.training) + r0  # + self.alpha(r0)
-
         r1 = x
 
-        h0 = torch.randn(self.n_layers, x.size(0), self.n_hidden).requires_grad_().to(x.device)
         x = self.bn2(x)
+        # h0 = torch.randn(self.n_layers, x.size(0), self.n_hidden).requires_grad_().to(x.device)
         # x, _ = self.rnn(x, h0)
         x, _ = self.lstm(x)
         x = F.relu(self.fc2(x)) + r1
 
-        # x = F.relu(x)
-        # x = F.dropout(x, p=self.p, training=self.training) + r0
-        # r1 = x
-
-        # x = self.bn2(x)
-        # x = self.fc_out(x)
         x = self.out(x)
         x = self.smooth(x)
         return x
