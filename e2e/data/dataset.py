@@ -1,12 +1,11 @@
 from abc import abstractmethod
 from typing import Optional, TypeVar
-
 import numpy as np
 import torch
 from scipy.interpolate import interp1d
 from torch.utils.data import Dataset
-
 from e2e.data.sample import CrossSectionSample, FootprintEdge
+from torchvision import transforms as T
 
 IDs = TypeVar("IDs", bound=list[str])
 Samples = TypeVar("Samples", bound=list[CrossSectionSample])
@@ -46,12 +45,13 @@ class ZeroRandomDataset(WaamDataset):
 
 
 class ShapeDataset(WaamDataset):
-    def __init__(self, segment_length=224):
+    def __init__(self, mirror=False, segment_length=224):
         self.inputs: Optional[list[LineSegmentZ]] = None
         self.targets: Optional[list[LineSegmentZ]] = None
         self.ids: Optional[IDs] = None
         self.fp_idx: Optional[list[torch.tensor]] = None
 
+        self.mirror = mirror
         self._seg_len = segment_length
 
     def __len__(self):
@@ -70,7 +70,11 @@ class ShapeDataset(WaamDataset):
         self.targets = self._extract_targets(samples)
         self.ids = self._get_ids(samples)
         self.fp_idx = self._extract_relative_footprint_idx(samples)
-        # TODO: mirror
+
+        if self.mirror:
+            self.inputs, self.targets, self.ids, self.fp_idx = self._mirror_dataset(
+                self.inputs, self.targets, self.ids, self.fp_idx
+            )
 
         return self
 
@@ -106,6 +110,27 @@ class ShapeDataset(WaamDataset):
                 right = self._seg_len - 1
             footprint_idx.append(torch.tensor([left, right]))
         return footprint_idx
+
+    def _mirror_dataset(self, inputs, targets, sample_ids, footprint_idx):
+        hflipper = T.RandomHorizontalFlip(p=1)
+
+        inputs_h = []
+        targets_h = []
+        sample_ids_h = []
+        footprint_idx_h = []
+
+        for inpt, target, id_, fp_idx in zip(inputs, targets, sample_ids, footprint_idx):
+            inputs_h.append(hflipper(inpt))
+            targets_h.append(hflipper(target))
+            sample_ids_h.append(id_ + "_hflip")
+            footprint_idx_h.append(torch.tensor([self._seg_len - fp_idx[1], self._seg_len - fp_idx[0]]))
+
+        inputs_h = np.concatenate((inputs_h, inputs))
+        targets_h = np.concatenate((targets_h, targets))
+        sample_ids_h = np.concatenate((sample_ids_h, sample_ids))
+        footprint_idx_h = np.concatenate((footprint_idx_h, footprint_idx))
+
+        return inputs_h, targets_h, sample_ids_h, footprint_idx_h
 
     @staticmethod
     def _get_ids(samples: Samples) -> list[str]:

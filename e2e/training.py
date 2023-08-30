@@ -30,7 +30,7 @@ DEVICE = "cuda"
 # footprint
 THETA = 0.1
 # smoothness
-LAMBDA = 0.8
+LAMBDA = 0.5
 # area
 GAMMA = 0.05
 INPUT_LENGTH = 90
@@ -38,6 +38,7 @@ TARGET_LENGTH = 90
 LR = 0.001
 P = 0.2
 
+MIRROR = True
 DEV_RUN = False
 LOGGING = True
 AUTOCOMMIT = True
@@ -114,7 +115,7 @@ def main():
         batch_size=BATCH_SIZE,
         data_dir=VM_DATA_DIR,
         workers=N_WORKERS,
-        dataset=ShapeDataset(segment_length=TARGET_LENGTH),
+        dataset=ShapeDataset(mirror=MIRROR, segment_length=TARGET_LENGTH),
         split=split,
         train_val_sets=train_val_sets,
         separate_test_set=separate_test_set,
