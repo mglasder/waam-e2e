@@ -18,7 +18,7 @@ from e2e.models.recurrent import RNN
 
 import os
 
-os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
+# os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 
 NAS_DATA_DIR_DEV = Path("/Volumes/hornets/homes/mglasder/datasets/TrainingDev")
 MAC_DATA_DIR_DEV = Path("/Users/magnus/datasets/WAAM/TrainingDev")
@@ -27,7 +27,7 @@ VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 
 SEED = 2345078
 BATCH_SIZE = 16
-MAX_EPOCHS = 80
+MAX_EPOCHS = 200
 N_WORKERS = 16
 DEVICE = "cuda"
 # footprint
@@ -39,7 +39,7 @@ GAMMA = 0.05
 INPUT_LENGTH = 90
 TARGET_LENGTH = 90
 LR = 0.001
-P = 0.2
+P = 0.5
 
 MIRROR = True
 DEV_RUN = False
@@ -157,6 +157,11 @@ def main():
 
     # get best model from checkpoint
     # model = ModelV2.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+
+    # print parameters of smoothing layers
+    for name, param in model.named_parameters():
+        if "smooth" in name:
+            print(name, param)
 
     mc = McUncertainty(model, train_data_loader, val_data_loader, logger=logger)
     mc.predict()
