@@ -1,5 +1,4 @@
 from pathlib import Path
-
 import requests
 import torch
 from lightning import Trainer
@@ -16,6 +15,10 @@ from e2e.mcpredict import McUncertainty
 from e2e.models.mlp import SoftResNet
 from e2e.models.modelV2 import ModelV2
 from e2e.models.recurrent import RNN
+
+import os
+
+os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 
 NAS_DATA_DIR_DEV = Path("/Volumes/hornets/homes/mglasder/datasets/TrainingDev")
 MAC_DATA_DIR_DEV = Path("/Users/magnus/datasets/WAAM/TrainingDev")
