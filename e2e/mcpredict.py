@@ -172,7 +172,7 @@ class McUncertainty:
         # join all three legends and put below ax3 in two columns
         fig.legend(loc="lower center", bbox_to_anchor=(0.5, -0.15), ncol=2)
 
-        # make plot larger so that legend is not cut off
-        fig.set_size_inches(10, 10)
+        # extend plot at bottom to make space for legend
+        fig.subplots_adjust(bottom=0.2)
 
         return fig, caption
