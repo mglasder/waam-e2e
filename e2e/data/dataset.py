@@ -5,7 +5,6 @@ import torch
 from scipy.interpolate import interp1d
 from torch.utils.data import Dataset
 from e2e.data.sample import CrossSectionSample, FootprintEdge
-from torchvision import transforms as T
 
 IDs = TypeVar("IDs", bound=list[str])
 Samples = TypeVar("Samples", bound=list[CrossSectionSample])
