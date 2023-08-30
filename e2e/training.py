@@ -31,11 +31,11 @@ MAX_EPOCHS = 80
 N_WORKERS = 16
 DEVICE = "cpu"
 # footprint
-THETA = 0.0
+THETA = 0.1
 # smoothness
 LAMBDA = 0.5
 # area
-GAMMA = 0.00
+GAMMA = 0.05
 INPUT_LENGTH = 90
 TARGET_LENGTH = 90
 LR = 0.001
