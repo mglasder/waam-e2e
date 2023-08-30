@@ -15,5 +15,6 @@ class SmoothingLayer(nn.Module):
         window_size = round(window_size.item())
 
         # Apply moving average
-        smoothed = F.avg_pool1d(x, window_size, stride=1, padding=window_size - 1)
+        padding = (window_size - 1) // 2
+        smoothed = F.avg_pool1d(x, window_size, stride=1, padding=padding)
         return smoothed
