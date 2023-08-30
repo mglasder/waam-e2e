@@ -24,7 +24,7 @@ VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 
 SEED = 2345078
 BATCH_SIZE = 16
-MAX_EPOCHS = 50
+MAX_EPOCHS = 30
 N_WORKERS = 16
 DEVICE = "cuda"
 # footprint
@@ -87,7 +87,7 @@ def main():
 
     if LOGGING:
         logger = WandbLogger(project="waam-e2e-pre", log_model="all")
-        logger.watch(model)
+        logger.watch(model.model)
     else:
         logger = None
 
@@ -148,6 +148,9 @@ def main():
 
     val_data_loader = datamodule.val_dataloader()
     train_data_loader = datamodule.train_dataloader()
+
+    # get best model from checkpoint
+    model = ModelV2.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     mc = McUncertainty(model, train_data_loader, val_data_loader, logger=logger)
     mc.predict()
