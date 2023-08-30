@@ -32,7 +32,7 @@ THETA = 0.1
 # smoothness
 LAMBDA = 0.5
 # area
-GAMMA = 0.05
+GAMMA = 0.00
 INPUT_LENGTH = 90
 TARGET_LENGTH = 90
 LR = 0.001

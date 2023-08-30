@@ -226,7 +226,7 @@ class ModelV2(LightningModule):
             (1 - self.theta - self.gamma - self.lambda_) * loss
             + self.theta * footprint_loss
             + self.lambda_ * self._smoothness_loss(predictions)
-            + self.gamma * self._area_loss(inputs, predictions, targets, fp)
+            # + self.gamma * self._area_loss(inputs, predictions, targets, fp)
         )
 
     def _footprint_loss(self, preds, targets, fp):
