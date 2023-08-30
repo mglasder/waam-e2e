@@ -11,7 +11,8 @@ class SmoothnessLoss(nn.Module):
         super().__init__()
 
     def forward(self, outputs):
-        second_derivative = torch.mean((outputs[:, :-2] - 2 * outputs[:, 1:-1] + outputs[:, 2:]) ** 2)
+        # TODO: get this right
+        second_derivative = outputs[:, :-2] - 2 * outputs[:, 1:-1] + outputs[:, 2:]
         smoothness_loss = torch.mean(second_derivative**2, dim=1)
         return torch.mean(smoothness_loss)
 

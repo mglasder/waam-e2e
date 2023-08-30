@@ -165,7 +165,11 @@ class McUncertainty:
         ax3.plot(error, color="red", label="abs. error", ls="--")
 
         ax.set_title(caption)
-        ax.legend()
-        ax2.legend(loc="lower left", bbox_to_anchor=(0.5, -0.15))
-        ax3.legend()
+        # ax.legend()
+        # ax2.legend(loc="lower left", bbox_to_anchor=(0.5, -0.15))
+        # ax3.legend()
+
+        # join all three legends and put below ax3 in two columns
+        fig.legend(loc="lower center", bbox_to_anchor=(0.5, -0.15), ncol=2)
+
         return fig, caption
