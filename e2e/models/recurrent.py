@@ -2,7 +2,7 @@ from torch import nn
 import torch.nn.functional as F
 import torch
 
-from e2e.models.simpleconv import SmoothingLayer
+from e2e.models.layers import SmoothingLayer
 
 
 class RNN(nn.Module):

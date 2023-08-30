@@ -1,21 +1,5 @@
-import torch
 import torch.nn.functional as F
 from torch import nn
-
-
-class SmoothingLayer(nn.Module):
-    def __init__(self, max_window_size):
-        super(SmoothingLayer, self).__init__()
-        self.max_window_size = max_window_size
-        self.window_size = nn.Parameter(torch.tensor(1.0), requires_grad=True)
-
-    def forward(self, x):
-        # Ensure window_size is within valid range
-        window_size = torch.clamp(self.window_size, 1, self.max_window_size).int().item()
-
-        # Apply moving average
-        smoothed = F.avg_pool1d(x, window_size, stride=1, padding=window_size - 1)
-        return smoothed
 
 
 class SimpleConv(nn.Module):
