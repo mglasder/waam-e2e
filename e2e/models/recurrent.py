@@ -65,5 +65,5 @@ class RNN(nn.Module):
 
         # x = self.bn2(x)
         # x = self.fc_out(x)
-
-        return self.out(x + r0)
+        x = self.out(x) + r0
+        return x
