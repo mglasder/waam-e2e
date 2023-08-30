@@ -20,14 +20,24 @@ class RNN(nn.Module):
         self.n_layers = n_layers
         self.n_hidden = n_hidden
 
-        self.rnn = nn.RNN(
+        # self.rnn = nn.RNN(
+        #     input_size=n_output_features,
+        #     hidden_size=n_hidden,
+        #     num_layers=n_layers,
+        #     bidirectional=False,
+        #     batch_first=True,
+        #     dropout=p,
+        #     nonlinearity="relu",
+        # )
+
+        self.rnn = nn.LSTM(
             input_size=n_output_features,
             hidden_size=n_hidden,
             num_layers=n_layers,
             bidirectional=False,
             batch_first=True,
             dropout=p,
-            nonlinearity="relu",
+            # nonlinearity="relu",
         )
 
         self.fc = nn.Linear(in_features=n_input_features, out_features=n_output_features)
