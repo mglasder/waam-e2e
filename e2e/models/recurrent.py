@@ -58,7 +58,7 @@ class RNN(nn.Module):
         h0 = torch.zeros(self.n_layers, x.size(0), self.n_hidden).requires_grad_().to(x.device)
         x = self.bn2(x)
         x, _ = self.rnn(x, h0)
-        x = x + r1
+        x = x  # + r1
 
         # x = F.relu(x)
         # x = F.dropout(x, p=self.p, training=self.training) + r0
