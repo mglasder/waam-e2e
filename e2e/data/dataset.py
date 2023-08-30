@@ -123,7 +123,7 @@ class ShapeDataset(WaamDataset):
             inputs_h.append(inpt.flipud())
             targets_h.append(target.flipud())
             sample_ids_h.append(id_ + "_hflip")
-            footprint_idx_h.append(torch.tensor([self._seg_len - fp_idx[1], self._seg_len - fp_idx[0]]))
+            footprint_idx_h.append(torch.tensor([self._seg_len - 1 - fp_idx[1], self._seg_len - 1 - fp_idx[0]]))
 
         inputs_h.extend(inputs)
         targets_h.extend(targets)
