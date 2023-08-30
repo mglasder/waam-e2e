@@ -31,6 +31,7 @@ class RNN(nn.Module):
         )
 
         self.fc = nn.Linear(in_features=n_input_features, out_features=n_output_features)
+        self.fc2 = nn.Linear(in_features=n_hidden, out_features=n_output_features)
 
         self.bn1 = nn.BatchNorm1d(1)
         self.bn2 = nn.BatchNorm1d(1)
@@ -43,7 +44,7 @@ class RNN(nn.Module):
 
         # self.smooth = SmoothingLayer(max_window_size=30)
 
-        self.out = nn.Linear(in_features=n_hidden, out_features=n_output_features)
+        self.out = nn.Linear(in_features=n_output_features, out_features=n_output_features)
 
     def forward(self, x):
         r0 = x
@@ -58,7 +59,8 @@ class RNN(nn.Module):
         h0 = torch.zeros(self.n_layers, x.size(0), self.n_hidden).requires_grad_().to(x.device)
         x = self.bn2(x)
         x, _ = self.rnn(x, h0)
-        x = x  # + r1
+        self.fc2(x)
+        x = x + r1
 
         # x = F.relu(x)
         # x = F.dropout(x, p=self.p, training=self.training) + r0
