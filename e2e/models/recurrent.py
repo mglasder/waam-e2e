@@ -20,41 +20,23 @@ class RNN(nn.Module):
         self.n_layers = n_layers
         self.n_hidden = n_hidden
 
-        # self.rnn = nn.RNN(
-        #     input_size=n_output_features,
-        #     hidden_size=n_hidden,
-        #     num_layers=n_layers,
-        #     bidirectional=False,
-        #     batch_first=True,
-        #     dropout=p,
-        #     nonlinearity="relu",
-        # )
+        self.bn1 = nn.BatchNorm1d(1)
+        self.fc = nn.Linear(in_features=n_input_features, out_features=n_output_features)
 
-        self.rnn = nn.LSTM(
+        self.bn2 = nn.BatchNorm1d(1)
+        self.rnn = nn.RNN(
             input_size=n_output_features,
             hidden_size=n_hidden,
             num_layers=n_layers,
             bidirectional=False,
             batch_first=True,
             dropout=p,
-            # nonlinearity="relu",
+            nonlinearity="relu",
         )
-
-        self.fc = nn.Linear(in_features=n_input_features, out_features=n_output_features)
         self.fc2 = nn.Linear(in_features=n_hidden, out_features=n_output_features)
 
-        self.bn1 = nn.BatchNorm1d(1)
-        self.bn2 = nn.BatchNorm1d(1)
-
-        # self.alpha = nn.Parameter(torch.tensor(0.5))
-        # self.beta = nn.Parameter(torch.tensor(0.5))
-
-        # self.alpha = nn.Linear(in_features=n_input_features, out_features=n_output_features, bias=False)
-        # self.beta = nn.Linear(in_features=n_input_features, out_features=n_output_features, bias=False)
-
-        # self.smooth = SmoothingLayer(max_window_size=30)
-
         self.out = nn.Linear(in_features=n_output_features, out_features=n_output_features)
+        self.smooth = SmoothingLayer(max_window_size=30)
 
     def forward(self, x):
         r0 = x
@@ -66,9 +48,9 @@ class RNN(nn.Module):
 
         r1 = x
 
-        # h0 = torch.randn(self.n_layers, x.size(0), self.n_hidden).requires_grad_().to(x.device)
+        h0 = torch.randn(self.n_layers, x.size(0), self.n_hidden).requires_grad_().to(x.device)
         x = self.bn2(x)
-        x, _ = self.rnn(x)
+        x, _ = self.rnn(x, h0)
         x = F.relu(self.fc2(x)) + r1
 
         # x = F.relu(x)
@@ -78,5 +60,5 @@ class RNN(nn.Module):
         # x = self.bn2(x)
         # x = self.fc_out(x)
         x = self.out(x)
-        # x = self.smooth(x)
+        x = self.smooth(x)
         return x
