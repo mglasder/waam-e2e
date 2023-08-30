@@ -14,5 +14,5 @@ class SmoothingLayer(nn.Module):
         window_size = torch.clamp(self.window_size, 1, self.max_window_size).int()
 
         # Apply moving average
-        smoothed = F.avg_pool1d(x, window_size.item(), stride=1, padding=window_size - 1)
+        smoothed = F.avg_pool1d(x, window_size.item(), stride=1, padding=window_size.item() - 1)
         return smoothed
