@@ -56,7 +56,7 @@ class RNN(nn.Module):
 
         r1 = x
 
-        h0 = torch.zeros(self.n_layers, x.size(0), self.n_hidden).requires_grad_().to(x.device)
+        h0 = torch.randn(self.n_layers, x.size(0), self.n_hidden).requires_grad_().to(x.device)
         x = self.bn2(x)
         x, _ = self.rnn(x, h0)
         x = F.relu(self.fc2(x)) + r1
