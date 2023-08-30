@@ -58,7 +58,7 @@ def main():
     # mlp.to(DEVICE)
 
     rnn = RNN(
-        p=P, n_input_features=INPUT_LENGTH, n_output_features=TARGET_LENGTH, n_hidden=TARGET_LENGTH * 3, n_layers=10
+        p=P, n_input_features=INPUT_LENGTH, n_output_features=TARGET_LENGTH, n_hidden=TARGET_LENGTH * 4, n_layers=10
     )
     rnn.to(DEVICE)
 
