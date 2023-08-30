@@ -6,7 +6,7 @@ from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.loggers import WandbLogger
 
 from e2e.autogit.autogit import git_add_commit_with
-from e2e.callbacks.metrics import FootprintAvgAbsValErrorLogger, ModHausdorffLogger
+from e2e.callbacks.metrics import FootprintAvgAbsValErrorLogger, ModHausdorffLogger, LogModelParametersAndGradients
 from e2e.callbacks.plotting import PredictionPlotting
 from e2e.data.datamodule import ShapePredictionDataModule
 from e2e.data.dataset import ShapeDataset, ResampledFootprintDataset
@@ -141,6 +141,7 @@ def main():
         # callbacks.append(PredictionPlotting(epochs=[]))
         callbacks.append(FootprintAvgAbsValErrorLogger())
         callbacks.append(ModHausdorffLogger())
+        callbacks.append(LogModelParametersAndGradients())
 
     trainer = Trainer(
         max_epochs=MAX_EPOCHS,

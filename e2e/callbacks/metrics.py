@@ -1,4 +1,5 @@
 import numpy as np
+import wandb
 from lightning import Callback
 from scipy.spatial.distance import cdist
 
@@ -52,3 +53,10 @@ class ModHausdorffLogger(Callback):
             modhaussdorff.append((np.median(np.min(dist, axis=1))))
 
         trainer.logger.log_metrics({"val/mod_haussdorff": float(np.mean(modhaussdorff))})
+
+
+class LogModelParametersAndGradients(Callback):
+    def on_after_backward(self, trainer, pl_module):
+        for name, param in pl_module.named_parameters():
+            trainer.logger.experiment.log({f"Gradients/{name}": wandb.Histogram(param.grad)})
+            trainer.logger.experiment.log({f"Parameters/{name}": wandb.Histogram(param.data)})
