@@ -38,7 +38,7 @@ TARGET_LENGTH = 90
 LR = 0.001
 P = 0.2
 
-MIRROR = False
+MIRROR = True
 DEV_RUN = False
 LOGGING = True
 AUTOCOMMIT = True

@@ -130,7 +130,7 @@ class ShapeDataset(WaamDataset):
         sample_ids_h = np.concatenate((sample_ids_h, sample_ids))
         footprint_idx_h = np.concatenate((footprint_idx_h, footprint_idx))
 
-        return inputs_h, targets_h, sample_ids_h, footprint_idx_h
+        return torch.tensor(inputs_h), torch.tensor(targets_h), sample_ids_h, torch.tensor(footprint_idx_h)
 
     @staticmethod
     def _get_ids(samples: Samples) -> list[str]:
