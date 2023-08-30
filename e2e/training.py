@@ -150,7 +150,7 @@ def main():
     train_data_loader = datamodule.train_dataloader()
 
     # get best model from checkpoint
-    model = ModelV2.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+    # model = ModelV2.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     mc = McUncertainty(model, train_data_loader, val_data_loader, logger=logger)
     mc.predict()
