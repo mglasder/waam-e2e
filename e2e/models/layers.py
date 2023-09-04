@@ -28,12 +28,10 @@ class GaussianSmoothing(nn.Module):
         super(GaussianSmoothing, self).__init__()
         self.window_size = window_size
         self.padding = (window_size - 1) // 2
-        self.positions = torch.linspace(-(window_size // 2), window_size // 2, steps=window_size)
         self.sigma = nn.Parameter(torch.tensor(sigma_init), requires_grad=True)
+        self.positions = torch.linspace(-(window_size // 2), window_size // 2, steps=window_size).to(self.sigma.device)
 
     def gaussian_weights(self):
-        print(self.positions.device)
-        print(self.sigma.device)
         weights = torch.exp(-self.positions**2 / (2 * self.sigma**2))
         weights /= weights.sum()  # Normalize
         return weights
