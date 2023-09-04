@@ -29,7 +29,9 @@ class GaussianSmoothing(nn.Module):
         self.window_size = window_size
         self.padding = (window_size - 1) // 2
         self.sigma = nn.Parameter(torch.tensor(sigma_init), requires_grad=True)
-        self.positions = torch.linspace(-(window_size // 2), window_size // 2, steps=window_size)
+        self.positions = nn.Parameter(
+            torch.linspace(-(window_size // 2), window_size // 2, steps=window_size), requires_grad=False
+        )
 
     def gaussian_weights(self):
         weights = torch.exp(-self.positions**2 / (2 * self.sigma**2))
@@ -42,10 +44,10 @@ class GaussianSmoothing(nn.Module):
         smoothed = F.conv1d(x, weights, padding=self.padding)
         return smoothed
 
-    def to(self, *args, **kwargs):
-        super(GaussianSmoothing, self).to(*args, **kwargs)
-        self.positions = self.positions.to(*args, **kwargs)
-        return self
+    # def to(self, *args, **kwargs):
+    #     super(GaussianSmoothing, self).to(*args, **kwargs)
+    #     self.positions = self.positions.to(*args, **kwargs)
+    #     return self
 
 
 def test_smoothing_layer():
