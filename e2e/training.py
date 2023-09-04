@@ -151,8 +151,8 @@ def main():
     model_path = trainer.checkpoint_callback.best_model_path
     print(model_path)
     # partially init model with lstm
-    ModelV2Partial = partial(ModelV2, model=lstm)
-    best_model = ModelV2Partial().load_from_checkpoint(model_path)
+    best_model = ModelV2(model=lstm)
+    best_model = best_model.load_from_checkpoint(model_path)
 
     # print parameters of smoothing layers
     for name, param in best_model.named_parameters():
