@@ -81,6 +81,24 @@ class McUncertainty:
             #     iso_reg.fit(uncertainties[:, i_feature], errors[:, i_feature])
             #
             # calibrated_uncertainties[:, i_feature] = iso_reg.transform(uncertainties[:, i_feature])
+        elif strategy == "constant_multiplier":
+
+            def _multiplier(x):
+                return x * 10
+
+            self._calibrator = _multiplier
+
+            uncertainties = self._uncertainty_preds["train"]["uncertainties"]
+            calibrated_uncertainties = _multiplier(uncertainties)
+
+            self._uncertainty_preds["train"]["uncertainties_calib"] = calibrated_uncertainties
+            self._uncertainty_preds["val"]["uncertainties_calib"] = _multiplier(
+                self._uncertainty_preds["val"]["uncertainties"]
+            )
+            if self._test_dl is not None:
+                self._uncertainty_preds["test"]["uncertainties_calib"] = _multiplier(
+                    self._uncertainty_preds["test"]["uncertainties"]
+                )
 
         elif strategy == "mlp":
             mlp = MLPRegressor(

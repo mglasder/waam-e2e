@@ -163,7 +163,7 @@ def main():
 
     mc = McUncertainty(model, train_data_loader, val_data_loader, logger=logger)
     mc.predict()
-    mc.calibrate(strategy="mlp")
+    mc.calibrate(strategy="constant_multiplier")
     mc.plot_predictions("train", log=True, take=30)
     mc.plot_predictions("val", log=True, take=30)
 
