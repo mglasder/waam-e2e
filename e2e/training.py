@@ -24,7 +24,7 @@ VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 
 SEED = 2345078
 BATCH_SIZE = 16
-MAX_EPOCHS = 100
+MAX_EPOCHS = 2
 N_WORKERS = 16
 DEVICE = "cuda"
 # footprint
@@ -142,7 +142,12 @@ def main():
     train_data_loader = datamodule.train_dataloader()
 
     # get best model from checkpoint
-    best_model = ModelV2.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+    run = logger.experiment
+    model_artifact = run.use_artifact(f"model:{run.run_id}")
+    model_path = model_artifact.download()
+    print(model_path)
+    print(trainer.checkpoint_callback.best_model_path)
+    best_model = ModelV2(model=lstm).load_from_checkpoint(model_path)
 
     # print parameters of smoothing layers
     for name, param in best_model.named_parameters():
