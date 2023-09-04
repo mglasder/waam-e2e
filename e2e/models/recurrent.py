@@ -2,7 +2,7 @@ from torch import nn
 import torch.nn.functional as F
 import torch
 
-from e2e.models.layers import SmoothingLayer
+from e2e.models.layers import SmoothingLayer, GaussianSmoothing
 
 
 class RNN(nn.Module):
@@ -49,8 +49,8 @@ class RNN(nn.Module):
         self.out = nn.Linear(in_features=n_output_features, out_features=n_output_features)
         # apply several smoothing layers
 
-        # self.smooth = SmoothingLayer(max_window_size=30)
-        self.smooth = nn.Sequential(*[SmoothingLayer(max_window_size=30) for _ in range(5)])
+        self.smooth = GaussianSmoothing(max_window_size=30)
+        # self.smooth = nn.Sequential(*[SmoothingLayer(max_window_size=30) for _ in range(5)])
 
     def forward(self, x):
         r0 = x

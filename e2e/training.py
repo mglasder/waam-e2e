@@ -141,7 +141,7 @@ def main():
         # callbacks.append(PredictionPlotting(epochs=[]))
         callbacks.append(FootprintAvgAbsValErrorLogger())
         callbacks.append(ModHausdorffLogger())
-        # callbacks.append(LogModelParametersAndGradients())
+        callbacks.append(LogModelParametersAndGradients())
 
     trainer = Trainer(
         max_epochs=MAX_EPOCHS,
