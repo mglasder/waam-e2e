@@ -31,7 +31,6 @@ class LSTM(nn.Module):
             bidirectional=False,
             batch_first=True,
             dropout=p,
-            # nonlinearity="relu",
         )
 
         self.fc2 = nn.Linear(in_features=n_hidden, out_features=n_output_features)
