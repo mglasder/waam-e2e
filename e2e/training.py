@@ -158,7 +158,7 @@ def main():
 
     # print parameters of smoothing layers
     for name, param in model.named_parameters():
-        if "smooth" in name:
+        if "sigma" in name:
             print(name, param)
 
     mc = McUncertainty(model, train_data_loader, val_data_loader, logger=logger)

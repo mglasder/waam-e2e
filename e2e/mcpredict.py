@@ -89,9 +89,10 @@ class McUncertainty:
                 alpha=0.001,
                 solver="adam",
                 verbose=10,
-                tol=1e-5,
+                tol=1e-3,
                 random_state=1,
                 learning_rate_init=0.01,
+                early_stopping=True,
             )
 
             uncertainties = self._uncertainty_preds["train"]["uncertainties"]
