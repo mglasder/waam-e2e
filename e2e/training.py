@@ -24,7 +24,7 @@ VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 
 SEED = 2345078
 BATCH_SIZE = 16
-MAX_EPOCHS = 100
+MAX_EPOCHS = 5
 N_WORKERS = 16
 DEVICE = "cuda"
 # footprint
@@ -163,7 +163,7 @@ def main():
 
     mc = McUncertainty(model, train_data_loader, val_data_loader, logger=logger)
     mc.predict()
-    mc.calibrate(strategy="constant_multiplier")
+    mc.calibrate(strategy="temperature_scaling")
     mc.plot_predictions("train", log=True, take=30)
     mc.plot_predictions("val", log=True, take=30)
 

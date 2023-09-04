@@ -100,6 +100,31 @@ class McUncertainty:
                     self._uncertainty_preds["test"]["uncertainties"]
                 )
 
+        elif strategy == "temperature_scaling":
+
+            uncertainties = self._uncertainty_preds["train"]["uncertainties"]
+            errors = self._uncertainty_preds["train"]["errors"]
+
+            scalings = errors / uncertainties
+            scaling = scalings.mean(dim=0)
+
+            def _temperature_scaling(x):
+                return x * scaling
+
+            self._calibrator = _temperature_scaling
+
+            calibrated_uncertainties = _temperature_scaling(uncertainties)
+
+            self._uncertainty_preds["train"]["uncertainties_calib"] = calibrated_uncertainties
+            self._uncertainty_preds["val"]["uncertainties_calib"] = _temperature_scaling(
+                self._uncertainty_preds["val"]["uncertainties"]
+            )
+
+            if self._test_dl is not None:
+                self._uncertainty_preds["test"]["uncertainties_calib"] = _temperature_scaling(
+                    self._uncertainty_preds["test"]["uncertainties"]
+                )
+
         elif strategy == "mlp":
             mlp = MLPRegressor(
                 hidden_layer_sizes=(2, 120),
