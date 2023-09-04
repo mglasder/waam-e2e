@@ -24,7 +24,7 @@ VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 
 SEED = 2345078
 BATCH_SIZE = 16
-MAX_EPOCHS = 5
+MAX_EPOCHS = 100
 N_WORKERS = 16
 DEVICE = "cuda"
 # footprint
@@ -49,22 +49,10 @@ if torch.cuda.is_available():
 
 
 def main():
-    # unet = UNet1D(enconf=EncoderConfig(), deconf=DecoderConfig())
-    # unet.to(DEVICE)
-
-    # conv = SimpleConv(in_channels=1, out_channels=TARGET_LENGTH, kernel_size=120, p=P)
-    # conv.to(DEVICE)
-
-    # mlp = MLP(n_features=TARGET_LENGTH, p=P)
-    # mlp.to(DEVICE)
-
     lstm = LSTM(
         p=P, n_input_features=INPUT_LENGTH, n_output_features=TARGET_LENGTH, n_hidden=TARGET_LENGTH * 3, n_layers=10
     )
     lstm.to(DEVICE)
-
-    # softresnet = SoftResNet(input_dim=INPUT_LENGTH, hidden_dim=TARGET_LENGTH, num_blocks=20)
-    # softresnet.to(DEVICE)
 
     model = ModelV2(
         model=lstm,
@@ -154,14 +142,14 @@ def main():
     train_data_loader = datamodule.train_dataloader()
 
     # get best model from checkpoint
-    # model = ModelV2.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+    best_model = ModelV2.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     # print parameters of smoothing layers
-    for name, param in model.named_parameters():
+    for name, param in best_model.named_parameters():
         if "sigma" in name:
             print(name, param)
 
-    mc = McUncertainty(model, train_data_loader, val_data_loader, logger=logger)
+    mc = McUncertainty(best_model, train_data_loader, val_data_loader, logger=logger)
     mc.predict()
     mc.calibrate(strategy="temperature_scaling")
     mc.plot_predictions("train", log=True, take=30)

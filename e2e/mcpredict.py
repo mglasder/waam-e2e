@@ -1,6 +1,7 @@
 from typing import Optional
 
 import numpy as np
+import torch
 from lightning import LightningModule
 from matplotlib import pyplot as plt
 from sklearn.neural_network import MLPRegressor
@@ -106,7 +107,7 @@ class McUncertainty:
             errors = self._uncertainty_preds["train"]["errors"]
 
             scalings = errors / uncertainties
-            scaling = scalings.mean(dim=0)
+            scaling = torch.mean(torch.tensor(scalings), dim=0, keepdims=True).numpy()
 
             def _temperature_scaling(x):
                 return x * scaling
