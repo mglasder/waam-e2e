@@ -49,6 +49,7 @@ if torch.cuda.is_available():
 
 
 def main():
+
     lstm = LSTM(
         p=P, n_input_features=INPUT_LENGTH, n_output_features=TARGET_LENGTH, n_hidden=TARGET_LENGTH * 3, n_layers=10
     )
@@ -143,7 +144,7 @@ def main():
 
     # get best model from checkpoint
     run = logger.experiment
-    model_artifact = run.use_artifact(f"model:{run.run_id}")
+    model_artifact = run.use_artifact(f"model:{run.id}")
     model_path = model_artifact.download()
     print(model_path)
     print(trainer.checkpoint_callback.best_model_path)
