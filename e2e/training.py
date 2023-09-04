@@ -1,4 +1,5 @@
 from pathlib import Path
+
 import requests
 import torch
 from lightning import Trainer
@@ -6,17 +7,13 @@ from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.loggers import WandbLogger
 
 from e2e.autogit.autogit import git_add_commit_with
-from e2e.callbacks.metrics import FootprintAvgAbsValErrorLogger, ModHausdorffLogger, LogModelParametersAndGradients
-from e2e.callbacks.plotting import PredictionPlotting
+from e2e.callbacks.metrics import FootprintAvgAbsValErrorLogger, ModHausdorffLogger
 from e2e.data.datamodule import ShapePredictionDataModule
-from e2e.data.dataset import ShapeDataset, ResampledFootprintDataset
+from e2e.data.dataset import ShapeDataset
 from e2e.data.loader import EXPERIMENT as EXP
 from e2e.mcpredict import McUncertainty
-from e2e.models.mlp import SoftResNet
 from e2e.models.modelV2 import ModelV2
-from e2e.models.recurrent import RNN
-
-import os
+from e2e.models.recurrent import LSTM
 
 # os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 
@@ -61,16 +58,16 @@ def main():
     # mlp = MLP(n_features=TARGET_LENGTH, p=P)
     # mlp.to(DEVICE)
 
-    rnn = RNN(
+    lstm = LSTM(
         p=P, n_input_features=INPUT_LENGTH, n_output_features=TARGET_LENGTH, n_hidden=TARGET_LENGTH * 3, n_layers=10
     )
-    rnn.to(DEVICE)
+    lstm.to(DEVICE)
 
     # softresnet = SoftResNet(input_dim=INPUT_LENGTH, hidden_dim=TARGET_LENGTH, num_blocks=20)
     # softresnet.to(DEVICE)
 
     model = ModelV2(
-        model=rnn,
+        model=lstm,
         batch_size=BATCH_SIZE,
         lr=LR,
         theta=THETA,
