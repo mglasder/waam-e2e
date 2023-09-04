@@ -1,11 +1,10 @@
-from torch import nn
 import torch.nn.functional as F
-import torch
+from torch import nn
 
-from e2e.models.layers import SmoothingLayer, GaussianSmoothing
+from e2e.models.layers import MultiGaussianSmoothing
 
 
-class RNN(nn.Module):
+class LSTM(nn.Module):
     def __init__(
         self,
         p=0.5,
@@ -24,15 +23,6 @@ class RNN(nn.Module):
         self.fc = nn.Linear(in_features=n_input_features, out_features=n_output_features)
 
         self.bn2 = nn.BatchNorm1d(1)
-        # self.rnn = nn.RNN(
-        #     input_size=n_output_features,
-        #     hidden_size=n_hidden,
-        #     num_layers=n_layers,
-        #     bidirectional=False,
-        #     batch_first=True,
-        #     dropout=p,
-        #     nonlinearity="relu",
-        # )
 
         self.lstm = nn.LSTM(
             input_size=n_output_features,
@@ -47,10 +37,12 @@ class RNN(nn.Module):
         self.fc2 = nn.Linear(in_features=n_hidden, out_features=n_output_features)
 
         self.out = nn.Linear(in_features=n_output_features, out_features=n_output_features)
-        # apply several smoothing layers
 
-        self.smooth = GaussianSmoothing(window_size=15, sigma_init=1.0)
-        # self.smooth = nn.Sequential(*[SmoothingLayer(max_window_size=30) for _ in range(5)])
+        self.multi_smooth = MultiGaussianSmoothing(
+            output_length=n_output_features,
+            window_size=15,
+            sigma_inits=[0.3, 1.2, 2.0],
+        )
 
     def forward(self, x):
         r0 = x
@@ -58,12 +50,10 @@ class RNN(nn.Module):
         self.bn1(x)
         x = self.fc(x)
         x = F.relu(x)
-        x = F.dropout(x, p=self.p, training=self.training) + r0  # + self.alpha(r0)
+        x = F.dropout(x, p=self.p, training=self.training) + r0
         r1 = x
 
         x = self.bn2(x)
-        # h0 = torch.randn(self.n_layers, x.size(0), self.n_hidden).requires_grad_().to(x.device)
-        # x, _ = self.rnn(x, h0)
         x, _ = self.lstm(x)
         x = F.relu(self.fc2(x)) + r1
 
