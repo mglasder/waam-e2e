@@ -35,7 +35,7 @@ class GaussianSmoothing(nn.Module):
 
     def gaussian_weights(self):
         weights = torch.exp(-self.positions**2 / (2 * self.sigma**2))
-        weights /= weights.sum()  # Normalize
+        weights = weights / weights.sum()  # Normalize
         return weights
 
     def forward(self, x):
