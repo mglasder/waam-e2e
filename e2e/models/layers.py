@@ -32,14 +32,16 @@ class GaussianSmoothing(nn.Module):
         self.sigma = nn.Parameter(torch.tensor(sigma_init), requires_grad=True)
 
     def gaussian_weights(self):
+        print(self.positions.device)
+        print(self.sigma.device)
         weights = torch.exp(-self.positions**2 / (2 * self.sigma**2))
         weights /= weights.sum()  # Normalize
         return weights
 
     def forward(self, x):
         # weights = self.gaussian_weights().to(x.device).view(1, 1, -1)
+        print(x.device)
         weights = self.gaussian_weights().view(1, 1, -1)
-        print(weights.device)
         smoothed = F.conv1d(x, weights, padding=self.padding)
         return smoothed
 
