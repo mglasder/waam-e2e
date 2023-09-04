@@ -1,4 +1,3 @@
-from functools import partial
 from pathlib import Path
 
 import requests
@@ -29,7 +28,7 @@ MAX_EPOCHS = 100
 N_WORKERS = 16
 DEVICE = "cuda"
 # footprint
-THETA = 0.2
+THETA = 0.1
 # smoothness
 LAMBDA = 0.5
 # area
@@ -50,7 +49,6 @@ if torch.cuda.is_available():
 
 
 def main():
-
     lstm = LSTM(
         p=P, n_input_features=INPUT_LENGTH, n_output_features=TARGET_LENGTH, n_hidden=TARGET_LENGTH * 3, n_layers=10
     )
