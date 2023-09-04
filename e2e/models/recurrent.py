@@ -57,5 +57,5 @@ class LSTM(nn.Module):
         x = F.relu(self.fc2(x)) + r1
 
         x = self.out(x)
-        x = self.smooth(x)
+        x = self.multi_smooth(x)
         return x
