@@ -117,7 +117,7 @@ def main():
         # callbacks.append(PredictionPlotting(epochs=[]))
         callbacks.append(
             ModelCheckpoint(
-                every_n_epochs=5,
+                every_n_epochs=1,
                 monitor="val_loss",
                 mode="min",
                 auto_insert_metric_name=True,
