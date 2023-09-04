@@ -24,35 +24,28 @@ class SmoothingLayer(nn.Module):
 
 
 class GaussianSmoothing(nn.Module):
-    def __init__(self, max_window_size):
+    def __init__(self, window_size, sigma_init=1.0):
         super(GaussianSmoothing, self).__init__()
-        self.max_window_size = max_window_size
-        self.window_size = nn.Parameter(torch.tensor(2.0), requires_grad=True)
+        self.window_size = window_size
+        self.padding = (window_size - 1) // 2
+        self.positions = torch.linspace(-(window_size // 2), window_size // 2, steps=window_size)
+        self.sigma = nn.Parameter(torch.tensor(sigma_init), requires_grad=True)
 
-    @staticmethod
-    def gaussian_weights(window_size):
-        sigma = window_size / 6  # A heuristic to relate window size to sigma
-        lin_space = torch.linspace(-(window_size // 2), window_size // 2, steps=window_size)
-        weights = torch.exp(-(lin_space**2) / (2 * sigma**2))
+    def gaussian_weights(self):
+        weights = torch.exp(-self.positions**2 / (2 * self.sigma**2))
         weights /= weights.sum()  # Normalize
         return weights
 
     def forward(self, x):
-        window_size = torch.clamp(self.window_size, 1, self.max_window_size)
-        window_size = int(window_size.item())
-        window_size = window_size if window_size % 2 == 1 else window_size - 1
-
-        weights = self.gaussian_weights(window_size).to(x.device).view(1, 1, -1)
-        padding = (window_size - 1) // 2
-        smoothed = F.conv1d(x, weights, padding=padding)
-
+        weights = self.gaussian_weights().to(x.device).view(1, 1, -1)
+        smoothed = F.conv1d(x, weights, padding=self.padding)
         return smoothed
 
 
 def test_smoothing_layer():
     x = torch.randn(3, 1, 90)
     print(x.shape)
-    smooth = GaussianSmoothing(max_window_size=30)
+    smooth = GaussianSmoothing(window_size=15, sigma_init=1.0)
     print(smooth(x).shape)
     assert smooth(x).shape == x.shape
 

@@ -49,7 +49,7 @@ class RNN(nn.Module):
         self.out = nn.Linear(in_features=n_output_features, out_features=n_output_features)
         # apply several smoothing layers
 
-        self.smooth = GaussianSmoothing(max_window_size=30)
+        self.smooth = GaussianSmoothing(window_size=15, sigma_init=1.0)
         # self.smooth = nn.Sequential(*[SmoothingLayer(max_window_size=30) for _ in range(5)])
 
     def forward(self, x):
