@@ -143,16 +143,9 @@ def main():
     val_data_loader = datamodule.val_dataloader()
     train_data_loader = datamodule.train_dataloader()
 
-    # get best model from checkpoint
-    # run = logger.experiment
-    # model_artifact = run.use_artifact(f"model:{run.id}")
-    # model_path = model_artifact.download()
-    # print(model_path)
     model_path = trainer.checkpoint_callback.best_model_path
-    print(model_path)
-    # partially init model with lstm
-    # best_model = ModelV2(model=lstm)
     best_model = ModelV2.load_from_checkpoint(model=lstm, checkpoint_path=model_path)
+    best_model.to(DEVICE)
 
     # print parameters of smoothing layers
     for name, param in best_model.named_parameters():
