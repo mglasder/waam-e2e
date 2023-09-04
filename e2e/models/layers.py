@@ -37,7 +37,9 @@ class GaussianSmoothing(nn.Module):
         return weights
 
     def forward(self, x):
-        weights = self.gaussian_weights().to(x.device).view(1, 1, -1)
+        # weights = self.gaussian_weights().to(x.device).view(1, 1, -1)
+        weights = self.gaussian_weights().view(1, 1, -1)
+        print(weights.device)
         smoothed = F.conv1d(x, weights, padding=self.padding)
         return smoothed
 
