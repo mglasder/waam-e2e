@@ -27,7 +27,7 @@ SEED = 2345078
 BATCH_SIZE = 16
 MAX_EPOCHS = 2
 N_WORKERS = 16
-DEVICE = "cpu"
+DEVICE = "cuda"
 # footprint
 THETA = 0.1
 # smoothness
@@ -152,7 +152,7 @@ def main():
     print(model_path)
     # partially init model with lstm
     ModelV2Partial = partial(ModelV2, model=lstm)
-    best_model = ModelV2Partial.load_from_checkpoint(model_path)
+    best_model = ModelV2Partial().load_from_checkpoint(model_path)
 
     # print parameters of smoothing layers
     for name, param in best_model.named_parameters():
