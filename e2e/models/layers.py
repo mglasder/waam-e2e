@@ -54,14 +54,15 @@ class MultiGaussianSmoothing(nn.Module):
         )
 
         # Learnable mask for piecewise combination
-        self.mask = nn.Parameter(torch.randn(3, output_length), requires_grad=True)
+        self.mask = nn.Parameter(torch.randn(len(sigma_inits), output_length), requires_grad=True)
 
     def forward(self, x):
         smoothed_outputs = [layer(x) for layer in self.smoothing_layers]
         stacked_outputs = torch.stack(smoothed_outputs, dim=0)
 
         # Compute the softmax over the mask to get the piecewise combination weights
-        weights = F.softmax(self.mask, dim=0).unsqueeze(0).unsqueeze(2)
+        weights = F.softmax(self.mask, dim=0).unsqueeze(1).unsqueeze(2)
+        # match dimension of input x (batch_size, 1, output_length)
 
         weighted_outputs = weights * stacked_outputs
         combined = torch.sum(weighted_outputs, dim=0)
@@ -70,13 +71,13 @@ class MultiGaussianSmoothing(nn.Module):
 
 
 def test_smoothing_layer():
-    x = torch.randn(3, 1, 90)
+    x = torch.randn(16, 1, 90)
     smooth = GaussianSmoothing(window_size=15, sigma_init=1.0)
     assert smooth(x).shape == x.shape
 
 
 def test_multi_smoothing_layer():
-    x = torch.randn(3, 1, 90)
+    x = torch.randn(12, 1, 90)
     smooth = MultiGaussianSmoothing(output_length=90, window_size=15, sigma_inits=[1.0, 2.0, 3.0])
     assert smooth(x).shape == x.shape
 
