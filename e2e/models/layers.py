@@ -45,13 +45,42 @@ class GaussianSmoothing(nn.Module):
         return smoothed
 
 
+class MultiGaussianSmoothing(nn.Module):
+    def __init__(self, output_length, window_size, sigma_inits=[1.0, 2.0, 3.0]):
+        super(MultiGaussianSmoothing, self).__init__()
+
+        self.smoothing_layers = nn.ModuleList(
+            [GaussianSmoothing(window_size, sigma_init=sigma) for sigma in sigma_inits]
+        )
+
+        # Learnable mask for piecewise combination
+        self.mask = nn.Parameter(torch.randn(3, output_length), requires_grad=True)
+
+    def forward(self, x):
+        smoothed_outputs = [layer(x) for layer in self.smoothing_layers]
+        stacked_outputs = torch.stack(smoothed_outputs, dim=0)
+
+        # Compute the softmax over the mask to get the piecewise combination weights
+        weights = F.softmax(self.mask, dim=0).unsqueeze(0).unsqueeze(2)
+
+        weighted_outputs = weights * stacked_outputs
+        combined = torch.sum(weighted_outputs, dim=0)
+
+        return combined
+
+
 def test_smoothing_layer():
     x = torch.randn(3, 1, 90)
-    print(x.shape)
     smooth = GaussianSmoothing(window_size=15, sigma_init=1.0)
-    print(smooth(x).shape)
+    assert smooth(x).shape == x.shape
+
+
+def test_multi_smoothing_layer():
+    x = torch.randn(3, 1, 90)
+    smooth = MultiGaussianSmoothing(output_length=90, window_size=15, sigma_inits=[1.0, 2.0, 3.0])
     assert smooth(x).shape == x.shape
 
 
 if __name__ == "__main__":
     test_smoothing_layer()
+    test_multi_smoothing_layer()
