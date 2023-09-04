@@ -2,8 +2,6 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-# import pytest
-
 
 class SmoothingLayer(nn.Module):
     def __init__(self, max_window_size):
@@ -29,25 +27,22 @@ class GaussianSmoothing(nn.Module):
         self.window_size = window_size
         self.padding = (window_size - 1) // 2
         self.sigma = nn.Parameter(torch.tensor(sigma_init), requires_grad=True)
+        # wrap in nn.Parameter to move ot to same device as self.sigma,
+        # but requires_grad=False so that it is not optimized
         self.positions = nn.Parameter(
             torch.linspace(-(window_size // 2), window_size // 2, steps=window_size), requires_grad=False
         )
 
     def gaussian_weights(self):
         weights = torch.exp(-self.positions**2 / (2 * self.sigma**2))
+        # inplace operations cause problems in the backward pass -> weights = weights / weights.sum()
         weights = weights / weights.sum()  # Normalize
         return weights
 
     def forward(self, x):
-        # weights = self.gaussian_weights().to(x.device).view(1, 1, -1)
         weights = self.gaussian_weights().view(1, 1, -1)
         smoothed = F.conv1d(x, weights, padding=self.padding)
         return smoothed
-
-    # def to(self, *args, **kwargs):
-    #     super(GaussianSmoothing, self).to(*args, **kwargs)
-    #     self.positions = self.positions.to(*args, **kwargs)
-    #     return self
 
 
 def test_smoothing_layer():
