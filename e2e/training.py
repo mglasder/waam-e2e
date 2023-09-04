@@ -145,7 +145,7 @@ def main():
 
     model_path = trainer.checkpoint_callback.best_model_path
     best_model = ModelV2.load_from_checkpoint(model=lstm, checkpoint_path=model_path)
-    best_model.to(DEVICE)
+    best_model.to("cpu")
 
     # print parameters of smoothing layers
     for name, param in best_model.named_parameters():
