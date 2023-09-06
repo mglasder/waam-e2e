@@ -5,6 +5,8 @@ from torch import nn
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
+from e2e.helpers import timing
+
 
 class SmoothnessLoss(nn.Module):
     def __init__(self):
@@ -202,6 +204,7 @@ class ModelV2(LightningModule):
         pred_loss = self._loss(inputs, predictions, targets, fp)
         return {"loss": pred_loss, "preds": predictions, "targets": targets}
 
+    @timing.time_it
     def predict_with_uncertainty(self, x, num_samples=30):
         self.model.train()  # Set the model to training mode to enable dropout
         with torch.no_grad():
@@ -218,16 +221,16 @@ class ModelV2(LightningModule):
 
     def _loss(self, inputs, predictions, targets, fp):
         loss = self.loss(predictions, targets)
-        footprint_loss = self._footprint_loss(predictions, targets, fp)
+        fploss = self._footprint_loss(predictions, targets, fp)
         # smoothness_loss = self._smoothness(predictions.detach())
         # area_loss = self._area_loss(predictions, targets)
         # return (1.0 - self.lambda_ - self.gamma) * loss + self.lambda_ * smoothness_loss + self.gamma * area_loss
-        return (
-            (1 - self.theta - self.gamma - self.lambda_) * loss
-            + self.theta * footprint_loss
-            + self.lambda_ * self._smoothness_loss(predictions)
-            + self.gamma * self._area_loss(inputs, predictions, targets, fp)
-        )
+
+        fploss = self.theta * self._footprint_loss(predictions, targets, fp)
+        sloss = self.lambda_ * self._smoothness_loss(predictions)
+        sloss = self.gamma * self._area_loss(inputs, predictions, targets, fp)
+
+        return (1 - self.theta - self.gamma - self.lambda_) * loss + fploss + sloss + sloss
 
     def _footprint_loss(self, preds, targets, fp):
         ldiff = preds[:, fp[0]] - targets[:, fp[1]]
