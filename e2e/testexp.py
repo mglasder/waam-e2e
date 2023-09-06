@@ -15,7 +15,8 @@ from e2e.models.modelV2 import ModelV2
 from e2e.models.recurrent import LSTM
 
 PROJECT_NAME = "waam-e2e-pre"
-RUN_ID = "1v8m0ien"
+RUN_ID = "isn0h9ws"  # first_in_row + 2x
+# "xtuq679p"    # first_in_row + 4x
 VERSION = "best"
 VM_DATA_DIR = Path("/home/magnus/datasets/waam/30_processing_results/ImageGenerator")
 INPUT_LENGTH = 90

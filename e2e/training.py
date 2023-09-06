@@ -24,7 +24,7 @@ VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 
 SEED = 2345078
 BATCH_SIZE = 16
-MAX_EPOCHS = 100
+MAX_EPOCHS = 60
 N_WORKERS = 16
 DEVICE = "cuda"
 # footprint
