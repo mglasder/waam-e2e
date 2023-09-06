@@ -153,8 +153,8 @@ def main():
     mc = McUncertainty(best_model, train_data_loader, val_data_loader, logger=logger)
     mc.predict()
     mc.calibrate(strategy="temperature_scaling")
-    mc.plot_predictions("train", log=True, take=30)
-    mc.plot_predictions("val", log=True, take=30)
+    mc.plot_predictions("train", log=True, take=50)
+    mc.plot_predictions("val", log=True, take=10)
 
 
 if __name__ == "__main__":
