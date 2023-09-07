@@ -41,94 +41,105 @@ class Plotter:
         plt.show()
 
     @staticmethod
-    def plot_e2e(predictions, labels, ground_truth):
+    def plot_e2e(predictions, labels, ground_truth, title: str):
         fig, ax = plt.subplots(figsize=(15, 5), dpi=300)
         for i in range(len(predictions)):
             pred = predictions[i]
-            z_offset = np.mean(pred[130:150])
-            y = pred - z_offset
+            y = pred - np.mean(pred[130:150])
             x = np.arange(0, len(y)) / 10
             color = "black" if labels[i] == 1 else "blue"
             ax.plot(x, y, color=color, alpha=1, linewidth=0.5)
 
-            y_true = ground_truth[i] - z_offset
-            ax.plot(x, y_true, color="green", alpha=0.5, linewidth=0.5)
+            if ground_truth:
+                t = ground_truth[i]
+                y_true = t - np.mean(t[130:150])
+                ax.plot(x, y_true, color="green", alpha=0.5, linewidth=0.5)
 
-            ax.set_aspect("equal")
+        ax.set_title(title)
+        ax.set_aspect("equal")
         plt.show()
 
 
 class Predictor:
-    def __init__(self, output_length, model_handler):
+    def __init__(self, output_length, model_handler, cross_section_samples):
         self.model_handler = model_handler
         self.output_length = output_length
         self.hl = output_length // 2
 
+        self.x_sections = cross_section_samples
+
         self.STEP = 0
 
+        self.torchpositions = [s.torchposition.global_y_idx for s in self.x_sections]
+        self.ground_truth = [s.slice_based_before.ys for s in self.x_sections]
+        self.LEN = len(self.x_sections)
+
         # init during setup
-        self.torchpositions = None
         self.curr_input = None
-        self.LEN = None
 
         # prediction history
-        self.ground_truth = []
         self.predictions = []
         self.labels = []
 
-    def setup(self, cross_sections, dataset):
-        self.torchpositions = [s.torchposition.global_y_idx for s in cross_sections]
-        self.curr_input = torch.tensor(dataset[0][0], dtype=torch.float32).unsqueeze(0).unsqueeze(0)
-        self.LEN = len(dataset)
+    def reset(self, init_input):
+        self.curr_input = init_input
+        self.STEP = 0
+        self.predictions = []
+        self.labels = []
 
-    def _get_next_input(self, cross_section_predicted):
-        next_torch_idx = self.torchpositions[self.STEP + 1]
+    def predict(self, init_input, uncertainty_threshold=4.5, mode="e2e"):
+        self.reset(init_input)
 
-        next_input = cross_section_predicted[next_torch_idx - self.hl : next_torch_idx + self.hl]
-        h0 = next_input[self.hl]
-        next_input -= h0
-        return torch.tensor(next_input, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
-
-    def _update_curr_cross_section_with_pred(self, curr_cross_section_sample, pred):
-        ys_predicted = curr_cross_section_sample.slice_based_before.ys
-
-        curr_torch_idx = self.torchpositions[self.STEP]
-        ys_predicted[curr_torch_idx - self.hl : curr_torch_idx + self.hl] = pred
-        return ys_predicted
-
-    def _handle_prediction(self, curr_input, curr_cross_section_sample, next_cross_section_sample=None):
-        pred, uncertainty = self.model_handler.predict_with_uncertainty(curr_input)
-        uncertainty_score = np.sum(uncertainty.detach().cpu().numpy())
-        pred = pred.detach().cpu().numpy()
-
-        cross_section_predicted = self._update_curr_cross_section_with_pred(curr_cross_section_sample, pred)
-
-        if uncertainty_score > 4.5:
-            cross_section_predicted = curr_cross_section_sample.slice_based_after.ys
-            label = 1
-        else:
-            label = 0
-
-        if next_cross_section_sample:
-            next_input = self._get_next_input(cross_section_predicted.copy())
-            curr_input = next_input
-
-        return cross_section_predicted, label, curr_input
-
-    def predict(self, cross_section_samples):
         for i in range(self.LEN):
             self.STEP = i
 
-            curr_cross_section_sample = cross_section_samples[i]
-            next_cross_section_sample = cross_section_samples[i + 1] if i != (self.LEN - 1) else None
+            pred, uncertainty_score = self._handle_prediction()
+            print(f"uncertainty_score@{self.STEP}: {uncertainty_score}")
 
-            cross_section_predicted, label, curr_input = self._handle_prediction(
-                self.curr_input, curr_cross_section_sample, next_cross_section_sample
-            )
+            if uncertainty_score < uncertainty_threshold:
+                x_section_predicted = self._update_curr_cross_section_with_pred(pred, mode=mode)
+                self.labels.append(0)
+            else:
+                x_section_predicted = self._handle_alternative_prediction()
+                self.labels.append(1)
 
-            self.ground_truth.append(curr_cross_section_sample.slice_based_before.ys)
-            self.predictions.append(cross_section_predicted)
-            self.labels.append(label)
-            self.curr_input = curr_input
+            self.predictions.append(x_section_predicted)
+
+            if i != (self.LEN - 1):
+                self.curr_input = self._get_next_input(self.predictions[-1].copy())
 
         return self.predictions, self.labels, self.ground_truth
+
+    def _handle_prediction(self):
+        pred, uncertainty = self.model_handler.predict_with_uncertainty(self.curr_input)
+        uncertainty_score = np.sum(uncertainty.detach().cpu().numpy())
+        pred = pred.detach().cpu().numpy()
+        return pred, uncertainty_score
+
+    def _update_curr_cross_section_with_pred(self, this_pred, mode: str):
+        if mode == "e2e":
+            if self.STEP == 0:
+                last_prediction = self.x_sections[self.STEP].slice_based_before.ys.copy()
+            else:
+                last_prediction = self.predictions[-1].copy()
+
+            next_input = last_prediction
+
+        elif mode == "hybrid":
+            next_input = self.x_sections[self.STEP].slice_based_before.ys.copy()
+
+        else:
+            raise ValueError(f"mode {mode} not supported")
+
+        curr_torch_idx = self.torchpositions[self.STEP]
+        next_input[curr_torch_idx - self.hl : curr_torch_idx + self.hl] = this_pred
+        return next_input
+
+    def _handle_alternative_prediction(self):
+        cross_section_predicted = self.x_sections[self.STEP].slice_based_after.ys.copy()
+        return cross_section_predicted
+
+    def _get_next_input(self, cross_section_predicted):
+        next_torch_idx = self.torchpositions[self.STEP + 1]
+        next_input = cross_section_predicted[next_torch_idx - self.hl : next_torch_idx + self.hl]
+        return torch.tensor(next_input, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
