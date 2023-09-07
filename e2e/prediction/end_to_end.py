@@ -64,7 +64,26 @@ class Predictor:
         self.output_length = output_length
         self.hl = output_length // 2
 
-    def _get_next_input(self, cross_section_predicted, next_torch_idx):
+        self.STEP = 0
+
+        # init during setup
+        self.torchpositions = None
+        self.curr_input = None
+        self.LEN = None
+
+        # prediction history
+        self.ground_truth = []
+        self.predictions = []
+        self.labels = []
+
+    def setup(self, cross_sections, dataset):
+        self.torchpositions = [s.torchposition.global_y_idx for s in cross_sections]
+        self.curr_input = torch.tensor(dataset[0][0], dtype=torch.float32).unsqueeze(0).unsqueeze(0)
+        self.LEN = len(dataset)
+
+    def _get_next_input(self, cross_section_predicted):
+        next_torch_idx = self.torchpositions[self.STEP + 1]
+
         next_input = cross_section_predicted[next_torch_idx - self.hl : next_torch_idx + self.hl]
         h0 = next_input[self.hl]
         next_input -= h0
@@ -72,7 +91,8 @@ class Predictor:
 
     def _update_curr_cross_section_with_pred(self, curr_cross_section_sample, pred):
         ys_predicted = curr_cross_section_sample.slice_based_before.ys
-        curr_torch_idx = curr_cross_section_sample.torchposition.global_y_idx
+
+        curr_torch_idx = self.torchpositions[self.STEP]
         ys_predicted[curr_torch_idx - self.hl : curr_torch_idx + self.hl] = pred
         return ys_predicted
 
@@ -90,30 +110,25 @@ class Predictor:
             label = 0
 
         if next_cross_section_sample:
-            next_torch_idx = next_cross_section_sample.torchposition.global_y_idx
-            next_input = self._get_next_input(cross_section_predicted.copy(), next_torch_idx)
+            next_input = self._get_next_input(cross_section_predicted.copy())
             curr_input = next_input
 
         return cross_section_predicted, label, curr_input
 
-    def predict(self, cross_section_samples, dataset):
-        curr_input = torch.tensor(dataset[0][0], dtype=torch.float32).unsqueeze(0).unsqueeze(0)
-        ground_truth = []
-        predictions = []
-        labels = []
+    def predict(self, cross_section_samples):
+        for i in range(self.LEN):
+            self.STEP = i
 
-        LEN = len(dataset)
-
-        for i in range(LEN):
             curr_cross_section_sample = cross_section_samples[i]
-            next_cross_section_sample = cross_section_samples[i + 1] if i != (LEN - 1) else None
+            next_cross_section_sample = cross_section_samples[i + 1] if i != (self.LEN - 1) else None
 
             cross_section_predicted, label, curr_input = self._handle_prediction(
-                curr_input, curr_cross_section_sample, next_cross_section_sample
+                self.curr_input, curr_cross_section_sample, next_cross_section_sample
             )
 
-            ground_truth.append(curr_cross_section_sample.slice_based_before.ys)
-            predictions.append(cross_section_predicted)
-            labels.append(label)
+            self.ground_truth.append(curr_cross_section_sample.slice_based_before.ys)
+            self.predictions.append(cross_section_predicted)
+            self.labels.append(label)
+            self.curr_input = curr_input
 
-        return predictions, labels, ground_truth
+        return self.predictions, self.labels, self.ground_truth
