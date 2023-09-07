@@ -15,7 +15,8 @@ from e2e.models.modelV2 import ModelV2
 from e2e.models.recurrent import LSTM
 
 PROJECT_NAME = "waam-e2e-pre"
-RUN_ID = "isn0h9ws"  # first_in_row + 2x
+RUN_ID = "xtuq679p"
+# "isn0h9ws"  # first_in_row + 2x
 # "xtuq679p"    # first_in_row + 4x
 VERSION = "best"
 VM_DATA_DIR = Path("/home/magnus/datasets/waam/30_processing_results/ImageGenerator")
@@ -27,29 +28,45 @@ P = 0.5
 HL = TARGET_LENGTH // 2
 
 
-def debug_input_plot(x):
+def debug_input_plot(x, title: str):
     fig, ax = plt.subplots(figsize=(10, 10))
     x_ = np.arange(0, len(x)) / 10
     ax.plot(x_, x)
     ax.set_aspect("equal")
+    ax.set_title(f"{title}")
     plt.show()
 
 
 def update_curr_cross_section_with_pred(curr_cross_section_sample, pred):
-    ys_before = curr_cross_section_sample.slice_based_before.ys
-    ys_predicted = ys_before
-
-    # update current cross section with prediction
+    ys_predicted = curr_cross_section_sample.slice_based_before.ys
     curr_torch_idx = curr_cross_section_sample.torchposition.global_y_idx
     ys_predicted[curr_torch_idx - HL : curr_torch_idx + HL] = pred
-
     return ys_predicted
 
 
-def get_next_input(cross_section_predicted, next_cross_section_sample):
-    next_torch_idx = next_cross_section_sample.torchposition.global_y_idx
+def get_next_input(cross_section_predicted, next_torch_idx):
     next_input = cross_section_predicted[next_torch_idx - HL : next_torch_idx + HL]
+    h0 = next_input[HL]
+    next_input -= h0
     return torch.tensor(next_input, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
+
+
+def plot_e2e(predictions, labels, ground_truth):
+    # TODO: plot e2e predictions and compare to ground truth
+    fig, ax = plt.subplots(figsize=(15, 5), dpi=300)
+    for i in range(len(predictions)):
+        pred = predictions[i]
+        z_offset = np.mean(pred[130:150])
+        y = pred - z_offset
+        x = np.arange(0, len(y)) / 10
+        color = "black" if labels[i] == 1 else "blue"
+        ax.plot(x, y, color=color, alpha=1, linewidth=0.5)
+
+        y_true = ground_truth[i] - z_offset
+        ax.plot(x, y_true, color="green", alpha=0.5, linewidth=0.5)
+
+        ax.set_aspect("equal")
+    plt.show()
 
 
 def main():
@@ -66,14 +83,22 @@ def main():
     dataset = ShapeDataset(mirror=False, segment_length=TARGET_LENGTH).create(cross_section_samples)
 
     curr_input = torch.tensor(dataset[0][0], dtype=torch.float32).unsqueeze(0).unsqueeze(0)
+    ground_truth = []
     predictions = []
     labels = []
 
-    for i in range(len(dataset) - 1):
-        print(f"Predicting cross section {i+1} of {len(dataset) - 1}")
+    LEN = len(dataset)
 
+    for i in range(LEN):
         curr_cross_section_sample = cross_section_samples[i]
-        next_cross_section_sample = cross_section_samples[i + 1]
+
+        if i != (LEN - 1):
+            next_cross_section_sample = cross_section_samples[i + 1]
+
+        id_ = curr_cross_section_sample.bead_id
+        print(f"Pred on weld bead id: {id_} of {LEN} (i={i})")
+
+        ground_truth.append(curr_cross_section_sample.slice_based_before.ys)
 
         # debug_input_plot(curr_input.detach().cpu().numpy())
 
@@ -86,30 +111,25 @@ def main():
 
         # HACK: if first bead in row, use actual input
         # is_first_in_row = (curr_cross_section_sample.welding_params["weld_bead_nr"] == 1) and (i > 0)
-        if uncertainty_score > 3:
+        if uncertainty_score > 4.5:
             cross_section_predicted = curr_cross_section_sample.slice_based_after.ys
             labels.append(1)
         else:
             labels.append(0)
 
-        next_input = get_next_input(cross_section_predicted, next_cross_section_sample)
-
         predictions.append(cross_section_predicted)
-        curr_input = next_input
 
-    # TODO: plot e2e predictions and compare to ground truth
-    fig, ax = plt.subplots(figsize=(15, 5), dpi=300)
-    for i in range(len(predictions)):
-        pred = predictions[i]
-        z_offset = np.mean(pred[100:200])
-        y = pred - z_offset
-        x = np.arange(0, len(y)) / 10
+        if i != (LEN - 1):
+            next_torch_idx = next_cross_section_sample.torchposition.global_y_idx
+            next_input = get_next_input(cross_section_predicted.copy(), next_torch_idx)
+            curr_input = next_input
 
-        color = "black" if labels[i] == 1 else "blue"
+    plot_e2e(predictions, labels, ground_truth)
 
-        ax.plot(x, y, color=color)
-        ax.set_aspect("equal")
-    plt.show()
+    # for i, pred in enumerate(predictions):
+    #     plt.plot(pred)
+    #     plt.title(f"Predictions, weld bead nr={i+1}")
+    #     plt.show()
 
 
 if __name__ == "__main__":
