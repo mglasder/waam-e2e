@@ -32,7 +32,7 @@ class Mesh2D(ValueObject):
 
     @property
     def xs(self) -> np.ndarray:
-        return np.asarray(p.x[0] for p in self.points)
+        return np.asarray([p.x[0] for p in self.points])
 
     @property
     def ys(self) -> np.ndarray:
