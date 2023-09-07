@@ -28,9 +28,9 @@ MAX_EPOCHS = 60
 N_WORKERS = 16
 DEVICE = "cuda"
 # footprint
-THETA = 0.3
+THETA = 0.1
 # smoothness
-LAMBDA = 0.5
+LAMBDA = 0.7
 # area
 GAMMA = 0.05
 INPUT_LENGTH = 90
@@ -153,8 +153,8 @@ def main():
     mc = McUncertainty(best_model, train_data_loader, val_data_loader, logger=logger)
     mc.predict()
     mc.calibrate(strategy="temperature_scaling")
-    mc.plot_predictions("train", log=True, take=50)
-    mc.plot_predictions("val", log=True, take=10)
+    mc.plot_predictions("train", log=True, take=10)
+    mc.plot_predictions("val", log=True, take=50)
 
 
 if __name__ == "__main__":
