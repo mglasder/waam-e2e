@@ -28,7 +28,7 @@ MAX_EPOCHS = 60
 N_WORKERS = 16
 DEVICE = "cuda"
 # footprint
-THETA = 0.1
+THETA = 0.2
 # smoothness
 LAMBDA = 0.7
 # area
@@ -148,6 +148,8 @@ def main():
     # print parameters of smoothing layers
     for name, param in best_model.named_parameters():
         if "sigma" in name:
+            print(name, param)
+        if "mask" in name:
             print(name, param)
 
     mc = McUncertainty(best_model, train_data_loader, val_data_loader, logger=logger)
