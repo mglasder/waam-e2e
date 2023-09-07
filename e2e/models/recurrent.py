@@ -40,7 +40,7 @@ class LSTM(nn.Module):
         self.multi_smooth = MultiGaussianSmoothing(
             output_length=n_output_features,
             window_size=15,
-            sigma_inits=[0.3, 1.2, 2.0, 3.0],
+            sigma_inits=[0.3, 1.2, 3.0],
         )
 
         # self.smooth1 = GaussianSmoothing(window_size=15, sigma_init=2.0).requires_grad_(False)
