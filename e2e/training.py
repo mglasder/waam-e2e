@@ -177,7 +177,8 @@ def main():
 
     # save as csv
 
-    df.to_csv(f"{run_name}_uncertainty_predictions_{stage}.csv")
+    # df.to_csv(f"../data/{run_name}_uncertainty_predictions_{stage}.csv")
+    df.to_pickle(f"../data/{run_name}_uncertainty_predictions_{stage}.pkl")
 
 
 if __name__ == "__main__":
