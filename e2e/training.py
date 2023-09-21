@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import requests
 import torch
@@ -162,7 +163,17 @@ def main():
 
     data = mc._uncertainty_preds["val"]
 
-    df = pd.DataFrame(data)
+    df = pd.DataFrame(
+        {
+            "mean_predictions": list(data["mean_predictions"]),
+            "uncertainties": list(data["uncertainties"]),
+            "errors": list(data["errors"]),
+            "xs": list(data["xs"]),
+            "ys": list(data["ys"]),
+        }
+    )
+
+    df.index = data["ids"]
 
     stage = "val"
     wandb.log({f"{stage}/predictions": wandb.Table(dataframe=df)})
