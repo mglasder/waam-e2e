@@ -12,7 +12,8 @@ from e2e.models.recurrent import LSTM
 from e2e.prediction.end_to_end import DataLoader, ModelHandler, Plotter, Predictor
 
 PROJECT_NAME = "waam-e2e-pre"
-RUN_ID = "xtuq679p"
+RUN_ID = "oqfrcpcw"
+# "oqfrcpcw"
 # "isn0h9ws"  # first_in_row + 2x
 # "xtuq679p"    # first_in_row + 4x
 VERSION = "best"
@@ -35,8 +36,9 @@ def main():
 
     init_input = torch.tensor(dataset[0][0], dtype=torch.float32).unsqueeze(0).unsqueeze(0)
 
-    predictions, labels, ground_truth = predictor.predict(init_input, uncertainty_threshold=5, mode="e2e")
-    Plotter.plot_e2e(predictions, labels, ground_truth, title="E2E")
+    UNCERT_THRESH = 18.0
+    predictions, labels, ground_truth = predictor.predict(init_input, uncertainty_threshold=UNCERT_THRESH, mode="e2e")
+    Plotter.plot_e2e(predictions, labels, ground_truth, title=f"E2E uncert:{UNCERT_THRESH}")
 
     print(f"fallback rate to alternative prediction: {np.sum(labels)/len(labels)*100:.2f}%")
 
