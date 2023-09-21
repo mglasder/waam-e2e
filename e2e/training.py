@@ -177,7 +177,7 @@ def main():
 
     # save as csv
     if run_name:
-        df.to_csv(f"../paper/data/{run_name}_uncertainty_predictions_{stage}.csv")
+        df.to_csv(f"{run_name}_uncertainty_predictions_{stage}.csv")
 
 
 if __name__ == "__main__":
