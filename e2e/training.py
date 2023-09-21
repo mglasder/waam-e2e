@@ -82,14 +82,13 @@ def main():
     if LOGGING:
         logger = WandbLogger(project="waam-e2e-pre", log_model="all")
         logger.watch(model.model)
+        run_name = logger.experiment.name
     else:
         logger = None
+        run_name = None
 
     if AUTOCOMMIT and LOGGING and not DEV_RUN:
         # TODO: wrap everything in its own class
-        # get wandb run name
-        run_name = logger.experiment.name
-
         # check whether remote or local machine
         if Path("/home/magnus").exists():
             message = f"""{run_name}"""
@@ -161,7 +160,8 @@ def main():
     mc.plot_predictions("train", log=True, take=10)
     mc.plot_predictions("val", log=True, take=50)
 
-    data = mc._uncertainty_preds["val"]
+    stage = "val"
+    data = mc._uncertainty_preds[stage]
 
     df = pd.DataFrame(
         {
@@ -173,10 +173,11 @@ def main():
         }
     )
 
-    df.index = data["ids"]
+    df["ids"] = data["ids"]
 
-    stage = "val"
-    wandb.log({f"{stage}/predictions": wandb.Table(dataframe=df)})
+    # save as csv
+    if run_name:
+        df.to_csv(f"../paper/data/{run_name}_uncertainty_predictions_{stage}.csv")
 
 
 if __name__ == "__main__":
