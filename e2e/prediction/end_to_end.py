@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+from loguru import logger
 from matplotlib import pyplot as plt
 from torch import nn
 
@@ -117,6 +118,8 @@ class Predictor:
         return pred, uncertainty_score
 
     def _update_curr_cross_section_with_pred(self, this_pred, mode: str):
+        this_pred = this_pred.squeeze()
+
         if mode == "e2e":
             if self.STEP == 0:
                 last_prediction = self.x_sections[self.STEP].slice_based_before.ys.copy()
@@ -131,8 +134,18 @@ class Predictor:
         else:
             raise ValueError(f"mode {mode} not supported")
 
+        mid_idx = len(this_pred) // 2
         curr_torch_idx = self.torchpositions[self.STEP]
-        next_input[curr_torch_idx - self.hl : curr_torch_idx + self.hl] = this_pred
+        base = next_input[curr_torch_idx - self.hl : curr_torch_idx + self.hl]
+        diff = np.abs(base - this_pred).squeeze()
+
+        # find footprint
+        left_fp = max(0, self._find_edge(diff, mid_idx, threshold=0.1, which="left"))
+        right_fp = min(90, self._find_edge(diff, mid_idx, threshold=0.1, which="right"))
+
+        next_input[curr_torch_idx - (mid_idx - left_fp) : curr_torch_idx + (right_fp - mid_idx)] = this_pred[
+            left_fp:right_fp
+        ]
         return next_input
 
     def _handle_alternative_prediction(self):
@@ -143,3 +156,26 @@ class Predictor:
         next_torch_idx = self.torchpositions[self.STEP + 1]
         next_input = cross_section_predicted[next_torch_idx - self.hl : next_torch_idx + self.hl]
         return torch.tensor(next_input, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
+
+    def _find_edge(self, y_diff, idx_peak, threshold=0.07, which="left"):
+        # TODO: use different algorithm: e.g. island finding
+        # https://stackoverflow.com/questions/52189433/find-the-first-index-for-which-an-array-goes-below-a-certain-threshold-and-stay
+        if which == "left":
+            sign = -1
+        elif which == "right":
+            sign = 1
+        else:
+            raise ValueError(f"which={which} is undefined.")
+
+        k = 0
+        while y_diff[idx_peak + sign * k] >= threshold:
+            k += 1
+
+            if (idx_peak + sign * k) < 0 or (idx_peak + sign * k) >= len(y_diff):
+                # TODO: find out in which cases this happens and whether it can be avoided
+                logger.debug(f"FootprintDetection: {self.STEP} - index out of bounds for k={k}")
+                # Correcting k by {sign} and skipping.
+                k -= sign
+                break
+
+        return idx_peak + sign * k
