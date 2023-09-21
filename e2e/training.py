@@ -1,7 +1,9 @@
 from pathlib import Path
 
+import pandas as pd
 import requests
 import torch
+import wandb
 from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.loggers import WandbLogger
@@ -24,7 +26,7 @@ VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 
 SEED = 2345078
 BATCH_SIZE = 16
-MAX_EPOCHS = 60
+MAX_EPOCHS = 2
 N_WORKERS = 16
 DEVICE = "cuda"
 # footprint
@@ -157,6 +159,13 @@ def main():
     mc.calibrate(strategy="temperature_scaling")
     mc.plot_predictions("train", log=True, take=10)
     mc.plot_predictions("val", log=True, take=50)
+
+    data = mc._uncertainty_preds["val"]
+
+    df = pd.DataFrame(data)
+
+    stage = "val"
+    wandb.log({f"{stage}/predictions": wandb.Table(dataframe=df)})
 
 
 if __name__ == "__main__":
