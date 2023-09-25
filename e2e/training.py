@@ -28,8 +28,8 @@ VM_DATA_DIR = Path("/home/magnus/datasets/waam/30_processing_results/ImageGenera
 VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 
 SEED = 2345078
-BATCH_SIZE = 16
-MAX_EPOCHS = 30
+BATCH_SIZE = 32
+MAX_EPOCHS = 100
 N_WORKERS = 16
 DEVICE = "cuda"
 # footprint

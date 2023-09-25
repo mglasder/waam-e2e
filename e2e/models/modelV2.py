@@ -4,7 +4,6 @@ from lightning import LightningModule
 from torch import nn
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-
 from e2e.helpers import timing
 
 
