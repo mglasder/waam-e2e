@@ -170,7 +170,7 @@ class ModelV2(LightningModule):
     def training_step(self, batch, batch_idx):
         inputs, targets, ids, fp = batch
 
-        diff = targets - inputs
+        diff = targets - inputs.detach()
 
         pred_diff = self(inputs)
         train_loss = self._loss(inputs, pred_diff, diff, fp)

@@ -54,18 +54,18 @@ if torch.cuda.is_available():
 
 
 def main():
-    # lstm = LSTM(
-    #     p=P, n_input_features=INPUT_LENGTH, n_output_features=TARGET_LENGTH, n_hidden=TARGET_LENGTH * 3, n_layers=10
-    # )
-    # lstm.to(DEVICE)
-
-    transformer = Transformer(
-        p=P, n_input_features=INPUT_LENGTH, n_output_features=TARGET_LENGTH, n_hidden=TARGET_LENGTH, n_layers=6
+    lstm = LSTM(
+        p=P, n_input_features=INPUT_LENGTH, n_output_features=TARGET_LENGTH, n_hidden=TARGET_LENGTH * 3, n_layers=10
     )
-    transformer.to(DEVICE)
+    lstm.to(DEVICE)
+
+    # transformer = Transformer(
+    #     p=P, n_input_features=INPUT_LENGTH, n_output_features=TARGET_LENGTH, n_hidden=TARGET_LENGTH, n_layers=6
+    # )
+    # transformer.to(DEVICE)
 
     model = ModelV2(
-        model=transformer,
+        model=lstm,
         batch_size=BATCH_SIZE,
         lr=LR,
         theta=THETA,
@@ -151,7 +151,7 @@ def main():
     train_data_loader = datamodule.train_dataloader()
 
     model_path = trainer.checkpoint_callback.best_model_path
-    best_model = ModelV2.load_from_checkpoint(model=transformer, checkpoint_path=model_path)
+    best_model = ModelV2.load_from_checkpoint(model=lstm, checkpoint_path=model_path)
     best_model.to("cpu")
 
     # print parameters of smoothing layers
