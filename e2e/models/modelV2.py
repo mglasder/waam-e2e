@@ -178,7 +178,7 @@ class ModelV2(LightningModule):
             "targets": targets,
             "inputs": inputs,
             "ids": ids,
-            "footprint": fp,
+            "footprint": fp_target,
         }
 
     def validation_step(self, batch, batch_idx):
@@ -192,7 +192,7 @@ class ModelV2(LightningModule):
             "targets": targets,
             "inputs": inputs,
             "ids": ids,
-            "footprint": fp,
+            "footprint": fp_target,
         }
 
     def test_step(self, batch, batch_idx):
