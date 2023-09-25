@@ -17,6 +17,7 @@ from e2e.data.loader import EXPERIMENT as EXP
 from e2e.mcpredict import McUncertainty
 from e2e.models.modelV2 import ModelV2
 from e2e.models.recurrent import LSTM
+from e2e.models.transformer import Transformer
 
 # os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 
@@ -28,8 +29,8 @@ VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 SEED = 2345078
 BATCH_SIZE = 16
 MAX_EPOCHS = 2
-N_WORKERS = 16
-DEVICE = "cuda"
+N_WORKERS = 1
+DEVICE = "cpu"
 # footprint
 THETA = 0.1
 # smoothness
@@ -52,13 +53,18 @@ if torch.cuda.is_available():
 
 
 def main():
-    lstm = LSTM(
-        p=P, n_input_features=INPUT_LENGTH, n_output_features=TARGET_LENGTH, n_hidden=TARGET_LENGTH * 3, n_layers=10
+    # lstm = LSTM(
+    #     p=P, n_input_features=INPUT_LENGTH, n_output_features=TARGET_LENGTH, n_hidden=TARGET_LENGTH * 3, n_layers=10
+    # )
+    # lstm.to(DEVICE)
+
+    transformer = Transformer(
+        p=P, n_input_features=INPUT_LENGTH, n_output_features=TARGET_LENGTH, n_hidden=TARGET_LENGTH, n_layers=4
     )
-    lstm.to(DEVICE)
+    transformer.to(DEVICE)
 
     model = ModelV2(
-        model=lstm,
+        model=transformer,
         batch_size=BATCH_SIZE,
         lr=LR,
         theta=THETA,
@@ -103,7 +109,7 @@ def main():
 
     datamodule = ShapePredictionDataModule(
         batch_size=BATCH_SIZE,
-        data_dir=VM_DATA_DIR,
+        data_dir=MAC_DATA_DIR_DEV,
         workers=N_WORKERS,
         dataset=ShapeDataset(mirror=MIRROR, segment_length=TARGET_LENGTH),
         split=split,
