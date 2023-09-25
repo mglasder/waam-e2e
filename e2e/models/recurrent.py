@@ -66,4 +66,4 @@ class LSTM(nn.Module):
 
         x = self.multi_smooth(x)
         x = self.postsmooth(x)
-        return x, fp
+        return x, fp.int()

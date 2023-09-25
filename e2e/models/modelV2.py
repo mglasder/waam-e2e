@@ -231,16 +231,20 @@ class ModelV2(LightningModule):
         )
         fploss = self.theta * self._footprint_loss(fp, fp_target)
         sloss = self.lambda_ * self._smoothness_loss(shape)
-        aloss = self.gamma * self._area_loss(inputs, shape, targets, fp)
+        aloss = self.gamma * self._area_loss(inputs, shape, targets, fp_target)
 
         return (1 - self.theta - self.gamma - self.lambda_) * loss + fploss + sloss + aloss
 
     @staticmethod
     def _footprint_loss(fp, fp_target):
         """mean squared error of sum of left and right offset"""
+
+        fp = fp.reshape(-1, 2)
+        fp_target = fp_target.reshape(-1, 2)
+
         left_off = fp[:, 0] - fp_target[:, 0]
         right_off = fp[:, 1] - fp_target[:, 1]
-        return torch.mean(left_off**2 + right_off**2)
+        return torch.mean(left_off.float() ** 2 + right_off.float() ** 2)
 
     def configure_optimizers(self):
         optimizer = Adam(self.model.parameters(), lr=self.lr, weight_decay=0)
