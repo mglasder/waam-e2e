@@ -224,7 +224,9 @@ class ModelV2(LightningModule):
         # left_edges = fp[:, 0]
         # right_edges = fp[:, 1]
         loss = self.loss(
-            shape[:,],
+            shape[
+                :,
+            ],
             targets,
         )
         fploss = self.theta * self._footprint_loss(fp, fp_target)
