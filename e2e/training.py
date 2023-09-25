@@ -60,7 +60,7 @@ def main():
     # lstm.to(DEVICE)
 
     transformer = Transformer(
-        p=P, n_input_features=INPUT_LENGTH, n_output_features=TARGET_LENGTH, n_hidden=TARGET_LENGTH, n_layers=16
+        p=P, n_input_features=INPUT_LENGTH, n_output_features=TARGET_LENGTH, n_hidden=TARGET_LENGTH, n_layers=6
     )
     transformer.to(DEVICE)
 
