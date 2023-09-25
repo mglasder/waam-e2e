@@ -29,8 +29,8 @@ VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 SEED = 2345078
 BATCH_SIZE = 16
 MAX_EPOCHS = 2
-N_WORKERS = 1
-DEVICE = "cpu"
+N_WORKERS = 16
+DEVICE = "cuda"
 # footprint
 THETA = 0.1
 # smoothness
@@ -109,7 +109,7 @@ def main():
 
     datamodule = ShapePredictionDataModule(
         batch_size=BATCH_SIZE,
-        data_dir=MAC_DATA_DIR_DEV,
+        data_dir=VM_DATA_DIR_DEV,
         workers=N_WORKERS,
         dataset=ShapeDataset(mirror=MIRROR, segment_length=TARGET_LENGTH),
         split=split,
@@ -150,7 +150,7 @@ def main():
     train_data_loader = datamodule.train_dataloader()
 
     model_path = trainer.checkpoint_callback.best_model_path
-    best_model = ModelV2.load_from_checkpoint(model=lstm, checkpoint_path=model_path)
+    best_model = ModelV2.load_from_checkpoint(model=transformer, checkpoint_path=model_path)
     best_model.to("cpu")
 
     # print parameters of smoothing layers
