@@ -59,7 +59,7 @@ def main():
     # lstm.to(DEVICE)
 
     transformer = Transformer(
-        p=P, n_input_features=INPUT_LENGTH, n_output_features=TARGET_LENGTH, n_hidden=TARGET_LENGTH, n_layers=6
+        p=P, n_input_features=INPUT_LENGTH, n_output_features=TARGET_LENGTH, n_hidden=TARGET_LENGTH, n_layers=8
     )
     transformer.to(DEVICE)
 
@@ -166,25 +166,25 @@ def main():
     mc.plot_predictions("train", log=True, take=10)
     mc.plot_predictions("val", log=True, take=50)
 
-    stage = "val"
-    data = mc._uncertainty_preds[stage]
-
-    df = pd.DataFrame(
-        {
-            "mean_predictions": list(data["mean_predictions"]),
-            "uncertainties": list(data["uncertainties"]),
-            "errors": list(data["errors"]),
-            "xs": list(data["xs"]),
-            "ys": list(data["ys"]),
-        }
-    )
-
-    df["ids"] = data["ids"]
-
-    # save as csv
-
-    # df.to_csv(f"../data/{run_name}_uncertainty_predictions_{stage}.csv")
-    df.to_pickle(f"../data/{run_name}_uncertainty_predictions_{stage}.pkl")
+    # stage = "val"
+    # data = mc._uncertainty_preds[stage]
+    #
+    # df = pd.DataFrame(
+    #     {
+    #         "mean_predictions": list(data["mean_predictions"]),
+    #         "uncertainties": list(data["uncertainties"]),
+    #         "errors": list(data["errors"]),
+    #         "xs": list(data["xs"]),
+    #         "ys": list(data["ys"]),
+    #     }
+    # )
+    #
+    # df["ids"] = data["ids"]
+    #
+    # # save as csv
+    #
+    # # df.to_csv(f"../data/{run_name}_uncertainty_predictions_{stage}.csv")
+    # df.to_pickle(f"../data/{run_name}_uncertainty_predictions_{stage}.pkl")
 
 
 if __name__ == "__main__":
