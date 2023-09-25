@@ -26,7 +26,7 @@ class Transformer(nn.Module):
 
         self.transformer = nn.Transformer(
             d_model=n_output_features,
-            nhead=n_output_features // 10,
+            nhead=n_output_features // 10 * 2,
             num_encoder_layers=n_layers,
             num_decoder_layers=n_layers,
             dim_feedforward=n_hidden,
