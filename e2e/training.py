@@ -8,6 +8,7 @@ import wandb
 from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.loggers import WandbLogger
+import torch.nn.functional as F
 
 from e2e.autogit.autogit import git_add_commit_with
 from e2e.callbacks.metrics import FootprintAvgAbsValErrorLogger, ModHausdorffLogger
@@ -66,6 +67,7 @@ def main():
     model = ModelV2(
         model=transformer,
         batch_size=BATCH_SIZE,
+        loss=F.cosine_similarity,
         lr=LR,
         theta=THETA,
         lambda_=LAMBDA,
