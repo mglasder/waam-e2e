@@ -223,7 +223,7 @@ class ModelV2(LightningModule):
         fp = fp.reshape(-1, 2).int()
         fp_target = fp_target.reshape(-1, 2)
 
-        shape_out = self._get_indexed_shape(shape, fp_target).to(self.device)
+        shape_out = self._get_indexed_shape(shape, fp).to(self.device)
         targets_out = self._get_indexed_shape(targets, fp_target).to(self.device)
 
         max_length = max(shape_out.size(1), targets_out.size(1))
@@ -236,10 +236,11 @@ class ModelV2(LightningModule):
             targets_out,
         )
         fploss = self.theta * self._footprint_loss(fp, fp_target)
-        sloss = self.lambda_ * self._smoothness_loss(shape_out)
-        aloss = self.gamma * self._area_loss(inputs, shape, targets, fp)
+        # sloss = self.lambda_ * self._smoothness_loss(shape_out)
+        # aloss = self.gamma * self._area_loss(inputs, shape, targets, fp)
 
-        return (1 - self.theta - self.gamma - self.lambda_) * loss + fploss + sloss + aloss
+        # return (1 - self.theta - self.gamma - self.lambda_) * loss + fploss + sloss + aloss
+        return (1 - self.theta) * loss + fploss
 
     def _get_indexed_shape(self, shape, fp):
         left_edges = fp[:, 0]

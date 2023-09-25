@@ -25,7 +25,7 @@ VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 
 SEED = 2345078
 BATCH_SIZE = 16
-MAX_EPOCHS = 100
+MAX_EPOCHS = 30
 N_WORKERS = 16
 DEVICE = "cuda"
 # footprint
@@ -146,11 +146,11 @@ def main():
     best_model.to("cpu")
 
     # print parameters of smoothing layers
-    for name, param in best_model.named_parameters():
-        if "sigma" in name:
-            print(name, param)
-        if "mask" in name:
-            print(name, param)
+    # for name, param in best_model.named_parameters():
+    #     if "sigma" in name:
+    #         print(name, param)
+    #     if "mask" in name:
+    #         print(name, param)
 
     mc = McUncertainty(best_model, train_data_loader, val_data_loader, logger=logger)
     mc.predict()

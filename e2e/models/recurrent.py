@@ -62,7 +62,7 @@ class LSTM(nn.Module):
 
         x = self.out(x)
 
-        fp = self.footprint(x.detach().requires_grad_() - r0)  # self.footprint(x - r0)
+        fp = self.footprint(x.detach().requires_grad_() - r0.detach().requires_grad_())  # self.footprint(x - r0)
 
         x = self.multi_smooth(x)
         x = self.postsmooth(x)
