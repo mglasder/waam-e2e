@@ -169,8 +169,14 @@ class ModelV2(LightningModule):
 
     def training_step(self, batch, batch_idx):
         inputs, targets, ids, fp = batch
-        predictions = self(inputs)
-        train_loss = self._loss(inputs, predictions, targets, fp)
+
+        diff = targets - inputs
+
+        pred_diff = self(inputs)
+        train_loss = self._loss(inputs, pred_diff, diff, fp)
+
+        predictions = inputs + pred_diff
+
         self.log("train_loss", train_loss, prog_bar=True, on_epoch=True, on_step=False, batch_size=self.batch_sz)
         return {
             "loss": train_loss,
