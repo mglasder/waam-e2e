@@ -228,8 +228,8 @@ class ModelV2(LightningModule):
 
         max_length = max(shape_out.size(1), targets_out.size(1))
 
-        shape_out = self._homogenize_length(shape_out, max_length)
-        targets_out = self._homogenize_length(targets_out, max_length)
+        shape_out = self._homogenize_length(shape_out, max_length).to(self.device)
+        targets_out = self._homogenize_length(targets_out, max_length).to(self.device)
 
         loss = self.loss(
             shape_out,
@@ -246,17 +246,17 @@ class ModelV2(LightningModule):
         left_edges = mid - fp[:, 0]
         right_edges = mid + fp[:, 1]
 
-        idx_left = torch.max(left_edges, torch.zeros_like(left_edges))
-        idx_right = torch.min(right_edges, torch.ones_like(right_edges) * self.length_out)
+        idx_left = torch.max(left_edges, torch.zeros_like(left_edges)).to(self.device)
+        idx_right = torch.min(right_edges, torch.ones_like(right_edges) * self.length_out).to(self.device)
 
         shape_list = [shape[i, idx_left[i] : idx_right[i]] for i in range(shape.size(0))]
-        shape_result = torch.nn.utils.rnn.pad_sequence(shape_list, batch_first=True, padding_value=0)
+        shape_result = torch.nn.utils.rnn.pad_sequence(shape_list, batch_first=True, padding_value=0).to(self.device)
         return shape_result
 
     @staticmethod
-    def _homogenize_length(shape, max_lenght):
-        if shape.size(1) < max_lenght:
-            padding_size = max_lenght - shape.size(1)
+    def _homogenize_length(shape, max_len):
+        if shape.size(1) < max_len:
+            padding_size = max_len - shape.size(1)
             shape = torch.cat([shape, torch.zeros(shape.size(0), padding_size)], dim=1)
         return shape
 
