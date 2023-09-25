@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import pandas as pd
 import requests
 import torch
 from lightning import Trainer
@@ -11,6 +12,7 @@ from e2e.callbacks.metrics import FootprintAvgAbsValErrorLogger, ModHausdorffLog
 from e2e.data.datamodule import ShapePredictionDataModule
 from e2e.data.dataset import ShapeDataset
 from e2e.data.loader import EXPERIMENT as EXP
+from e2e.mcpredict import McUncertainty
 from e2e.models.modelV2 import ModelV2
 from e2e.models.recurrent import LSTM
 
@@ -136,26 +138,26 @@ def main():
     )
     trainer.fit(model=model, datamodule=datamodule)
 
-    # val_data_loader = datamodule.val_dataloader()
-    # train_data_loader = datamodule.train_dataloader()
-    #
-    # model_path = trainer.checkpoint_callback.best_model_path
-    # best_model = ModelV2.load_from_checkpoint(model=lstm, checkpoint_path=model_path)
-    # best_model.to("cpu")
-    #
-    # # print parameters of smoothing layers
-    # for name, param in best_model.named_parameters():
-    #     if "sigma" in name:
-    #         print(name, param)
-    #     if "mask" in name:
-    #         print(name, param)
+    val_data_loader = datamodule.val_dataloader()
+    train_data_loader = datamodule.train_dataloader()
 
-    # mc = McUncertainty(best_model, train_data_loader, val_data_loader, logger=logger)
-    # mc.predict()
-    # mc.calibrate(strategy="temperature_scaling")
-    # mc.plot_predictions("train", log=True, take=10)
-    # mc.plot_predictions("val", log=True, take=50)
-    #
+    model_path = trainer.checkpoint_callback.best_model_path
+    best_model = ModelV2.load_from_checkpoint(model=lstm, checkpoint_path=model_path)
+    best_model.to("cpu")
+
+    # print parameters of smoothing layers
+    for name, param in best_model.named_parameters():
+        if "sigma" in name:
+            print(name, param)
+        if "mask" in name:
+            print(name, param)
+
+    mc = McUncertainty(best_model, train_data_loader, val_data_loader, logger=logger)
+    mc.predict()
+    mc.calibrate(strategy="temperature_scaling")
+    mc.plot_predictions("train", log=True, take=10)
+    mc.plot_predictions("val", log=True, take=50)
+
     # stage = "val"
     # data = mc._uncertainty_preds[stage]
     #
