@@ -211,7 +211,7 @@ class ModelV2(LightningModule):
             results = torch.zeros((num_samples,) + (x.shape[0], self.length_out))
 
             for i in range(num_samples):
-                y_pred = self.forward(x)
+                y_pred, _ = self.forward(x)
                 results[i, :] = y_pred
 
         self.model.eval()  # Set the model back to evaluation mode
@@ -220,31 +220,51 @@ class ModelV2(LightningModule):
         return mean_prediction, prediction_std
 
     def _loss(self, inputs, shape, targets, fp, fp_target):
-        # mid = self.length_out // 2
-        # left_edges = fp[:, 0]
-        # right_edges = fp[:, 1]
-        loss = self.loss(
-            shape[
-                :,
-            ],
-            targets,
-        )
-        fploss = self.theta * self._footprint_loss(fp, fp_target)
-        sloss = self.lambda_ * self._smoothness_loss(shape)
-        aloss = self.gamma * self._area_loss(inputs, shape, targets, fp_target)
-
-        return (1 - self.theta - self.gamma - self.lambda_) * loss + fploss + sloss + aloss
-
-    @staticmethod
-    def _footprint_loss(fp, fp_target):
-        """mean squared error of sum of left and right offset"""
-
         fp = fp.reshape(-1, 2)
         fp_target = fp_target.reshape(-1, 2)
 
+        shape_out = self._get_indexed_shape(shape, fp)
+        targets_out = self._get_indexed_shape(targets, fp_target)
+
+        max_length = max(shape_out.size(1), targets_out.size(1))
+
+        shape_out = self._homogenize_length(shape_out, max_length)
+        targets_out = self._homogenize_length(targets_out, max_length)
+
+        loss = self.loss(
+            shape_out,
+            targets_out,
+        )
+        fploss = self.theta * self._footprint_loss(fp, fp_target)
+        sloss = self.lambda_ * self._smoothness_loss(shape_out)
+        aloss = self.gamma * self._area_loss(inputs, shape, targets, fp)
+
+        return (1 - self.theta - self.gamma - self.lambda_) * loss + fploss + sloss + aloss
+
+    def _get_indexed_shape(self, shape, fp):
+        mid = self.length_out // 2
+        left_edges = mid - fp[:, 0]
+        right_edges = mid + fp[:, 1]
+
+        idx_left = torch.max(left_edges, torch.zeros_like(left_edges))
+        idx_right = torch.min(right_edges, torch.ones_like(right_edges) * self.length_out)
+
+        shape_list = [shape[i, idx_left[i] : idx_right[i]] for i in range(shape.size(0))]
+        shape_result = torch.nn.utils.rnn.pad_sequence(shape_list, batch_first=True, padding_value=0)
+        return shape_result
+
+    @staticmethod
+    def _homogenize_length(shape, max_lenght):
+        if shape.size(1) < max_lenght:
+            padding_size = max_lenght - shape.size(1)
+            shape = torch.cat([shape, torch.zeros(shape.size(0), padding_size)], dim=1)
+        return shape
+
+    def _footprint_loss(self, fp, fp_target):
+        """mean squared error of sum of left and right offset"""
         left_off = fp[:, 0] - fp_target[:, 0]
         right_off = fp[:, 1] - fp_target[:, 1]
-        return torch.mean(left_off.float() ** 2 + right_off.float() ** 2)
+        return torch.mean(left_off.float() ** 2 + right_off.float() ** 2) / (self.length_out / 2) ** 2
 
     def configure_optimizers(self):
         optimizer = Adam(self.model.parameters(), lr=self.lr, weight_decay=0)
