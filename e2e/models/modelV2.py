@@ -220,8 +220,8 @@ class ModelV2(LightningModule):
         return mean_prediction, prediction_std
 
     def _loss(self, inputs, shape, targets, fp, fp_target):
-        fp = fp.reshape(-1, 2).int()
-        fp_target = fp_target.reshape(-1, 2)
+        fp = fp.view(-1, 2).int()
+        fp_target = fp_target.view(-1, 2)
 
         shape_out = self._get_indexed_shape(shape, fp_target).to(self.device)
         targets_out = self._get_indexed_shape(targets, fp_target).to(self.device)
