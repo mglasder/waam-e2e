@@ -1,7 +1,7 @@
 import torch.nn.functional as F
 from torch import nn
 
-from e2e.models.layers import MultiGaussianSmoothing, GaussianSmoothing
+from e2e.models.layers import GaussianSmoothing, MultiGaussianSmoothing
 
 
 class LSTM(nn.Module):
@@ -37,6 +37,8 @@ class LSTM(nn.Module):
 
         self.out = nn.Linear(in_features=n_output_features, out_features=n_output_features)
 
+        self.footprint = nn.Linear(in_features=n_output_features, out_features=2)
+
         self.multi_smooth = MultiGaussianSmoothing(
             output_length=n_output_features,
             window_size=15,
@@ -59,6 +61,9 @@ class LSTM(nn.Module):
         x = F.relu(self.fc2(x)) + r1
 
         x = self.out(x)
+
+        fp = self.footprint(x)  # self.footprint(x - r0)
+
         x = self.multi_smooth(x)
         x = self.postsmooth(x)
-        return x
+        return x, fp
