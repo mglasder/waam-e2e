@@ -256,7 +256,7 @@ class ModelV2(LightningModule):
     def _homogenize_length(self, shape, max_len):
         if shape.size(1) < max_len:
             padding_size = max_len - shape.size(1)
-            shape = torch.cat([shape, torch.zeros(shape.size(0).to(self.device), padding_size)], dim=1)
+            shape = torch.cat([shape, torch.zeros(shape.size(0), padding_size).to(self.device)], dim=1)
         return shape
 
     def _footprint_loss(self, fp, fp_target):
