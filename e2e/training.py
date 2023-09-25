@@ -1,10 +1,7 @@
 from pathlib import Path
 
-import numpy as np
-import pandas as pd
 import requests
 import torch
-import wandb
 from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.loggers import WandbLogger
@@ -14,7 +11,6 @@ from e2e.callbacks.metrics import FootprintAvgAbsValErrorLogger, ModHausdorffLog
 from e2e.data.datamodule import ShapePredictionDataModule
 from e2e.data.dataset import ShapeDataset
 from e2e.data.loader import EXPERIMENT as EXP
-from e2e.mcpredict import McUncertainty
 from e2e.models.modelV2 import ModelV2
 from e2e.models.recurrent import LSTM
 
@@ -140,45 +136,45 @@ def main():
     )
     trainer.fit(model=model, datamodule=datamodule)
 
-    val_data_loader = datamodule.val_dataloader()
-    train_data_loader = datamodule.train_dataloader()
+    # val_data_loader = datamodule.val_dataloader()
+    # train_data_loader = datamodule.train_dataloader()
+    #
+    # model_path = trainer.checkpoint_callback.best_model_path
+    # best_model = ModelV2.load_from_checkpoint(model=lstm, checkpoint_path=model_path)
+    # best_model.to("cpu")
+    #
+    # # print parameters of smoothing layers
+    # for name, param in best_model.named_parameters():
+    #     if "sigma" in name:
+    #         print(name, param)
+    #     if "mask" in name:
+    #         print(name, param)
 
-    model_path = trainer.checkpoint_callback.best_model_path
-    best_model = ModelV2.load_from_checkpoint(model=lstm, checkpoint_path=model_path)
-    best_model.to("cpu")
-
-    # print parameters of smoothing layers
-    for name, param in best_model.named_parameters():
-        if "sigma" in name:
-            print(name, param)
-        if "mask" in name:
-            print(name, param)
-
-    mc = McUncertainty(best_model, train_data_loader, val_data_loader, logger=logger)
-    mc.predict()
-    mc.calibrate(strategy="temperature_scaling")
-    mc.plot_predictions("train", log=True, take=10)
-    mc.plot_predictions("val", log=True, take=50)
-
-    stage = "val"
-    data = mc._uncertainty_preds[stage]
-
-    df = pd.DataFrame(
-        {
-            "mean_predictions": list(data["mean_predictions"]),
-            "uncertainties": list(data["uncertainties"]),
-            "errors": list(data["errors"]),
-            "xs": list(data["xs"]),
-            "ys": list(data["ys"]),
-        }
-    )
-
-    df["ids"] = data["ids"]
-
-    # save as csv
-
-    # df.to_csv(f"../data/{run_name}_uncertainty_predictions_{stage}.csv")
-    df.to_pickle(f"../data/{run_name}_uncertainty_predictions_{stage}.pkl")
+    # mc = McUncertainty(best_model, train_data_loader, val_data_loader, logger=logger)
+    # mc.predict()
+    # mc.calibrate(strategy="temperature_scaling")
+    # mc.plot_predictions("train", log=True, take=10)
+    # mc.plot_predictions("val", log=True, take=50)
+    #
+    # stage = "val"
+    # data = mc._uncertainty_preds[stage]
+    #
+    # df = pd.DataFrame(
+    #     {
+    #         "mean_predictions": list(data["mean_predictions"]),
+    #         "uncertainties": list(data["uncertainties"]),
+    #         "errors": list(data["errors"]),
+    #         "xs": list(data["xs"]),
+    #         "ys": list(data["ys"]),
+    #     }
+    # )
+    #
+    # df["ids"] = data["ids"]
+    #
+    # # save as csv
+    #
+    # # df.to_csv(f"../data/{run_name}_uncertainty_predictions_{stage}.csv")
+    # df.to_pickle(f"../data/{run_name}_uncertainty_predictions_{stage}.pkl")
 
 
 if __name__ == "__main__":
