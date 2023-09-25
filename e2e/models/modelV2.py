@@ -220,7 +220,7 @@ class ModelV2(LightningModule):
         return mean_prediction, prediction_std
 
     def _loss(self, inputs, shape, targets, fp, fp_target):
-        fp = fp.reshape(-1, 2)
+        fp = fp.reshape(-1, 2).int()
         fp_target = fp_target.reshape(-1, 2)
 
         shape_out = self._get_indexed_shape(shape, fp).to(self.device)
@@ -242,9 +242,8 @@ class ModelV2(LightningModule):
         return (1 - self.theta - self.gamma - self.lambda_) * loss + fploss + sloss + aloss
 
     def _get_indexed_shape(self, shape, fp):
-        mid = self.length_out // 2
-        left_edges = mid - fp[:, 0]
-        right_edges = mid + fp[:, 1]
+        left_edges = fp[:, 0]
+        right_edges = fp[:, 1]
 
         idx_left = torch.max(left_edges, torch.zeros_like(left_edges)).to(self.device)
         idx_right = torch.min(right_edges, torch.ones_like(right_edges) * self.length_out).to(self.device)
@@ -263,7 +262,7 @@ class ModelV2(LightningModule):
         """mean squared error of sum of left and right offset"""
         left_off = fp[:, 0] - fp_target[:, 0]
         right_off = fp[:, 1] - fp_target[:, 1]
-        return torch.mean(left_off.float() ** 2 + right_off.float() ** 2) / (self.length_out / 2) ** 2
+        return torch.mean(left_off.float() ** 2 + right_off.float() ** 2) / 1000
 
     def configure_optimizers(self):
         optimizer = Adam(self.model.parameters(), lr=self.lr, weight_decay=0)
