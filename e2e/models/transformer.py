@@ -56,6 +56,8 @@ class Transformer(nn.Module):
 
         x = self.bn2(x)
 
+        x = self.transformer(x, x)
+
         x = F.relu(self.fc2(x)) + r1
 
         x = self.out(x)
