@@ -29,14 +29,14 @@ MAX_EPOCHS = 30
 N_WORKERS = 16
 DEVICE = "cuda"
 # footprint
-THETA = 0.3
+THETA = 0.5
 # smoothness
 LAMBDA = 0.0
 # area
 GAMMA = 0.00
 INPUT_LENGTH = 90
 TARGET_LENGTH = 90
-LR = 0.001
+LR = 0.0005
 P = 0.5
 
 MIRROR = True

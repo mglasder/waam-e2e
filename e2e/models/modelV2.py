@@ -261,14 +261,15 @@ class ModelV2(LightningModule):
 
     def _footprint_loss(self, fp, fp_target):
         """mean squared error of sum of left and right offset"""
-        left_off = fp[:, 0] - fp_target[:, 0]
-        right_off = fp[:, 1] - fp_target[:, 1]
-        return torch.mean(left_off.float() ** 2 + right_off.float() ** 2) / 1000
+        left_err = fp[:, 0] - fp_target[:, 0]
+        right_err = fp[:, 1] - fp_target[:, 1]
+        return torch.mean(left_err.float() ** 2 + right_err.float() ** 2) / 1000
 
     def configure_optimizers(self):
         optimizer = Adam(self.model.parameters(), lr=self.lr, weight_decay=0)
 
-        scheduler = ReduceLROnPlateau(optimizer, mode="min", patience=5, factor=0.5, verbose=True)
+        # scheduler = ReduceLROnPlateau(optimizer, mode="min", patience=5, factor=0.5, verbose=True)
+        scheduler = None
 
         if scheduler:
             # Every metric logged with log() or log_dict() in LightningModule
