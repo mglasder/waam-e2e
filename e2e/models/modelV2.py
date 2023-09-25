@@ -164,17 +164,17 @@ class ModelV2(LightningModule):
 
     def forward(self, x):
         x = x.view(-1, 1, self.length_in)
-        x = self.model(x)
-        return x.view(-1, self.length_out)
+        x, fp = self.model(x)
+        return x.view(-1, self.length_out), fp
 
     def training_step(self, batch, batch_idx):
-        inputs, targets, ids, fp = batch
-        predictions = self(inputs)
-        train_loss = self._loss(inputs, predictions, targets, fp)
+        inputs, targets, ids, fp_target = batch
+        shape, fp = self(inputs)
+        train_loss = self._loss(inputs, shape, targets, fp, fp_target)
         self.log("train_loss", train_loss, prog_bar=True, on_epoch=True, on_step=False, batch_size=self.batch_sz)
         return {
             "loss": train_loss,
-            "preds": predictions,
+            "preds": shape,
             "targets": targets,
             "inputs": inputs,
             "ids": ids,
@@ -182,13 +182,13 @@ class ModelV2(LightningModule):
         }
 
     def validation_step(self, batch, batch_idx):
-        inputs, targets, ids, fp = batch
-        predictions = self(inputs)
-        val_loss = self._loss(inputs, predictions, targets, fp)
+        inputs, targets, ids, fp_target = batch
+        shape, fp = self(inputs)
+        val_loss = self._loss(inputs, shape, targets, fp, fp_target)
         self.log("val_loss", val_loss, prog_bar=True, on_epoch=True, on_step=False, batch_size=self.batch_sz)
         return {
             "loss": val_loss,
-            "preds": predictions,
+            "preds": shape,
             "targets": targets,
             "inputs": inputs,
             "ids": ids,
@@ -199,10 +199,10 @@ class ModelV2(LightningModule):
         return self.validation_step(batch, batch_idx)
 
     def predict_step(self, batch, batch_idx: int, dataloader_idx: int = 0):
-        inputs, targets, ids, fp = batch
-        predictions = self(inputs)
-        pred_loss = self._loss(inputs, predictions, targets, fp)
-        return {"loss": pred_loss, "preds": predictions, "targets": targets}
+        inputs, targets, ids, fp_target = batch
+        shape, fp = self(inputs)
+        pred_loss = self._loss(inputs, shape, targets, fp, fp_target)
+        return {"loss": pred_loss, "preds": shape, "targets": targets}
 
     @timing.time_it
     def predict_with_uncertainty(self, x, num_samples=30):
@@ -219,23 +219,26 @@ class ModelV2(LightningModule):
         prediction_std = results.std(dim=0)
         return mean_prediction, prediction_std
 
-    def _loss(self, inputs, predictions, targets, fp):
-        loss = self.loss(predictions, targets)
-        fploss = self._footprint_loss(predictions, targets, fp)
-        # smoothness_loss = self._smoothness(predictions.detach())
-        # area_loss = self._area_loss(predictions, targets)
-        # return (1.0 - self.lambda_ - self.gamma) * loss + self.lambda_ * smoothness_loss + self.gamma * area_loss
-
-        fploss = self.theta * self._footprint_loss(predictions, targets, fp)
-        sloss = self.lambda_ * self._smoothness_loss(predictions)
-        aloss = self.gamma * self._area_loss(inputs, predictions, targets, fp)
+    def _loss(self, inputs, shape, targets, fp, fp_target):
+        # mid = self.length_out // 2
+        # left_edges = fp[:, 0]
+        # right_edges = fp[:, 1]
+        loss = self.loss(
+            shape[:,],
+            targets,
+        )
+        fploss = self.theta * self._footprint_loss(fp, fp_target)
+        sloss = self.lambda_ * self._smoothness_loss(shape)
+        aloss = self.gamma * self._area_loss(inputs, shape, targets, fp)
 
         return (1 - self.theta - self.gamma - self.lambda_) * loss + fploss + sloss + aloss
 
-    def _footprint_loss(self, preds, targets, fp):
-        ldiff = preds[:, fp[0]] - targets[:, fp[1]]
-        rdiff = preds[:, fp[0]] - targets[:, fp[1]]
-        return torch.mean(ldiff**2 + rdiff**2)
+    @staticmethod
+    def _footprint_loss(fp, fp_target):
+        """mean squared error of sum of left and right offset"""
+        left_off = fp[:, 0] - fp_target[:, 0]
+        right_off = fp[:, 1] - fp_target[:, 1]
+        return torch.mean(left_off**2 + right_off**2)
 
     def configure_optimizers(self):
         optimizer = Adam(self.model.parameters(), lr=self.lr, weight_decay=0)
