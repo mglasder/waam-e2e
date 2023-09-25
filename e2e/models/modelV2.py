@@ -170,7 +170,7 @@ class ModelV2(LightningModule):
     def training_step(self, batch, batch_idx):
         inputs, targets, ids, fp = batch
 
-        diff = targets - inputs.detach()
+        diff = targets.detach() - inputs.detach()
 
         pred_diff = self(inputs)
         train_loss = self._loss(inputs, pred_diff, diff, fp)
@@ -189,8 +189,10 @@ class ModelV2(LightningModule):
 
     def validation_step(self, batch, batch_idx):
         inputs, targets, ids, fp = batch
-        predictions = self(inputs)
-        val_loss = self._loss(inputs, predictions, targets, fp)
+        diff = targets.detach() - inputs.detach()
+        pred_diff = self(inputs)
+        val_loss = self._loss(inputs, pred_diff, diff, fp)
+        predictions = inputs + pred_diff
         self.log("val_loss", val_loss, prog_bar=True, on_epoch=True, on_step=False, batch_size=self.batch_sz)
         return {
             "loss": val_loss,
@@ -206,8 +208,10 @@ class ModelV2(LightningModule):
 
     def predict_step(self, batch, batch_idx: int, dataloader_idx: int = 0):
         inputs, targets, ids, fp = batch
-        predictions = self(inputs)
-        pred_loss = self._loss(inputs, predictions, targets, fp)
+        diff = targets.detach() - inputs.detach()
+        pred_diff = self(inputs)
+        pred_loss = self._loss(inputs, pred_diff, diff, fp)
+        predictions = inputs + pred_diff
         return {"loss": pred_loss, "preds": predictions, "targets": targets}
 
     @timing.time_it
