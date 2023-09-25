@@ -223,7 +223,7 @@ class ModelV2(LightningModule):
         fp = fp.view(-1, 2).int()
         fp_target = fp_target.view(-1, 2)
 
-        shape_out = self._get_indexed_shape(shape, fp_target).to(self.device)
+        shape_out = self._get_indexed_shape(shape, fp).to(self.device)
         targets_out = self._get_indexed_shape(targets, fp_target).to(self.device)
 
         max_length = max(shape_out.size(1), targets_out.size(1))

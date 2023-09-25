@@ -62,8 +62,13 @@ class LSTM(nn.Module):
 
         x = self.out(x)
 
-        fp = self.footprint(x - r0)  # self.footprint(x - r0)
-
         x = self.multi_smooth(x)
         x = self.postsmooth(x)
+
+        fp = F.relu(self.footprint(x - r0))
+
+        # return r0 left and right of fp[0], fp[1] respectively and x everywhere else
+
+        # out = torch.cat((r0[:, :fp[0]], x[:, fp[0]:fp[1]], r0[:, fp[1]:]), dim=1)
+
         return x, fp
