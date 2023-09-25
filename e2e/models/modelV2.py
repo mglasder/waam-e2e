@@ -220,7 +220,7 @@ class ModelV2(LightningModule):
         return mean_prediction, prediction_std
 
     def _loss(self, inputs, predictions, targets, fp):
-        loss = torch.mean(self.loss(predictions, targets))
+        loss = self.loss(predictions, targets)
         fploss = self._footprint_loss(predictions, targets, fp)
         # smoothness_loss = self._smoothness(predictions.detach())
         # area_loss = self._area_loss(predictions, targets)

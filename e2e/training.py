@@ -60,14 +60,13 @@ def main():
     # lstm.to(DEVICE)
 
     transformer = Transformer(
-        p=P, n_input_features=INPUT_LENGTH, n_output_features=TARGET_LENGTH, n_hidden=TARGET_LENGTH, n_layers=8
+        p=P, n_input_features=INPUT_LENGTH, n_output_features=TARGET_LENGTH, n_hidden=TARGET_LENGTH * 2, n_layers=8
     )
     transformer.to(DEVICE)
 
     model = ModelV2(
         model=transformer,
         batch_size=BATCH_SIZE,
-        loss=F.cosine_similarity,
         lr=LR,
         theta=THETA,
         lambda_=LAMBDA,
