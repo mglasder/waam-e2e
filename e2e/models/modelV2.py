@@ -221,8 +221,8 @@ class ModelV2(LightningModule):
             results = torch.zeros((num_samples,) + (x.shape[0], self.length_out))
 
             for i in range(num_samples):
-                y_pred = self.forward(x)
-                results[i, :] = y_pred
+                y_pred_diff = self.forward(x)
+                results[i, :] = x + y_pred_diff
 
         self.model.eval()  # Set the model back to evaluation mode
         mean_prediction = results.mean(dim=0)
