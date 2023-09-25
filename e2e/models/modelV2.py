@@ -223,8 +223,8 @@ class ModelV2(LightningModule):
         fp = fp.reshape(-1, 2)
         fp_target = fp_target.reshape(-1, 2)
 
-        shape_out = self._get_indexed_shape(shape, fp)
-        targets_out = self._get_indexed_shape(targets, fp_target)
+        shape_out = self._get_indexed_shape(shape, fp).to(self.device)
+        targets_out = self._get_indexed_shape(targets, fp_target).to(self.device)
 
         max_length = max(shape_out.size(1), targets_out.size(1))
 
@@ -253,11 +253,10 @@ class ModelV2(LightningModule):
         shape_result = torch.nn.utils.rnn.pad_sequence(shape_list, batch_first=True, padding_value=0).to(self.device)
         return shape_result
 
-    @staticmethod
-    def _homogenize_length(shape, max_len):
+    def _homogenize_length(self, shape, max_len):
         if shape.size(1) < max_len:
             padding_size = max_len - shape.size(1)
-            shape = torch.cat([shape, torch.zeros(shape.size(0), padding_size)], dim=1)
+            shape = torch.cat([shape, torch.zeros(shape.size(0).to(self.device), padding_size)], dim=1)
         return shape
 
     def _footprint_loss(self, fp, fp_target):
