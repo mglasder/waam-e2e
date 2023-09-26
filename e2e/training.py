@@ -85,7 +85,6 @@ def main(note: str = ""):
         logger = WandbLogger(project="waam-e2e-pre", log_model="all")
         logger.watch(model.model)
         run_name = logger.experiment.name
-        # logger.experiment.config.update({"Notes": note})
         logger.experiment.notes = note
 
     else:
@@ -123,7 +122,7 @@ def main(note: str = ""):
         # callbacks.append(PredictionPlotting(epochs=[]))
         callbacks.append(
             ModelCheckpoint(
-                every_n_epochs=1,
+                every_n_epochs=5,
                 monitor="val_loss",
                 mode="min",
                 auto_insert_metric_name=True,
