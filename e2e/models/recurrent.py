@@ -43,7 +43,7 @@ class LSTM(nn.Module):
             sigma_inits=[0.3, 1.2, 3.0],
         )
 
-        # self.postsmooth = GaussianSmoothing(window_size=15, sigma_init=1.5).requires_grad_(False)
+        self.postsmooth = GaussianSmoothing(window_size=15, sigma_init=1.5).requires_grad_(False)
 
     def forward(self, x):
         r0 = x
