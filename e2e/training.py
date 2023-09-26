@@ -24,13 +24,13 @@ VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 
 SEED = 2345078
 BATCH_SIZE = 32
-MAX_EPOCHS = 100
+MAX_EPOCHS = 50
 N_WORKERS = 16
 DEVICE = "cuda"
 # footprint
-THETA = 0.3
+THETA = 0.1
 # smoothness
-LAMBDA = 0.0
+LAMBDA = 0.5
 # area
 GAMMA = 0.05
 INPUT_LENGTH = 90
@@ -85,7 +85,7 @@ def main(note: str = ""):
         logger = WandbLogger(project="waam-e2e-pre", log_model="all")
         logger.watch(model.model)
         run_name = logger.experiment.name
-        logger.experiment.config.update({"note": note})
+        logger.experiment.config.update({"Notes": note})
     else:
         logger = None
         run_name = None

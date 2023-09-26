@@ -46,11 +46,11 @@ class GaussianSmoothing(nn.Module):
 
 
 class MultiGaussianSmoothing(nn.Module):
-    def __init__(self, output_length, window_size, sigma_inits=[1.0, 2.0, 3.0]):
+    def __init__(self, output_length, window_size, sigma_inits=[1.0, 1.5, 2.0]):
         super(MultiGaussianSmoothing, self).__init__()
 
         self.smoothing_layers = nn.ModuleList(
-            [GaussianSmoothing(window_size, sigma_init=sigma) for sigma in sigma_inits]
+            [GaussianSmoothing(window_size, sigma_init=sigma).requires_grad_(False) for sigma in sigma_inits]
         )
 
         # Learnable mask for piecewise combination
