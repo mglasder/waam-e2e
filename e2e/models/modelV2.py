@@ -258,8 +258,8 @@ class ModelV2(LightningModule):
     def energy_loss(self, diff):
         dy_dx = diff[:, 1:] - diff[:, :-1]
         ds = torch.sqrt(1 + dy_dx**2)
-        surface_tension_energy = 0.003 * ds.sum(dim=1) * 0.1
-        gravitational_energy = 9.81 * 7.9 / 10 * diff.sum(dim=1)
+        surface_tension_energy = 0.003 * ds.sum(dim=1)
+        gravitational_energy = 9.81 * 7.9 / 10 * torch.abs(diff.sum(dim=1))
 
         return torch.mean(surface_tension_energy + gravitational_energy)
 
