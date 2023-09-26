@@ -85,7 +85,9 @@ def main(note: str = ""):
         logger = WandbLogger(project="waam-e2e-pre", log_model="all")
         logger.watch(model.model)
         run_name = logger.experiment.name
-        logger.experiment.config.update({"Notes": note})
+        # logger.experiment.config.update({"Notes": note})
+        logger.experiment.notes = note
+
     else:
         logger = None
         run_name = None
