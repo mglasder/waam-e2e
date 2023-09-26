@@ -238,9 +238,9 @@ class ModelV2(LightningModule):
         fploss = self.theta * self._footprint_loss(predictions, targets, fp)
         sloss = self.lambda_ * self._smoothness_loss(predictions)
         # aloss = self.gamma * self._area_loss(inputs, predictions, targets, fp)
-        aloss = self.gamma * self._area_loss2(predictions)
+        # aloss = self.gamma * self._area_loss2(predictions)
 
-        return (1 - self.theta - self.gamma - self.lambda_) * loss + fploss + sloss + aloss
+        return (1 - self.theta - self.gamma - self.lambda_) * loss + fploss + sloss  # + aloss
 
     def _footprint_loss(self, diff, targets, fp):
         ldiff = diff[torch.arange(diff.size(0)), fp[:, 0]]
