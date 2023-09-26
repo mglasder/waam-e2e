@@ -239,8 +239,9 @@ class ModelV2(LightningModule):
         sloss = self.lambda_ * self._smoothness_loss(predictions)
         # aloss = self.gamma * self._area_loss(inputs, predictions, targets, fp)
         # aloss = self.gamma * self._area_loss2(predictions)
+        energy = self.gamma * self.energy_loss(predictions)
 
-        return (1 - self.theta - self.gamma - self.lambda_) * loss + fploss + sloss  # + aloss
+        return (1 - self.theta - self.gamma - self.lambda_) * loss + fploss + sloss + energy  # + aloss
 
     def _footprint_loss(self, diff, targets, fp):
         ldiff = diff[torch.arange(diff.size(0)), fp[:, 0]]
@@ -253,6 +254,14 @@ class ModelV2(LightningModule):
         area_err = torch.sum(torch.abs(diff), dim=1) * 0.1 - mean_area
         area_loss = torch.mean(area_err**2)
         return area_loss
+
+    def energy_loss(self, diff):
+        dy_dx = diff[:, 1:] - diff[:, :-1]
+        ds = torch.sqrt(1 + dy_dx**2)
+        surface_tension_energy = 0.003 * ds.sum(dim=1) * 0.1
+        gravitational_energy = 9.81 * 7.9 / 10 * diff.sum(dim=1)
+
+        return torch.mean((surface_tension_energy - gravitational_energy) ** 2)
 
     def configure_optimizers(self):
         optimizer = Adam(self.model.parameters(), lr=self.lr, weight_decay=0)
