@@ -14,7 +14,6 @@ from e2e.data.loader import EXPERIMENT as EXP
 from e2e.mcpredict import McUncertainty
 from e2e.models.modelV2 import ModelV2
 from e2e.models.recurrent import LSTM
-from e2e.models.transformer import Transformer
 
 # os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 
@@ -27,7 +26,7 @@ SEED = 2345078
 BATCH_SIZE = 32
 MAX_EPOCHS = 100
 N_WORKERS = 16
-DEVICE = "cuda"
+DEVICE = "cpu"
 # footprint
 THETA = 0.1
 # smoothness
@@ -49,7 +48,7 @@ if torch.cuda.is_available():
     torch.set_float32_matmul_precision("medium")
 
 
-def main():
+def main(note: str = ""):
     lstm = LSTM(
         p=P, n_input_features=INPUT_LENGTH, n_output_features=TARGET_LENGTH, n_hidden=TARGET_LENGTH * 3, n_layers=10
     )
@@ -86,6 +85,7 @@ def main():
         logger = WandbLogger(project="waam-e2e-pre", log_model="all")
         logger.watch(model.model)
         run_name = logger.experiment.name
+        logger.experiment.config.update({"note": note})
     else:
         logger = None
         run_name = None
@@ -94,7 +94,7 @@ def main():
         # TODO: wrap everything in its own class
         # check whether remote or local machine
         if Path("/home/magnus").exists():
-            message = f"""{run_name}"""
+            message = f"""{run_name}: {note}"""
             response = requests.post(f"http://{AUTOCOMMIT_IP}:3000/execute", json={"message": message})
             commit_hash = response.json()["result"]
 
@@ -185,4 +185,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # get input from stdin
+    note = input("Enter run note: ")
+    main(note=note)
