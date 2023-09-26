@@ -259,9 +259,9 @@ class ModelV2(LightningModule):
         dy_dx = diff[:, 1:] - diff[:, :-1]
         ds = torch.sqrt(1 + dy_dx**2)
         surface_tension_energy = 0.003 * ds.sum(dim=1)
-        gravitational_energy = 9.81 * 7.9 / 10 * torch.abs(diff.sum(dim=1))
+        # gravitational_energy = 9.81 * 7.9 / 10 * torch.abs(diff.sum(dim=1))
 
-        return torch.mean(surface_tension_energy + gravitational_energy)
+        return torch.mean(surface_tension_energy)
 
     def configure_optimizers(self):
         optimizer = Adam(self.model.parameters(), lr=self.lr, weight_decay=0)
