@@ -249,7 +249,7 @@ class ModelV2(LightningModule):
 
     @staticmethod
     def _area_loss2(diff):
-        mean_area = 11.69
+        mean_area = 11.5
         area_err = torch.sum(torch.abs(diff), dim=1) * 0.1 - mean_area
         area_loss = torch.mean(area_err**2)
         return area_loss
