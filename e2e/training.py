@@ -186,5 +186,8 @@ def main(note: str = ""):
 
 if __name__ == "__main__":
     # get input from stdin
-    note = input("Enter run note: ")
+    if LOGGING:
+        note = input("Enter run note: ")
+    else:
+        note = ""
     main(note=note)

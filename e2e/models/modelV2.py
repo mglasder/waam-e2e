@@ -241,9 +241,9 @@ class ModelV2(LightningModule):
 
         return (1 - self.theta - self.gamma - self.lambda_) * loss + fploss + sloss + aloss
 
-    def _footprint_loss(self, preds, targets, fp):
-        ldiff = preds[:, fp[0]] - targets[:, fp[1]]
-        rdiff = preds[:, fp[0]] - targets[:, fp[1]]
+    def _footprint_loss(self, diff, targets, fp):
+        ldiff = diff[torch.arange(diff.size(0)), fp[:, 0]]
+        rdiff = diff[torch.arange(diff.size(0)), fp[:, 1]]
         return torch.mean(ldiff**2 + rdiff**2)
 
     def configure_optimizers(self):
