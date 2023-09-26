@@ -26,11 +26,11 @@ SEED = 2345078
 BATCH_SIZE = 32
 MAX_EPOCHS = 100
 N_WORKERS = 16
-DEVICE = "cpu"
+DEVICE = "cuda"
 # footprint
-THETA = 0.1
+THETA = 0.3
 # smoothness
-LAMBDA = 0.5
+LAMBDA = 0.0
 # area
 GAMMA = 0.05
 INPUT_LENGTH = 90
