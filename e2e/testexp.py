@@ -12,7 +12,7 @@ from e2e.models.recurrent import LSTM
 from e2e.prediction.end_to_end import DataLoader, ModelHandler, Plotter, Predictor
 
 PROJECT_NAME = "waam-e2e-pre"
-RUN_ID = "sb7qyzo0"
+RUN_ID = "95fanoij"
 
 # "oqfrcpcw"
 # "oqfrcpcw"
@@ -38,7 +38,7 @@ def main():
 
     init_input = torch.tensor(dataset[0][0], dtype=torch.float32).unsqueeze(0).unsqueeze(0)
 
-    UNCERT_THRESH = 15.0
+    UNCERT_THRESH = 10.0
     predictions, labels, ground_truth = predictor.predict(init_input, uncertainty_threshold=UNCERT_THRESH, mode="e2e")
     Plotter.plot_e2e(predictions, labels, ground_truth, title=f"E2E uncert:{UNCERT_THRESH}")
 
