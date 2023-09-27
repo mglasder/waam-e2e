@@ -28,11 +28,11 @@ MAX_EPOCHS = 50
 N_WORKERS = 16
 DEVICE = "cuda"
 # footprint
-THETA = 0.2
+THETA = 0.1
 # smoothness
-LAMBDA = 0.2
+LAMBDA = 0.5
 # surface energy
-GAMMA = 0.2
+GAMMA = 0.0
 INPUT_LENGTH = 90
 TARGET_LENGTH = 90
 LR = 0.001
