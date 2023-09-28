@@ -29,11 +29,11 @@ MAX_EPOCHS = 50
 N_WORKERS = 16
 DEVICE = "cuda"
 # footprint
-THETA = 0.1
+THETA = 0.4
 # smoothness
-LAMBDA = 0.5
+LAMBDA = 0.0
 # surface energy
-GAMMA = 0.0
+GAMMA = 0.4
 INPUT_LENGTH = 90
 TARGET_LENGTH = 90
 LR = 0.001
@@ -108,7 +108,7 @@ def main(note: str = ""):
 
     datamodule = ShapePredictionDataModule(
         batch_size=BATCH_SIZE,
-        data_dir=VM_DATA_DIR,
+        data_dir=MAC_DATA_DIR_DEV,
         workers=N_WORKERS,
         dataset=ShapeDataset(mirror=MIRROR, segment_length=TARGET_LENGTH),
         split=split,
