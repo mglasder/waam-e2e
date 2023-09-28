@@ -2,7 +2,6 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from matplotlib import pyplot as plt
 
 from e2e.data.dataset import ShapeDataset
 from e2e.helpers import timing
@@ -41,19 +40,9 @@ def main():
 
     UNCERT_THRESH = 5.0
     predictions, labels, ground_truth = predictor.predict(init_input, uncertainty_threshold=UNCERT_THRESH, mode="e2e")
-    # Plotter.plot_e2e(predictions, labels, ground_truth, title=f"E2E uncert:{UNCERT_THRESH}")
+    Plotter.plot_e2e(predictions, labels, ground_truth, title=f"E2E uncert:{UNCERT_THRESH}")
 
     print(f"fallback rate to alternative prediction: {np.sum(labels)/len(labels)*100:.2f}%")
-
-    footprint_errors = predictor.footprint_errors
-    # plot violin plot of footprint errors
-    cm = 1 / 2.54
-    fig, ax = plt.subplots(figsize=(18 * cm, 10 * cm), dpi=300)
-
-    # labels = ["Footprint Errors"]
-
-    v1 = ax.violinplot(dataset=footprint_errors, showmedians=True, showmeans=False, showextrema=True, widths=0.5)
-    plt.show()
 
     # predictions, labels, ground_truth = predictor.predict(init_input, uncertainty_threshold=4.5, mode="hybrid")
     # Plotter.plot_e2e(predictions, labels, ground_truth, title="Hybrid")
