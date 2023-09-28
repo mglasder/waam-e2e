@@ -108,7 +108,7 @@ def main(note: str = ""):
 
     datamodule = ShapePredictionDataModule(
         batch_size=BATCH_SIZE,
-        data_dir=MAC_DATA_DIR_DEV,
+        data_dir=VM_DATA_DIR,
         workers=N_WORKERS,
         dataset=ShapeDataset(mirror=MIRROR, segment_length=TARGET_LENGTH),
         split=split,
