@@ -199,6 +199,7 @@ class ModelV2(LightningModule):
         resampled_shape = torch.stack(resampled_x1).float().squeeze(2).detach().to(self.device)
 
         pred_diff = self(resampled_shape)
+        train_loss = self._loss(pred_diff, resampled_shape)
 
         resampled_diff = []
         for i, tensor in enumerate(pred_diff):
@@ -222,8 +223,6 @@ class ModelV2(LightningModule):
 
         # Convert the list of tensors back to a single tensor
         padded_diff = torch.stack(padded_diff).to(self.device)
-
-        train_loss = self._loss(inputs, pred_diff, resampled_shape, fp)
         predictions = inputs + padded_diff
         self.log("train_loss", train_loss, prog_bar=True, on_epoch=True, on_step=False, batch_size=self.batch_sz)
         return {
@@ -260,6 +259,7 @@ class ModelV2(LightningModule):
         resampled_shape = torch.stack(resampled_x1).float().squeeze(2).detach().to(self.device)
 
         pred_diff = self(resampled_shape)
+        val_loss = self._loss(pred_diff, resampled_shape)
 
         resampled_diff = []
         for i, tensor in enumerate(pred_diff):
@@ -281,8 +281,6 @@ class ModelV2(LightningModule):
 
         # Convert the list of tensors back to a single tensor
         padded_diff = torch.stack(padded_diff).to(self.device)
-
-        val_loss = self._loss(inputs, pred_diff, resampled_shape, fp)
         predictions = inputs + padded_diff
         self.log("val_loss", val_loss, prog_bar=True, on_epoch=True, on_step=False, batch_size=self.batch_sz)
         return {
@@ -322,6 +320,7 @@ class ModelV2(LightningModule):
         resampled_shape = torch.stack(resampled_x1).float().squeeze(2).detach()
 
         pred_diff = self(resampled_shape)
+        pred_loss = self._loss(pred_diff, resampled_shape)
 
         resampled_diff = []
         for i, tensor in enumerate(pred_diff):
@@ -343,8 +342,6 @@ class ModelV2(LightningModule):
 
         # Convert the list of tensors back to a single tensor
         padded_diff = torch.stack(padded_diff)
-
-        pred_loss = self._loss(inputs, pred_diff, resampled_shape, fp)
         predictions = inputs + padded_diff
         return {"loss": pred_loss, "preds": predictions, "targets": targets}
 
@@ -363,7 +360,7 @@ class ModelV2(LightningModule):
         prediction_std = results.std(dim=0)
         return mean_prediction, prediction_std
 
-    def _loss(self, inputs, predictions, targets, fp):
+    def _loss(self, predictions, targets):
         loss = self.loss(predictions, targets)
 
         return loss

@@ -8,6 +8,7 @@ from lightning.pytorch.loggers import WandbLogger
 
 from e2e.autogit.autogit import git_add_commit_with
 from e2e.callbacks.metrics import FootprintAvgAbsValErrorLogger, ModHausdorffLogger
+from e2e.callbacks.plotting import PredictionPlotting
 from e2e.data.datamodule import ShapePredictionDataModule
 from e2e.data.dataset import ShapeDataset
 from e2e.data.loader import EXPERIMENT as EXP
@@ -129,7 +130,7 @@ def main(note: str = ""):
                 save_on_train_epoch_end=False,
             )
         )
-        # callbacks.append(PredictionPlotting(epochs=[]))
+        callbacks.append(PredictionPlotting(epochs=[]))
         callbacks.append(FootprintAvgAbsValErrorLogger())
         callbacks.append(ModHausdorffLogger())
         # callbacks.append(LogModelParametersAndGradients())
