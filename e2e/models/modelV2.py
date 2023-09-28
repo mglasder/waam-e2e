@@ -20,7 +20,7 @@ class SmoothnessLoss(nn.Module):
         )
         loss_4th = torch.mean(fourth_derivative**2, dim=1)
 
-        return 1 / 3 * loss_2nd + 2 / 3 * loss_4th
+        return 1 / 3 * torch.mean(loss_2nd) + 2 / 3 * torch.mean(loss_4th)
 
 
 class SmoothnessLossMid(nn.Module):
