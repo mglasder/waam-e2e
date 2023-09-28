@@ -20,7 +20,7 @@ class SmoothnessLoss(nn.Module):
         )
         loss_4th = torch.mean(fourth_derivative**2, dim=1)
 
-        return 1 / 3 * torch.mean(loss_2nd) + 2 / 3 * torch.mean(loss_4th)
+        return (1 / 3 * torch.mean(loss_2nd) + 2 / 3 * torch.mean(loss_4th)) * 100
 
 
 class SmoothnessLossMid(nn.Module):
@@ -257,7 +257,7 @@ class ModelV2(LightningModule):
     def _footprint_loss(self, diff, targets, fp):
         ldiff = diff[torch.arange(diff.size(0)), fp[:, 0]]
         rdiff = diff[torch.arange(diff.size(0)), fp[:, 1]]
-        return torch.mean(ldiff**2 + rdiff**2)
+        return torch.mean(ldiff**2 + rdiff**2) * 10
 
     @staticmethod
     def _area_loss2(diff):
