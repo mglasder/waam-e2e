@@ -6,6 +6,7 @@ from scipy.interpolate import interp1d
 from torch import nn
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+
 from e2e.helpers import timing
 
 
@@ -200,6 +201,7 @@ class ModelV2(LightningModule):
 
         pred_diff = self(resampled_shape)
         train_loss = self._loss(pred_diff, resampled_shape)
+        # TODO: this is wrong; diff has to be resampled and in the loss
 
         resampled_diff = []
         for i, tensor in enumerate(pred_diff):
