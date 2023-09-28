@@ -12,7 +12,6 @@ class SmoothnessLoss(nn.Module):
         super().__init__()
 
     def forward(self, outputs):
-        # TODO: get this right
         second_derivative = outputs[:, :-2] - 2 * outputs[:, 1:-1] + outputs[:, 2:]
         loss_2nd = torch.mean(second_derivative**2, dim=1)
 
@@ -21,7 +20,7 @@ class SmoothnessLoss(nn.Module):
         )
         loss_4th = torch.mean(fourth_derivative**2, dim=1)
 
-        return torch.mean(loss_2nd + loss_4th)
+        return 1 / 3 * loss_2nd + 2 / 3 * loss_4th
 
 
 class SmoothnessLossMid(nn.Module):
@@ -245,15 +244,15 @@ class ModelV2(LightningModule):
         sloss = self.lambda_ * self._smoothness_loss(predictions)
         # aloss = self.gamma * self._area_loss(inputs, predictions, targets, fp)
         # aloss = self.gamma * self._area_loss2(predictions)
-        energy = self.gamma * self.energy_loss(predictions)
+        # energy = self.gamma * self.energy_loss(predictions)
 
         if self.model.training:
             self.log("mse_loss", loss, prog_bar=False, on_epoch=True, on_step=False, batch_size=self.batch_sz)
             self.log("footprint_loss", fploss, prog_bar=False, on_epoch=True, on_step=False, batch_size=self.batch_sz)
-            self.log("energy_loss", energy, prog_bar=False, on_epoch=True, on_step=False, batch_size=self.batch_sz)
+            # self.log("energy_loss", energy, prog_bar=False, on_epoch=True, on_step=False, batch_size=self.batch_sz)
             self.log("smoothness_loss", sloss, prog_bar=False, on_epoch=True, on_step=False, batch_size=self.batch_sz)
 
-        return loss + fploss + energy + sloss  # + aloss
+        return loss + fploss + sloss
 
     def _footprint_loss(self, diff, targets, fp):
         ldiff = diff[torch.arange(diff.size(0)), fp[:, 0]]
