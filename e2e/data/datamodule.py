@@ -53,7 +53,8 @@ class ShapePredictionDataModule(LightningDataModule):
 
         if self._sep_ts_set:
             assert self._split[2] == 0
-            self._dataset_ts = loader.load(which=[self._sep_ts_set])
+            test_cross_sections = loader.load(which=[self._sep_ts_set])
+            self._dataset_ts = self.dataset.create(test_cross_sections)
 
     def _random_split(self, dataset):
         size = len(dataset)

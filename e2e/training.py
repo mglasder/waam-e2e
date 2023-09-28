@@ -8,6 +8,7 @@ from lightning.pytorch.loggers import WandbLogger
 
 from e2e.autogit.autogit import git_add_commit_with
 from e2e.callbacks.metrics import FootprintAvgAbsValErrorLogger, ModHausdorffLogger
+from e2e.callbacks.plotting import PredictionPlotting
 from e2e.data.datamodule import ShapePredictionDataModule
 from e2e.data.dataset import ShapeDataset
 from e2e.data.loader import EXPERIMENT as EXP
@@ -23,7 +24,7 @@ VM_DATA_DIR = Path("/home/magnus/datasets/waam/30_processing_results/ImageGenera
 VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 
 SEED = 2345078
-BATCH_SIZE = 32
+BATCH_SIZE = 64
 MAX_EPOCHS = 50
 N_WORKERS = 16
 DEVICE = "cuda"
@@ -129,7 +130,7 @@ def main(note: str = ""):
                 save_on_train_epoch_end=False,
             )
         )
-        # callbacks.append(PredictionPlotting(epochs=[]))
+        callbacks.append(PredictionPlotting(epochs=[]))
         callbacks.append(FootprintAvgAbsValErrorLogger())
         callbacks.append(ModHausdorffLogger())
         # callbacks.append(LogModelParametersAndGradients())

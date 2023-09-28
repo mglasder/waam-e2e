@@ -73,6 +73,7 @@ class Predictor:
 
         self.torchpositions = [s.torchposition.global_y_idx for s in self.x_sections]
         self.ground_truth = [s.slice_based_before.ys for s in self.x_sections]
+        self.true_footprints = [s.footprint_based for s in self.x_sections]
         self.LEN = len(self.x_sections)
 
         # init during setup
@@ -81,6 +82,7 @@ class Predictor:
         # prediction history
         self.predictions = []
         self.labels = []
+        self.footprint_errors = []
 
     def reset(self, init_input):
         self.curr_input = init_input
@@ -142,6 +144,14 @@ class Predictor:
         # find footprint
         left_fp = max(0, self._find_edge(diff, mid_idx, threshold=0.1, which="left"))
         right_fp = min(90, self._find_edge(diff, mid_idx, threshold=0.1, which="right"))
+
+        true_left_fp = self.true_footprints[self.STEP].left_idx
+        true_right_fp = self.true_footprints[self.STEP].right_idx
+
+        left_err = np.abs(np.abs(left_fp - mid_idx) - np.abs(true_left_fp - curr_torch_idx))
+        right_err = np.abs(np.abs(right_fp - mid_idx) - np.abs(true_right_fp - curr_torch_idx))
+
+        self.footprint_errors.append([left_err, right_err])
 
         next_input[curr_torch_idx - (mid_idx - left_fp) : curr_torch_idx + (right_fp - mid_idx)] = this_pred[
             left_fp:right_fp
