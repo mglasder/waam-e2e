@@ -28,7 +28,7 @@ DATASET = VM_DATA_DIR
 
 SEED = 2345078
 BATCH_SIZE = 32
-MAX_EPOCHS = 2
+MAX_EPOCHS = 5
 N_WORKERS = 16
 DEVICE = "cuda"
 # footprint
@@ -146,10 +146,8 @@ def main(note: str = ""):
     val_data_loader = datamodule.val_dataloader()
     train_data_loader = datamodule.train_dataloader()
 
+    # get best model path
     model_path = trainer.checkpoint_callback.best_model_path
-
-    ckpt_path = trainer.ckpt_path
-
     best_model = ModelV2.load_from_checkpoint(model=lstm, checkpoint_path=model_path)
     best_model.to("cpu")
 
