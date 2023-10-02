@@ -53,9 +53,9 @@ class ModelV2(LightningModule):
         diff = targets.detach() - inputs.detach()
 
         ab = self(inputs)
-
-        a = ab[:, 0]
-        b = ab[:, 1]
+        ab_ = ab.split(1, dim=1)
+        a = ab_[0]
+        b = ab_[1]
         pred_diff = self.polynomial3(a, b, self.xs)
 
         train_loss = self._loss(pred_diff, diff)
@@ -83,8 +83,9 @@ class ModelV2(LightningModule):
 
         ab = self(inputs)
 
-        a = ab[:, 0]
-        b = ab[:, 1]
+        ab_ = ab.split(1, dim=1)
+        a = ab_[0]
+        b = ab_[1]
         pred_diff = self.polynomial3(a, b, self.xs)
 
         val_loss = self._loss(pred_diff, diff)
@@ -108,9 +109,9 @@ class ModelV2(LightningModule):
         diff = targets.detach() - inputs.detach()
 
         ab = self(inputs)
-
-        a = ab[:, 0]
-        b = ab[:, 1]
+        ab_ = ab.split(1, dim=1)
+        a = ab_[0]
+        b = ab_[1]
         pred_diff = self.polynomial3(a, b, self.xs)
 
         pred_loss = self._loss(pred_diff, diff)
@@ -126,9 +127,9 @@ class ModelV2(LightningModule):
 
             for i in range(num_samples):
                 ab = self.forward(x)
-
-                a = ab[:, 0]
-                b = ab[:, 1]
+                ab_ = ab.split(1, dim=1)
+                a = ab_[0]
+                b = ab_[1]
                 pred_diff = self.polynomial3(a, b, self.xs)
 
                 results[i, :] = x + pred_diff

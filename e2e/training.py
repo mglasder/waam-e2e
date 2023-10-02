@@ -24,13 +24,13 @@ MAC_DATA_DIR_DEV = Path("/Users/magnus/datasets/WAAM/TrainingDev")
 VM_DATA_DIR = Path("/home/magnus/datasets/waam/30_processing_results/ImageGenerator")
 VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 
-DATASET = VM_DATA_DIR
+DATASET = VM_DATA_DIR_DEV
 
 SEED = 2345078
 BATCH_SIZE = 32
 MAX_EPOCHS = 50
-N_WORKERS = 1
-DEVICE = "cpu"
+N_WORKERS = 16
+DEVICE = "cuda"
 # footprint
 THETA = 0.4
 # smoothness
@@ -159,7 +159,7 @@ def main(note: str = ""):
 if __name__ == "__main__":
     # get input from stdin
     if LOGGING:
-        note = ""  # input("Enter run note: ")
+        note = input("Enter run note: ")
     else:
         note = ""
     main(note=note)
