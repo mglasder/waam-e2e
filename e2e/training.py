@@ -153,7 +153,7 @@ def main(note: str = ""):
     mc.predict()
     mc.calibrate(strategy="temperature_scaling")
     mc.plot_predictions("train", log=LOGGING, take=10)
-    mc.plot_predictions("val", log=LOGGING, take=50)
+    mc.plot_predictions("val", log=LOGGING, take=10)
 
 
 if __name__ == "__main__":

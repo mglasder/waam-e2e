@@ -74,7 +74,7 @@ class ModelV2(LightningModule):
     @staticmethod
     def polynomial3(a, b, xs):
         """f(0) = 0, f(1) = 0"""
-        y = a * xs**3 + b * xs**2 - (a - b) * xs
+        y = a * xs**3 + b * xs**2 - (a + b) * xs
         return y
 
     def validation_step(self, batch, batch_idx):
