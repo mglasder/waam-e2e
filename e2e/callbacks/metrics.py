@@ -49,7 +49,7 @@ class ModHausdorffLogger(Callback):
         fp_idx = outputs["footprint"].detach().cpu().numpy()
 
         # this is not really correct as the resolution is not 0.1 anymore
-        x = np.arange(0, len(preds) / 10, 0.1)
+        x = np.arange(0, preds.shape[1] / 10, 0.1)
 
         # median of min distances
         modhaussdorff = []
