@@ -46,7 +46,7 @@ class ModelV2(LightningModule):
     def forward(self, x):
         x = x.view(-1, 1, self.length_in)
         x = self.model(x)
-        return x.view(-1, self.length_out)
+        return x.view(-1, 2)
 
     def training_step(self, batch, batch_idx):
         inputs, targets, ids, fp = batch
