@@ -49,7 +49,7 @@ LOGGING = True
 AUTOCOMMIT = True
 AUTOCOMMIT_IP = "172.31.1.8"
 
-PROJECT = "waam-e2e-shape-only"
+PROJECT = "waam-e2e-pre"
 
 if torch.cuda.is_available():
     torch.set_float32_matmul_precision("medium")
