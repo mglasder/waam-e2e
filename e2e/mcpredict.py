@@ -48,9 +48,8 @@ class McUncertainty:
 
         for i, batch in enumerate(data_loader):
             x, y, id_, fp = batch
-            diff = y.detach() - x.detach()
 
-            mean_diff, uncertainty = self._model.predict_with_uncertainty(diff, num_samples=150)
+            mean_diff, uncertainty = self._model.predict_with_uncertainty(x, num_samples=150)
 
             mean_prediction = x.detach() + mean_diff
 
