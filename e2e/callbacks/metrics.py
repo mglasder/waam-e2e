@@ -5,7 +5,9 @@ from scipy.spatial.distance import cdist
 
 
 class FootprintAvgAbsValErrorLogger(Callback):
-    """Average absolute error of footprint prediction on validation data set."""
+    def __init__(self, footprint_is_absolute=True):
+        """Average absolute error of footprint prediction on validation data set."""
+        self.footprint_is_absolute = footprint_is_absolute
 
     def on_validation_batch_end(
         self,
@@ -20,8 +22,13 @@ class FootprintAvgAbsValErrorLogger(Callback):
         targets = outputs["targets"]
         fp_idx = outputs["footprint"]
 
-        left_errors = preds[:, fp_idx[0]] - targets[:, fp_idx[1]]
-        right_errors = preds[:, fp_idx[0]] - targets[:, fp_idx[1]]
+        if self.footprint_is_absolute:
+            left_errors = preds[:, 0] - targets[:, 0]
+            right_errors = preds[:, 1] - targets[:, 1]
+
+        else:
+            left_errors = preds[:, fp_idx[0]] - targets[:, fp_idx[1]]
+            right_errors = preds[:, fp_idx[0]] - targets[:, fp_idx[1]]
 
         trainer.logger.log_metrics({"val/footprint_error_left": left_errors.abs().mean()})
         trainer.logger.log_metrics({"val/footprint_error_right": right_errors.abs().mean()})

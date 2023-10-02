@@ -47,6 +47,8 @@ LOGGING = True
 AUTOCOMMIT = True
 AUTOCOMMIT_IP = "172.31.1.8"
 
+PROJECT = "waam-e2e-pre"
+
 if torch.cuda.is_available():
     torch.set_float32_matmul_precision("medium")
 
@@ -79,7 +81,7 @@ def main(note: str = ""):
         dataset = VM_DATA_DIR
 
     if LOGGING:
-        logger = WandbLogger(project="waam-e2e-pre", log_model="all")
+        logger = WandbLogger(project=PROJECT, log_model="all")
         logger.watch(model.model)
         run_name = logger.experiment.name
         logger.experiment.notes = note
