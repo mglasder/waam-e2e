@@ -87,7 +87,6 @@ class ModelV2(LightningModule):
 
     def predict_step(self, batch, batch_idx: int, dataloader_idx: int = 0):
         inputs, targets, ids, fp = batch
-
         diff = targets.detach() - inputs.detach()
         pred_diff = self(diff)
         pred_loss = self._loss(pred_diff, diff)

@@ -56,6 +56,7 @@ class ModHausdorffLogger(Callback):
         for b in range(outputs["preds"].shape[0]):
             left = fp_idx[b, 0]
             right = fp_idx[b, 1]
+
             dist = cdist(list(zip(x, targets[b, left:right])), list(zip(x, preds[b, left:right])))
             modhaussdorff.append((np.median(np.min(dist, axis=1))))
 
