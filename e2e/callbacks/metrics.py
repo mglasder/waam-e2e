@@ -35,6 +35,9 @@ class FootprintAvgAbsValErrorLogger(Callback):
 
 
 class ModHausdorffLogger(Callback):
+    def __init__(self, footprint_is_absolute=True):
+        self.footprint_is_absolute = footprint_is_absolute
+
     def on_validation_batch_end(
         self,
         trainer,
@@ -54,9 +57,12 @@ class ModHausdorffLogger(Callback):
         # median of min distances
         modhaussdorff = []
         for b in range(outputs["preds"].shape[0]):
-            left = fp_idx[b, 0]
-            right = fp_idx[b, 1]
-
+            if self.footprint_is_absolute:
+                left = 0
+                right = preds.shape[1]
+            else:
+                left = fp_idx[b, 0]
+                right = fp_idx[b, 1]
             dist = cdist(list(zip(x, targets[b, left:right])), list(zip(x, preds[b, left:right])))
             modhaussdorff.append((np.median(np.min(dist, axis=1))))
 
