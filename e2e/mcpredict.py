@@ -110,7 +110,7 @@ class McUncertainty:
             uncertainties = self._uncertainty_preds["train"]["uncertainties"]
             errors = self._uncertainty_preds["train"]["errors"]
 
-            scalings = errors / uncertainties
+            scalings = errors / (uncertainties + 1e-8)
             scaling = torch.mean(torch.tensor(scalings), dim=0, keepdims=True).numpy()
 
             def _temperature_scaling(x):
