@@ -147,6 +147,9 @@ def main(note: str = ""):
     train_data_loader = datamodule.train_dataloader()
 
     model_path = trainer.checkpoint_callback.best_model_path
+
+    ckpt_path = trainer.ckpt_path
+
     best_model = ModelV2.load_from_checkpoint(model=lstm, checkpoint_path=model_path)
     best_model.to("cpu")
 
