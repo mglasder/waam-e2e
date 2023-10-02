@@ -35,7 +35,7 @@ class LSTM(nn.Module):
 
         self.fc2 = nn.Linear(in_features=n_hidden, out_features=n_output_features)
 
-        self.out = nn.Linear(in_features=n_output_features, out_features=n_output_features)
+        self.out = nn.Linear(in_features=n_output_features, out_features=2)
 
         # self.multi_smooth = MultiGaussianSmoothing(
         #     output_length=n_output_features,
@@ -43,7 +43,7 @@ class LSTM(nn.Module):
         #     sigma_inits=[0.3, 1.2, 3.0],
         # )
         #
-        self.postsmooth = GaussianSmoothing(window_size=15, sigma_init=4.0).requires_grad_(False)
+        # self.postsmooth = GaussianSmoothing(window_size=15, sigma_init=4.0).requires_grad_(False)
 
     def forward(self, x):
         r0 = x
@@ -60,5 +60,5 @@ class LSTM(nn.Module):
 
         x = self.out(x)
         # x = self.multi_smooth(x)
-        x = self.postsmooth(x)
+        # x = self.postsmooth(x)
         return x

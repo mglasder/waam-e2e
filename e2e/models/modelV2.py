@@ -34,6 +34,8 @@ class ModelV2(LightningModule):
         self.model = model
         self.model.apply(self._init_weights)
 
+        self.xs = torch.arange(0, 1, 1 / self.length_out).to(self.device).requires_grad_(False)
+
     @staticmethod
     def _init_weights(m):
         if type(m) == nn.Conv1d or type(m) == nn.Linear or type(m) == nn.ConvTranspose1d:
@@ -50,7 +52,12 @@ class ModelV2(LightningModule):
         inputs, targets, ids, fp = batch
         diff = targets.detach() - inputs.detach()
 
-        pred_diff = self(inputs)
+        ab = self(inputs)
+
+        a = ab[:, 0]
+        b = ab[:, 1]
+        pred_diff = self.polynomial3(a, b, self.xs)
+
         train_loss = self._loss(pred_diff, diff)
 
         predictions = inputs + pred_diff
@@ -64,11 +71,22 @@ class ModelV2(LightningModule):
             "footprint": fp,
         }
 
+    @staticmethod
+    def polynomial3(a, b, xs):
+        """f(0) = 0, f(1) = 0"""
+        y = a * xs**3 + b * xs**2 - (a - b) * xs
+        return y
+
     def validation_step(self, batch, batch_idx):
         inputs, targets, ids, fp = batch
         diff = targets.detach() - inputs.detach()
 
-        pred_diff = self(inputs)
+        ab = self(inputs)
+
+        a = ab[:, 0]
+        b = ab[:, 1]
+        pred_diff = self.polynomial3(a, b, self.xs)
+
         val_loss = self._loss(pred_diff, diff)
 
         predictions = inputs + pred_diff
@@ -89,7 +107,12 @@ class ModelV2(LightningModule):
         inputs, targets, ids, fp = batch
         diff = targets.detach() - inputs.detach()
 
-        pred_diff = self(inputs)
+        ab = self(inputs)
+
+        a = ab[:, 0]
+        b = ab[:, 1]
+        pred_diff = self.polynomial3(a, b, self.xs)
+
         pred_loss = self._loss(pred_diff, diff)
 
         predictions = inputs + pred_diff
@@ -102,8 +125,13 @@ class ModelV2(LightningModule):
             results = torch.zeros((num_samples,) + (x.shape[0], self.length_out))
 
             for i in range(num_samples):
-                y_pred_diff = self.forward(x)
-                results[i, :] = x + y_pred_diff
+                ab = self.forward(x)
+
+                a = ab[:, 0]
+                b = ab[:, 1]
+                pred_diff = self.polynomial3(a, b, self.xs)
+
+                results[i, :] = x + pred_diff
 
         self.model.eval()  # Set the model back to evaluation mode
         mean_prediction = results.mean(dim=0)
