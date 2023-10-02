@@ -50,7 +50,7 @@ class ModelV2(LightningModule):
         inputs, targets, ids, fp = batch
         diff = targets.detach() - inputs.detach()
 
-        pred_diff = self(diff)
+        pred_diff = self(inputs)
         train_loss = self._loss(pred_diff, diff)
 
         predictions = inputs + pred_diff
@@ -68,7 +68,7 @@ class ModelV2(LightningModule):
         inputs, targets, ids, fp = batch
         diff = targets.detach() - inputs.detach()
 
-        pred_diff = self(diff)
+        pred_diff = self(inputs)
         val_loss = self._loss(pred_diff, diff)
 
         predictions = inputs + pred_diff
@@ -89,7 +89,7 @@ class ModelV2(LightningModule):
         inputs, targets, ids, fp = batch
         diff = targets.detach() - inputs.detach()
 
-        pred_diff = self(diff)
+        pred_diff = self(inputs)
         pred_loss = self._loss(pred_diff, diff)
 
         predictions = inputs + pred_diff
