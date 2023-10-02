@@ -24,6 +24,8 @@ MAC_DATA_DIR_DEV = Path("/Users/magnus/datasets/WAAM/TrainingDev")
 VM_DATA_DIR = Path("/home/magnus/datasets/waam/30_processing_results/ImageGenerator")
 VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 
+DATASET = MAC_DATA_DIR_DEV
+
 SEED = 2345078
 BATCH_SIZE = 16
 MAX_EPOCHS = 2
@@ -72,13 +74,11 @@ def main(note: str = ""):
         split = [0.5, 0.5, 0]
         train_val_sets = "all"
         separate_test_set = None
-        dataset = MAC_DATA_DIR_DEV
 
     else:
         split = [0.7, 0.3, 0]
         train_val_sets = [EXP.CONSTANT_EX3, EXP.CONSTANT_EX4, EXP.RANDOM_EX3, EXP.RANDOM_EX5]
         separate_test_set = None
-        dataset = VM_DATA_DIR
 
     if LOGGING:
         logger = WandbLogger(project=PROJECT, log_model="all")
@@ -106,7 +106,7 @@ def main(note: str = ""):
 
     datamodule = ShapePredictionDataModule(
         batch_size=BATCH_SIZE,
-        data_dir=dataset,
+        data_dir=DATASET,
         workers=N_WORKERS,
         dataset=ResampledShapeDataset(segment_length=TARGET_LENGTH),
         split=split,
