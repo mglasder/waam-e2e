@@ -60,5 +60,5 @@ class LSTM(nn.Module):
 
         x = self.out(x)
         # x = self.multi_smooth(x)
-        # x = self.postsmooth(x)
+        x = self.postsmooth(x)
         return x
