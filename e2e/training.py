@@ -129,7 +129,7 @@ def main(note: str = ""):
             )
         )
         # callbacks.append(PredictionPlotting(epochs=[]))
-        callbacks.append(FootprintAvgAbsValErrorLogger())
+        callbacks.append(FootprintAvgAbsValErrorLogger(footprint_is_absolute=True))
         callbacks.append(ModHausdorffLogger())
         # callbacks.append(LogModelParametersAndGradients())
 
@@ -160,7 +160,7 @@ def main(note: str = ""):
 if __name__ == "__main__":
     # get input from stdin
     if LOGGING:
-        note = input("Enter run note: ")
+        note = "test run"  # input("Enter run note: ")
     else:
         note = ""
     main(note=note)
