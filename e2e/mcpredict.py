@@ -48,69 +48,11 @@ class McUncertainty:
 
         for i, batch in enumerate(data_loader):
             x, y, id_, fp = batch
+            diff = y.detach() - x.detach()
 
-            l, r = fp.split(1, dim=1)
-            l = l.long().squeeze()
-            r = r.long().squeeze()
+            mean_diff, uncertainty = self._model.predict_with_uncertainty(diff, num_samples=150)
 
-            shape = [x[i, l[i] : r[i]] for i in range(x.shape[0])]
-            # Resample each tensor in x1 to have a length of 90 using scipy's interp1d
-            resampled_x1 = []
-            for tensor in shape:
-                tensor_np = tensor.squeeze().cpu().numpy()  # Convert tensor to numpy array and remove channel dimension
-                original_length = tensor_np.shape[0]
-                interpolating_function = interp1d(
-                    np.linspace(0, 1, original_length), tensor_np, kind="linear", fill_value="extrapolate"
-                )
-                resampled_tensor = interpolating_function(np.linspace(0, 1, 90))
-                resampled_x1.append(
-                    torch.tensor(resampled_tensor).unsqueeze(1)
-                )  # Convert back to tensor and add channel dimension
-
-            # Convert the list of tensors back to a single tensor
-            resampled_x = torch.stack(resampled_x1).float().squeeze(2).detach().to(self._model.device)
-
-            mean_prediction, uncertainty = self._model.predict_with_uncertainty(resampled_x, num_samples=150)
-
-            resampled_diff = []
-            resampled_uncert = []
-            for i, tensor, uncert in enumerate(zip(mean_prediction, uncertainty)):
-                tensor_np = (
-                    tensor.detach().squeeze().cpu().numpy()
-                )  # Convert tensor to numpy array and remove channel dimension
-                uncert_np = (
-                    uncert.detach().squeeze().cpu().numpy()
-                )  # Convert tensor to numpy array and remove channel dimension
-                original_length = np.abs(l[i].item() - r[i].item())
-                interpolating_function = interp1d(
-                    np.linspace(0, 1, 90), tensor_np, kind="linear", fill_value="extrapolate"
-                )
-                interpolating_function_uncert = interp1d(
-                    np.linspace(0, 1, 90), uncert_np, kind="linear", fill_value="extrapolate"
-                )
-                resampled_tensor = interpolating_function(np.linspace(0, 1, original_length))
-                re_uncert = interpolating_function_uncert(np.linspace(0, 1, original_length))
-                resampled_diff.append(
-                    torch.tensor(resampled_tensor).unsqueeze(1)
-                )  # Convert back to tensor and add channel dimension
-                resampled_uncert.append(
-                    torch.tensor(re_uncert).unsqueeze(1)
-                )  # Convert back to tensor and add channel dimension
-
-            # Pad each tensor in resampled_diff to have a length of 90
-            padded_diff = []
-            padded_uncert_list = []
-            for i, diff, uncert in enumerate(resampled_diff, resampled_uncert):
-                padding_left = l[i].item()
-                padding_right = 90 - r[i].item()
-                padded = F.pad(diff.squeeze(1), (padding_left, padding_right))
-                padded_diff.append(padded)
-                padded_uncert = F.pad(uncert.squeeze(1), (padding_left, padding_right))
-                padded_uncert_list.append(padded_uncert)
-
-            # Convert the list of tensors back to a single tensor
-            mean_prediction = torch.stack(padded_diff).to(self._model.device)
-            uncertainty = torch.stack(padded_uncert_list).to(self._model.device)
+            mean_prediction = x.detach() + mean_diff
 
             error = np.abs(mean_prediction.detach().cpu().numpy() - y.detach().cpu().numpy()).tolist()
             mean_predictions.append(mean_prediction.detach().cpu().numpy().tolist())

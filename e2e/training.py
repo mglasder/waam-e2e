@@ -10,8 +10,9 @@ from e2e.autogit.autogit import git_add_commit_with
 from e2e.callbacks.metrics import FootprintAvgAbsValErrorLogger, ModHausdorffLogger
 from e2e.callbacks.plotting import PredictionPlotting
 from e2e.data.datamodule import ShapePredictionDataModule
-from e2e.data.dataset import ShapeDataset
+from e2e.data.dataset import ShapeDataset, ResampledFootprintDataset
 from e2e.data.loader import EXPERIMENT as EXP
+from e2e.data.resampled import ResampledShapeDataset
 from e2e.mcpredict import McUncertainty
 from e2e.models.modelV2 import ModelV2
 from e2e.models.recurrent import LSTM
@@ -24,9 +25,9 @@ VM_DATA_DIR = Path("/home/magnus/datasets/waam/30_processing_results/ImageGenera
 VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 
 SEED = 2345078
-BATCH_SIZE = 32
-MAX_EPOCHS = 50
-N_WORKERS = 16
+BATCH_SIZE = 16
+MAX_EPOCHS = 2
+N_WORKERS = 1
 DEVICE = "cuda"
 # footprint
 THETA = 0.4
@@ -34,6 +35,7 @@ THETA = 0.4
 LAMBDA = 0.0
 # surface energy
 GAMMA = 0.0
+
 INPUT_LENGTH = 90
 TARGET_LENGTH = 90
 LR = 0.001
@@ -55,18 +57,10 @@ def main(note: str = ""):
     )
     lstm.to(DEVICE)
 
-    # transformer = Transformer(
-    #     p=P, n_input_features=INPUT_LENGTH, n_output_features=TARGET_LENGTH, n_hidden=TARGET_LENGTH, n_layers=6
-    # )
-    # transformer.to(DEVICE)
-
     model = ModelV2(
         model=lstm,
         batch_size=BATCH_SIZE,
         lr=LR,
-        theta=THETA,
-        lambda_=LAMBDA,
-        gamma=GAMMA,
         in_len=INPUT_LENGTH,
         out_len=TARGET_LENGTH,
     )
@@ -76,11 +70,13 @@ def main(note: str = ""):
         split = [0.5, 0.5, 0]
         train_val_sets = "all"
         separate_test_set = None
+        dataset = MAC_DATA_DIR_DEV
 
     else:
         split = [0.7, 0.3, 0]
         train_val_sets = [EXP.CONSTANT_EX3, EXP.CONSTANT_EX4, EXP.RANDOM_EX3, EXP.RANDOM_EX5]
         separate_test_set = None
+        dataset = VM_DATA_DIR
 
     if LOGGING:
         logger = WandbLogger(project="waam-e2e-pre", log_model="all")
@@ -108,9 +104,9 @@ def main(note: str = ""):
 
     datamodule = ShapePredictionDataModule(
         batch_size=BATCH_SIZE,
-        data_dir=VM_DATA_DIR,
+        data_dir=dataset,
         workers=N_WORKERS,
-        dataset=ShapeDataset(mirror=MIRROR, segment_length=TARGET_LENGTH),
+        dataset=ResampledShapeDataset(segment_length=TARGET_LENGTH),
         split=split,
         train_val_sets=train_val_sets,
         separate_test_set=separate_test_set,
@@ -130,7 +126,7 @@ def main(note: str = ""):
                 save_on_train_epoch_end=False,
             )
         )
-        callbacks.append(PredictionPlotting(epochs=[]))
+        # callbacks.append(PredictionPlotting(epochs=[]))
         callbacks.append(FootprintAvgAbsValErrorLogger())
         callbacks.append(ModHausdorffLogger())
         # callbacks.append(LogModelParametersAndGradients())
@@ -152,38 +148,11 @@ def main(note: str = ""):
     best_model = ModelV2.load_from_checkpoint(model=lstm, checkpoint_path=model_path)
     best_model.to("cpu")
 
-    # print parameters of smoothing layers
-    # for name, param in best_model.named_parameters():
-    #     if "sigma" in name:
-    #         print(name, param)
-    #     if "mask" in name:
-    #         print(name, param)
-
     mc = McUncertainty(best_model, train_data_loader, val_data_loader, logger=logger)
     mc.predict()
     mc.calibrate(strategy="temperature_scaling")
-    mc.plot_predictions("train", log=True, take=10)
-    mc.plot_predictions("val", log=True, take=50)
-
-    # stage = "val"
-    # data = mc._uncertainty_preds[stage]
-    #
-    # df = pd.DataFrame(
-    #     {
-    #         "mean_predictions": list(data["mean_predictions"]),
-    #         "uncertainties": list(data["uncertainties"]),
-    #         "errors": list(data["errors"]),
-    #         "xs": list(data["xs"]),
-    #         "ys": list(data["ys"]),
-    #     }
-    # )
-    #
-    # df["ids"] = data["ids"]
-    #
-    # # save as csv
-    #
-    # # df.to_csv(f"../data/{run_name}_uncertainty_predictions_{stage}.csv")
-    # df.to_pickle(f"../data/{run_name}_uncertainty_predictions_{stage}.pkl")
+    mc.plot_predictions("train", log=LOGGING, take=10)
+    mc.plot_predictions("val", log=LOGGING, take=50)
 
 
 if __name__ == "__main__":

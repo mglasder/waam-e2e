@@ -10,133 +10,11 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from e2e.helpers import timing
 
 
-class SmoothnessLoss(nn.Module):
-    def __init__(self):
-        super().__init__()
-
-    def forward(self, outputs):
-        second_derivative = outputs[:, :-2] - 2 * outputs[:, 1:-1] + outputs[:, 2:]
-        loss_2nd = torch.mean(second_derivative**2, dim=1)
-
-        fourth_derivative = (
-            outputs[:, :-4] - 4 * outputs[:, 1:-3] + 6 * outputs[:, 2:-2] - 4 * outputs[:, 3:-1] + outputs[:, 4:]
-        )
-        loss_4th = torch.mean(fourth_derivative**2, dim=1)
-
-        return (1 / 3 * torch.mean(loss_2nd) + 2 / 3 * torch.mean(loss_4th)) * 100
-
-
-class SmoothnessLossMid(nn.Module):
-    def __init__(self):
-        super().__init__()
-
-    def forward(self, outputs, fp_idx):
-        # start_index, end_index = fp_idx[:, 0], fp_idx[:, 1]
-        # smoothness_loss = torch.mean(
-        #     (outputs[:, start_index : end_index - 1] - outputs[:, start_index + 1 : end_index]) ** 2
-        # )
-        # return smoothness_loss
-
-        batch_size = outputs.size(0)
-        max_len = outputs.size(1)
-
-        # Create a range of indices
-        idx = torch.arange(max_len).unsqueeze(0).repeat(batch_size, 1).to(outputs.device)
-
-        # Create masks for start and end indices
-        start_mask = idx >= fp_idx[:, 0:1]
-        end_mask = idx < fp_idx[:, 1:2]
-        mask = start_mask & end_mask
-
-        # Apply mask to get the relevant outputs
-        masked_outputs = outputs * mask.float()
-
-        # Calculate second derivative
-        second_derivative = masked_outputs[:, :-2] - 2 * masked_outputs[:, 1:-1] + masked_outputs[:, 2:]
-
-        # Apply mask to second derivative
-        second_derivative_masked = second_derivative * mask[:, :-2].float()
-
-        # Calculate smoothness loss
-        smoothness_loss = torch.mean(second_derivative_masked**2, dim=1)
-
-        return torch.mean(smoothness_loss)
-
-
-class SmoothnessLossPiecewise(nn.Module):
-    def __init__(self, n=5):
-        super().__init__()
-        self.n = n
-
-    def forward(self, outputs, fp_idx):
-        batch_size = outputs.size(0)
-        max_len = outputs.size(1)
-
-        # Create a range of indices
-        idx = torch.arange(max_len).unsqueeze(0).repeat(batch_size, 1).to(outputs.device)
-
-        # Create masks for start and end indices
-        left_mask = idx < fp_idx[:, 0:1]
-        middle_mask = (idx >= fp_idx[:, 0:1]) & (idx < fp_idx[:, 1:2])
-        right_mask = idx >= fp_idx[:, 1:2]
-
-        # Calculate second derivative
-        second_derivative = outputs[:, : -2 * self.n] - 2 * outputs[:, self.n : -self.n] + outputs[:, 2 * self.n :]
-
-        # Apply masks to second derivative
-        second_derivative_left = second_derivative * left_mask[:, : -2 * self.n].float()
-        second_derivative_middle = second_derivative * middle_mask[:, : -2 * self.n].float()
-        second_derivative_right = second_derivative * right_mask[:, : -2 * self.n].float()
-
-        # Calculate smoothness loss
-        smoothness_loss_left = torch.mean(second_derivative_left**2, dim=1)
-        smoothness_loss_middle = torch.mean(second_derivative_middle**2, dim=1)
-        smoothness_loss_right = torch.mean(second_derivative_right**2, dim=1)
-
-        # Combine the losses
-        smoothness_loss = smoothness_loss_left + smoothness_loss_middle + smoothness_loss_right
-
-        return torch.mean(smoothness_loss)
-
-
-class AreaLoss(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.scaling_factor = 0.1
-
-    def forward(self, inputs, outputs, targets, fp_idx):
-        batch_size = outputs.size(0)
-        max_len = outputs.size(1)
-
-        # Create a range of indices
-        idx = torch.arange(max_len).unsqueeze(0).repeat(batch_size, 1).to(outputs.device)
-
-        # Create masks for start and end indices
-        start_mask = idx >= fp_idx[:, 0:1]
-        end_mask = idx < fp_idx[:, 1:2]
-        mask = start_mask & end_mask
-
-        # Apply mask to get the relevant outputs and targets
-        masked_outputs = outputs * mask.float()
-        masked_targets = targets * mask.float()
-
-        # Calculate areas
-        area_outputs = torch.sum(masked_outputs, dim=1)
-        area_targets = torch.sum(masked_targets, dim=1)
-
-        # Calculate absolute difference in areas
-        loss = torch.abs(area_outputs - area_targets)
-        return torch.mean(loss) * self.scaling_factor
-
-
 class ModelV2(LightningModule):
     def __init__(
         self,
         model: nn.Module,
         loss=F.mse_loss,
-        theta=0.1,
-        lambda_=0.01,
-        gamma=0.01,
         in_len=224,
         out_len=100,
         batch_size=16,
@@ -149,18 +27,12 @@ class ModelV2(LightningModule):
 
         self.loss = loss
         self.lr = lr
-        self.lambda_ = lambda_  # controls smoothness penalty
-        self.gamma = gamma  # controls area penalty
-        self.theta = theta  # controls footprint penalty
 
         self.length_in = in_len
         self.length_out = out_len
 
         self.model = model
-        # self.model.apply(self._init_weights)
-
-        self._smoothness_loss = SmoothnessLoss()
-        self._area_loss = AreaLoss()
+        self.model.apply(self._init_weights)
 
     @staticmethod
     def _init_weights(m):
@@ -178,54 +50,10 @@ class ModelV2(LightningModule):
         inputs, targets, ids, fp = batch
         diff = targets.detach() - inputs.detach()
 
-        l, r = fp.split(1, dim=1)
-        l = l.long().squeeze()
-        r = r.long().squeeze()
+        pred_diff = self(diff)
+        train_loss = self._loss(pred_diff, diff)
 
-        shape = [inputs[i, l[i] : r[i]] for i in range(inputs.shape[0])]
-        # Resample each tensor in x1 to have a length of 90 using scipy's interp1d
-        resampled_x1 = []
-        for tensor in shape:
-            tensor_np = tensor.squeeze().cpu().numpy()  # Convert tensor to numpy array and remove channel dimension
-            original_length = tensor_np.shape[0]
-            interpolating_function = interp1d(
-                np.linspace(0, 1, original_length), tensor_np, kind="linear", fill_value="extrapolate"
-            )
-            resampled_tensor = interpolating_function(np.linspace(0, 1, 90))
-            resampled_x1.append(
-                torch.tensor(resampled_tensor).unsqueeze(1)
-            )  # Convert back to tensor and add channel dimension
-
-        # Convert the list of tensors back to a single tensor
-        resampled_shape = torch.stack(resampled_x1).float().squeeze(2).detach().to(self.device)
-
-        pred_diff = self(resampled_shape)
-        train_loss = self._loss(pred_diff, resampled_shape)
-        # TODO: this is wrong; diff has to be resampled and in the loss
-
-        resampled_diff = []
-        for i, tensor in enumerate(pred_diff):
-            tensor_np = (
-                tensor.detach().squeeze().cpu().numpy()
-            )  # Convert tensor to numpy array and remove channel dimension
-            original_length = np.abs(l[i].item() - r[i].item())
-            interpolating_function = interp1d(np.linspace(0, 1, 90), tensor_np, kind="linear", fill_value="extrapolate")
-            resampled_tensor = interpolating_function(np.linspace(0, 1, original_length))
-            resampled_diff.append(
-                torch.tensor(resampled_tensor).unsqueeze(1)
-            )  # Convert back to tensor and add channel dimension
-
-        # Pad each tensor in resampled_diff to have a length of 90
-        padded_diff = []
-        for i, diff in enumerate(resampled_diff):
-            padding_left = l[i].item()
-            padding_right = 90 - r[i].item()
-            padded = F.pad(diff.squeeze(1), (padding_left, padding_right))
-            padded_diff.append(padded)
-
-        # Convert the list of tensors back to a single tensor
-        padded_diff = torch.stack(padded_diff).to(self.device)
-        predictions = inputs + padded_diff
+        predictions = inputs + pred_diff
         self.log("train_loss", train_loss, prog_bar=True, on_epoch=True, on_step=False, batch_size=self.batch_sz)
         return {
             "loss": train_loss,
@@ -238,52 +66,12 @@ class ModelV2(LightningModule):
 
     def validation_step(self, batch, batch_idx):
         inputs, targets, ids, fp = batch
+        diff = targets.detach() - inputs.detach()
 
-        l, r = fp.split(1, dim=1)
-        l = l.long().squeeze()
-        r = r.long().squeeze()
+        pred_diff = self(diff)
+        val_loss = self._loss(pred_diff, diff)
 
-        shape = [inputs[i, l[i] : r[i]] for i in range(inputs.shape[0])]
-        # Resample each tensor in x1 to have a length of 90 using scipy's interp1d
-        resampled_x1 = []
-        for tensor in shape:
-            tensor_np = tensor.squeeze().cpu().numpy()  # Convert tensor to numpy array and remove channel dimension
-            original_length = tensor_np.shape[0]
-            interpolating_function = interp1d(
-                np.linspace(0, 1, original_length), tensor_np, kind="linear", fill_value="extrapolate"
-            )
-            resampled_tensor = interpolating_function(np.linspace(0, 1, 90))
-            resampled_x1.append(
-                torch.tensor(resampled_tensor).unsqueeze(1)
-            )  # Convert back to tensor and add channel dimension
-
-        # Convert the list of tensors back to a single tensor
-        resampled_shape = torch.stack(resampled_x1).float().squeeze(2).detach().to(self.device)
-
-        pred_diff = self(resampled_shape)
-        val_loss = self._loss(pred_diff, resampled_shape)
-
-        resampled_diff = []
-        for i, tensor in enumerate(pred_diff):
-            tensor_np = tensor.squeeze().cpu().numpy()  # Convert tensor to numpy array and remove channel dimension
-            original_length = np.abs(l[i].item() - r[i].item())
-            interpolating_function = interp1d(np.linspace(0, 1, 90), tensor_np, kind="linear", fill_value="extrapolate")
-            resampled_tensor = interpolating_function(np.linspace(0, 1, original_length))
-            resampled_diff.append(
-                torch.tensor(resampled_tensor).unsqueeze(1)
-            )  # Convert back to tensor and add channel dimension
-
-        # Pad each tensor in resampled_diff to have a length of 90
-        padded_diff = []
-        for i, diff in enumerate(resampled_diff):
-            padding_left = l[i].item()
-            padding_right = 90 - r[i].item()
-            padded = F.pad(diff.squeeze(1), (padding_left, padding_right))
-            padded_diff.append(padded)
-
-        # Convert the list of tensors back to a single tensor
-        padded_diff = torch.stack(padded_diff).to(self.device)
-        predictions = inputs + padded_diff
+        predictions = inputs + pred_diff
         self.log("val_loss", val_loss, prog_bar=True, on_epoch=True, on_step=False, batch_size=self.batch_sz)
         return {
             "loss": val_loss,
@@ -300,51 +88,11 @@ class ModelV2(LightningModule):
     def predict_step(self, batch, batch_idx: int, dataloader_idx: int = 0):
         inputs, targets, ids, fp = batch
 
-        l, r = fp.split(1, dim=1)
-        l = l.long().squeeze()
-        r = r.long().squeeze()
+        diff = targets.detach() - inputs.detach()
+        pred_diff = self(diff)
+        pred_loss = self._loss(pred_diff, diff)
 
-        shape = [inputs[i, l[i] : r[i]] for i in range(inputs.shape[0])]
-        # Resample each tensor in x1 to have a length of 90 using scipy's interp1d
-        resampled_x1 = []
-        for tensor in shape:
-            tensor_np = tensor.squeeze().numpy()  # Convert tensor to numpy array and remove channel dimension
-            original_length = tensor_np.shape[0]
-            interpolating_function = interp1d(
-                np.linspace(0, 1, original_length), tensor_np, kind="linear", fill_value="extrapolate"
-            )
-            resampled_tensor = interpolating_function(np.linspace(0, 1, 90))
-            resampled_x1.append(
-                torch.tensor(resampled_tensor).unsqueeze(1)
-            )  # Convert back to tensor and add channel dimension
-
-        # Convert the list of tensors back to a single tensor
-        resampled_shape = torch.stack(resampled_x1).float().squeeze(2).detach()
-
-        pred_diff = self(resampled_shape)
-        pred_loss = self._loss(pred_diff, resampled_shape)
-
-        resampled_diff = []
-        for i, tensor in enumerate(pred_diff):
-            tensor_np = tensor.squeeze().numpy()  # Convert tensor to numpy array and remove channel dimension
-            original_length = np.abs(l[i].item() - r[i].item())
-            interpolating_function = interp1d(np.linspace(0, 1, 90), tensor_np, kind="linear", fill_value="extrapolate")
-            resampled_tensor = interpolating_function(np.linspace(0, 1, original_length))
-            resampled_diff.append(
-                torch.tensor(resampled_tensor).unsqueeze(1)
-            )  # Convert back to tensor and add channel dimension
-
-        # Pad each tensor in resampled_diff to have a length of 90
-        padded_diff = []
-        for i, diff in enumerate(resampled_diff):
-            padding_left = l[i].item()
-            padding_right = 90 - r[i].item()
-            padded = F.pad(diff.squeeze(1), (padding_left, padding_right))
-            padded_diff.append(padded)
-
-        # Convert the list of tensors back to a single tensor
-        padded_diff = torch.stack(padded_diff)
-        predictions = inputs + padded_diff
+        predictions = inputs + pred_diff
         return {"loss": pred_loss, "preds": predictions, "targets": targets}
 
     @timing.time_it
@@ -364,33 +112,13 @@ class ModelV2(LightningModule):
 
     def _loss(self, predictions, targets):
         loss = self.loss(predictions, targets)
-
         return loss
-
-    def _footprint_loss(self, diff, targets, fp):
-        ldiff = diff[torch.arange(diff.size(0)), fp[:, 0]]
-        rdiff = diff[torch.arange(diff.size(0)), fp[:, 1]]
-        return torch.mean(ldiff**2 + rdiff**2) * 10
-
-    @staticmethod
-    def _area_loss2(diff):
-        mean_area = 11.5
-        area_err = torch.sum(torch.abs(diff), dim=1) * 0.1 - mean_area
-        area_loss = torch.mean(area_err**2)
-        return area_loss
-
-    def energy_loss(self, diff):
-        dy_dx = diff[:, 1:] - diff[:, :-1]
-        ds = torch.sqrt(1 + dy_dx**2)
-        surface_tension_energy = 0.003 * ds.sum(dim=1)
-        # gravitational_energy = 9.81 * 7.9 / 10 * torch.abs(diff.sum(dim=1))
-
-        return torch.mean(surface_tension_energy)
 
     def configure_optimizers(self):
         optimizer = Adam(self.model.parameters(), lr=self.lr, weight_decay=0)
 
         scheduler = ReduceLROnPlateau(optimizer, mode="min", patience=5, factor=0.5, verbose=True)
+        scheduler = None
 
         if scheduler:
             # Every metric logged with log() or log_dict() in LightningModule
