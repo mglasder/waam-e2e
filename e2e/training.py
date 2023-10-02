@@ -30,7 +30,7 @@ SEED = 2345078
 BATCH_SIZE = 32
 MAX_EPOCHS = 50
 N_WORKERS = 16
-DEVICE = "cpu"
+DEVICE = "cuda"
 # footprint
 THETA = 0.4
 # smoothness
@@ -106,7 +106,7 @@ def main(note: str = ""):
         batch_size=BATCH_SIZE,
         data_dir=DATASET,
         workers=N_WORKERS,
-        dataset=ResampledShapeDataset(segment_length=TARGET_LENGTH),
+        dataset=ResampledShapeDataset(mirror=True, segment_length=TARGET_LENGTH),
         split=split,
         train_val_sets=train_val_sets,
         separate_test_set=separate_test_set,
