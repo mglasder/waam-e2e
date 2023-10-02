@@ -160,7 +160,7 @@ def main(note: str = ""):
 if __name__ == "__main__":
     # get input from stdin
     if LOGGING:
-        note = input("Enter run note: ")
+        note = "local debug"  # input("Enter run note: ")
     else:
         note = ""
     main(note=note)
