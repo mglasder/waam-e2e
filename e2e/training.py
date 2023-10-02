@@ -23,10 +23,10 @@ VM_DATA_DIR = Path("/home/magnus/datasets/waam/30_processing_results/ImageGenera
 VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 
 SEED = 2345078
-BATCH_SIZE = 64
+BATCH_SIZE = 8
 MAX_EPOCHS = 50
-N_WORKERS = 16
-DEVICE = "cuda"
+N_WORKERS = 1
+DEVICE = "cpu"
 # footprint
 THETA = 0.4
 # smoothness
@@ -40,7 +40,7 @@ P = 0.5
 
 MIRROR = True
 DEV_RUN = False
-LOGGING = True
+LOGGING = False
 AUTOCOMMIT = True
 AUTOCOMMIT_IP = "172.31.1.8"
 
@@ -107,7 +107,7 @@ def main(note: str = ""):
 
     datamodule = ShapePredictionDataModule(
         batch_size=BATCH_SIZE,
-        data_dir=VM_DATA_DIR,
+        data_dir=MAC_DATA_DIR_DEV,
         workers=N_WORKERS,
         dataset=ShapeDataset(mirror=MIRROR, segment_length=TARGET_LENGTH),
         split=split,
