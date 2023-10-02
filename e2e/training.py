@@ -24,13 +24,13 @@ MAC_DATA_DIR_DEV = Path("/Users/magnus/datasets/WAAM/TrainingDev")
 VM_DATA_DIR = Path("/home/magnus/datasets/waam/30_processing_results/ImageGenerator")
 VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 
-DATASET = VM_DATA_DIR_DEV
+DATASET = VM_DATA_DIR
 
 SEED = 2345078
 BATCH_SIZE = 32
 MAX_EPOCHS = 50
 N_WORKERS = 16
-DEVICE = "cuda"
+DEVICE = "cpu"
 # footprint
 THETA = 0.4
 # smoothness
@@ -153,7 +153,7 @@ def main(note: str = ""):
     mc.predict()
     mc.calibrate(strategy="temperature_scaling")
     mc.plot_predictions("train", log=LOGGING, take=10)
-    mc.plot_predictions("val", log=LOGGING, take=10)
+    mc.plot_predictions("val", log=LOGGING, take=50)
 
 
 if __name__ == "__main__":

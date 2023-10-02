@@ -82,7 +82,6 @@ class ModelV2(LightningModule):
         diff = targets.detach() - inputs.detach()
 
         ab = self(inputs)
-
         ab_ = ab.split(1, dim=1)
         a = ab_[0]
         b = ab_[1]
