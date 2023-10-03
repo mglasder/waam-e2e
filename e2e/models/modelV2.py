@@ -70,7 +70,7 @@ class ModelV2(LightningModule):
         a = params_[0]
         b = params_[1]
         pred = self.polynomial3(a, b, -(a + b), 0, self.xs.to(self.device))
-        out = pred * torch.cos(angle) + torch.sin(angle)
+        out = (pred + torch.sin(angle)) / torch.cos(angle)
         loss = self._loss(out, targets)
         return out, loss
 
@@ -133,7 +133,7 @@ class ModelV2(LightningModule):
                 a = params_[0]
                 b = params_[1]
                 pred = self.polynomial3(a, b, -(a + b), 0, self.xs.to(self.device))
-                results[i, :] = pred * torch.cos(angle) + torch.sin(angle)
+                results[i, :] = (pred + torch.sin(angle)) / torch.cos(angle)
 
         self.model.eval()  # Set the model back to evaluation mode
         mean_prediction = results.mean(dim=0)
