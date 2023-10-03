@@ -123,17 +123,17 @@ class ModelV2(LightningModule):
             for i in range(num_samples):
 
                 left = x[:, 0][:, None]
-                right = x[:, 1][:, None]
+                right = x[:, -1][:, None]
                 angle = torch.atan((right - left) / self.length_in)
 
-                x_ = x * torch.cos(angle)[:, None] - torch.sin(angle)[:, None]
+                x_ = x * torch.cos(angle) - torch.sin(angle)
 
                 params = self.forward(x_)
                 params_ = params.split(1, dim=1)
                 a = params_[0]
                 b = params_[1]
                 pred = self.polynomial3(a, b, -(a + b), 0, self.xs.to(self.device))
-                results[i, :] = pred * torch.cos(angle)[:, None] + torch.sin(angle)[:, None]
+                results[i, :] = pred * torch.cos(angle) + torch.sin(angle)
 
         self.model.eval()  # Set the model back to evaluation mode
         mean_prediction = results.mean(dim=0)
