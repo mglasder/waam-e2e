@@ -40,7 +40,7 @@ GAMMA = 0.0
 
 INPUT_LENGTH = 90
 TARGET_LENGTH = 90
-LR = 0.001
+LR = 0.0005
 P = 0.5
 
 MIRROR = True
@@ -153,7 +153,7 @@ def main(note: str = ""):
     mc.predict()
     mc.calibrate(strategy="temperature_scaling")
     mc.plot_predictions("train", log=LOGGING, take=10)
-    mc.plot_predictions("val", log=LOGGING, take=10)
+    mc.plot_predictions("val", log=LOGGING, take=50)
 
 
 if __name__ == "__main__":
