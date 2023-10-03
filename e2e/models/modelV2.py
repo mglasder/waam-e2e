@@ -46,11 +46,16 @@ class ModelV2(LightningModule):
     def forward(self, x):
         x = x.view(-1, 1, self.length_in)
         x = self.model(x)
-        return x.view(-1, 2)
+        return x.view(-1, 3)
 
     @staticmethod
     def polynomial3(a, b, c, d, xs):
         y = a * xs**3 + b * xs**2 + c * xs + d
+        return y
+
+    @staticmethod
+    def polynomial4(a, b, c, d, e, xs):
+        y = a * xs**4 + b * xs**3 + c * xs**2 + d * xs + e
         return y
 
     def _step(self, inputs, targets):
@@ -64,7 +69,8 @@ class ModelV2(LightningModule):
         params_ = params.split(1, dim=1)
         a = params_[0]
         b = params_[1]
-        pred = self.polynomial3(a, b, -(a + b), 0, self.xs.to(self.device))
+        c = params_[2]
+        pred = self.polynomial4(a, b, c, -(a + b + c), 0, self.xs.to(self.device))
         out = pred - y_corr
         loss = self._loss(out, targets)
         return out, loss
@@ -126,7 +132,8 @@ class ModelV2(LightningModule):
                 params_ = params.split(1, dim=1)
                 a = params_[0]
                 b = params_[1]
-                pred = self.polynomial3(a, b, -(a + b), 0, self.xs.to(self.device))
+                c = params_[2]
+                pred = self.polynomial4(a, b, c, -(a + b + c), 0, self.xs.to(self.device))
                 results[i, :] = pred - y_corr
 
         self.model.eval()  # Set the model back to evaluation mode

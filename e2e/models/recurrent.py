@@ -35,7 +35,7 @@ class LSTM(nn.Module):
 
         self.fc2 = nn.Linear(in_features=n_hidden, out_features=n_output_features)
 
-        self.out = nn.Linear(in_features=n_output_features, out_features=2)
+        self.out = nn.Linear(in_features=n_output_features, out_features=3)
 
     def forward(self, x):
         r0 = x
