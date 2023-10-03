@@ -59,9 +59,9 @@ class ModelV2(LightningModule):
         right = inputs[:, -1][:, None]
         m = right - left
         y_corr = self.xs.flipud().to(self.device) * m - right
-        inputs = inputs + y_corr
+        inputs_ = inputs + y_corr
 
-        params = self(inputs)
+        params = self(inputs_)
         params_ = params.split(1, dim=1)
         a = params_[0]
         b = params_[1]
@@ -121,9 +121,9 @@ class ModelV2(LightningModule):
                 right = x[:, -1][:, None]
                 m = right - left
                 y_corr = self.xs.flipud().to(self.device) * m - right
-                x = x + y_corr
+                x_ = x + y_corr
 
-                params = self.forward(x)
+                params = self.forward(x_)
                 params_ = params.split(1, dim=1)
                 a = params_[0]
                 b = params_[1]
