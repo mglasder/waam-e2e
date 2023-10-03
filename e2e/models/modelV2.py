@@ -62,8 +62,8 @@ class ModelV2(LightningModule):
 
         params = self(x.detach())
         params_ = params.split(1, dim=1)
-        a = params_[0].detach()
-        b = params_[1].detach()
+        a = params_[0]
+        b = params_[1]
         pred = self.polynomial3(a, b, (-1 - (a + b)), 1, self.xs.to(self.device))
         loss = self._loss(pred, y)
         out = pred * factors
@@ -120,10 +120,10 @@ class ModelV2(LightningModule):
 
                 x_ = x / factors
 
-                params = self.forward(x_.detach())
+                params = self.forward(x_)
                 params_ = params.split(1, dim=1)
-                a = params_[0].detach()
-                b = params_[1].detach()
+                a = params_[0]
+                b = params_[1]
                 pred = self.polynomial3(a, b, (-1 - (a + b)), 1, self.xs.to(self.device))
                 results[i, :] = pred * factors
 
