@@ -57,19 +57,16 @@ class ModelV2(LightningModule):
 
         left = inputs[:, 0][:, None]
         right = inputs[:, -1][:, None]
-
-        m = (right - left) / self.length_in * 0.1
-
+        m = right - left
         y_corr = self.xs.flipud().to(self.device) * m - right
-        # rotate the input
-        inputs = inputs - y_corr
+        inputs = inputs + y_corr
 
         params = self(inputs)
         params_ = params.split(1, dim=1)
         a = params_[0]
         b = params_[1]
         pred = self.polynomial3(a, b, -(a + b), 0, self.xs.to(self.device))
-        out = pred + y_corr
+        out = pred - y_corr
         loss = self._loss(out, targets)
         return out, loss
 
@@ -122,19 +119,16 @@ class ModelV2(LightningModule):
             for i in range(num_samples):
                 left = x[:, 0][:, None]
                 right = x[:, -1][:, None]
-
-                m = (right - left) / self.length_in * 0.1
-
+                m = right - left
                 y_corr = self.xs.flipud().to(self.device) * m - right
-                # rotate the input
-                x = x - y_corr
+                x = x + y_corr
 
                 params = self.forward(x)
                 params_ = params.split(1, dim=1)
                 a = params_[0]
                 b = params_[1]
                 pred = self.polynomial3(a, b, -(a + b), 0, self.xs.to(self.device))
-                results[i, :] = pred + y_corr
+                results[i, :] = pred - y_corr
 
         self.model.eval()  # Set the model back to evaluation mode
         mean_prediction = results.mean(dim=0)
