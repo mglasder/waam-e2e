@@ -55,16 +55,16 @@ class ModelV2(LightningModule):
         return y
 
     def _step(self, inputs, targets):
-        # diff = targets.detach() - inputs.detach()
+        diff = targets.detach() - inputs.detach()
         params = self(inputs)
         params_ = params.split(1, dim=1)
         a = params_[0]
         b = params_[1]
         c = params_[2]
         d = params_[3]
-        preds = self.polynomial3(a, b, c, d, self.xs.to(self.device))
-        loss = self._loss(preds, targets)
-        # predictions = inputs + pred_diff
+        pred_diff = self.polynomial3(a, b, c, d, self.xs.to(self.device))
+        loss = self._loss(pred_diff, diff)
+        preds = inputs + pred_diff
         return preds, loss
 
     def training_step(self, batch, batch_idx):
@@ -120,8 +120,8 @@ class ModelV2(LightningModule):
                 b = params_[1]
                 c = params_[2]
                 d = params_[3]
-                preds = self.polynomial3(a, b, c, d, self.xs.to(self.device))
-                results[i, :] = preds
+                pred_diff = self.polynomial3(a, b, c, d, self.xs.to(self.device))
+                results[i, :] = x + pred_diff
 
         self.model.eval()  # Set the model back to evaluation mode
         mean_prediction = results.mean(dim=0)
