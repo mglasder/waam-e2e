@@ -54,18 +54,12 @@ class ModelV2(LightningModule):
         return y
 
     def _step(self, inputs, targets):
-
-        left = inputs[:, 0][:, None]
-        right = inputs[:, -1][:, None]
-
-        x = inputs - right / (left + right)
-
-        params = self(x)
+        params = self(inputs)
         params_ = params.split(1, dim=1)
         a = params_[0]
         b = params_[1]
-        pred = self.polynomial3(a, b, (-1 - (a + b)), 1, self.xs.to(self.device))
-        out = pred * (left + right) + right
+        pred_diff = self.polynomial3(a, b, -(a + b), 0, self.xs.to(self.device))
+        out = inputs + pred_diff
         loss = self._loss(out, targets)
         return out, loss
 
@@ -116,17 +110,13 @@ class ModelV2(LightningModule):
             results = torch.zeros((num_samples,) + (x.shape[0], self.length_out))
 
             for i in range(num_samples):
-                left = x[:, 0][:, None]
-                right = x[:, -1][:, None]
 
-                x_ = x - right / (left + right)
-
-                params = self.forward(x_)
+                params = self.forward(x)
                 params_ = params.split(1, dim=1)
                 a = params_[0]
                 b = params_[1]
-                pred = self.polynomial3(a, b, (-1 - (a + b)), 1, self.xs.to(self.device))
-                results[i, :] = pred * (left + right) + right
+                pred_diff = self.polynomial3(a, b, -(a + b), 0, self.xs.to(self.device))
+                results[i, :] = x + pred_diff
 
         self.model.eval()  # Set the model back to evaluation mode
         mean_prediction = results.mean(dim=0)
