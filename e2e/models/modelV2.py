@@ -55,22 +55,21 @@ class ModelV2(LightningModule):
 
     def _step(self, inputs, targets):
 
-        # rotate each input so that the line connecting the left and right edge is parallel to the x-axis and height = 0
         left = inputs[:, 0][:, None]
         right = inputs[:, -1][:, None]
 
-        # calculate the angle of the line connecting the left and right edge
-        angle = torch.atan((right - left) / self.length_in)
+        m = (right - left) / self.length_in * 0.1
 
+        y_corr = self.xs.flipud() * m - right
         # rotate the input
-        inputs = inputs * torch.cos(angle) - torch.sin(angle)
+        inputs = inputs - y_corr
 
         params = self(inputs)
         params_ = params.split(1, dim=1)
         a = params_[0]
         b = params_[1]
         pred = self.polynomial3(a, b, -(a + b), 0, self.xs.to(self.device))
-        out = (pred + torch.sin(angle)) / torch.cos(angle)
+        out = pred + y_corr
         loss = self._loss(out, targets)
         return out, loss
 
@@ -121,19 +120,21 @@ class ModelV2(LightningModule):
             results = torch.zeros((num_samples,) + (x.shape[0], self.length_out))
 
             for i in range(num_samples):
-
                 left = x[:, 0][:, None]
                 right = x[:, -1][:, None]
-                angle = torch.atan((right - left) / self.length_in)
 
-                x_ = x * torch.cos(angle) - torch.sin(angle)
+                m = (right - left) / self.length_in * 0.1
 
-                params = self.forward(x_)
+                y_corr = self.xs.flipud() * m - right
+                # rotate the input
+                x = x - y_corr
+
+                params = self.forward(x)
                 params_ = params.split(1, dim=1)
                 a = params_[0]
                 b = params_[1]
                 pred = self.polynomial3(a, b, -(a + b), 0, self.xs.to(self.device))
-                results[i, :] = (pred + torch.sin(angle)) / torch.cos(angle)
+                results[i, :] = pred + y_corr
 
         self.model.eval()  # Set the model back to evaluation mode
         mean_prediction = results.mean(dim=0)
