@@ -57,7 +57,7 @@ class ModelV2(LightningModule):
         left = inputs[:, 0][:, None]
         right = inputs[:, -1][:, None]
         m = right - left
-        y_corr = torch.flip(self.xs, [1]).to(self.device) * m - right
+        y_corr = self.xs.flipud().to(self.device) * m - right
         inputs_ = inputs + y_corr
 
         params = self(inputs_)
@@ -119,7 +119,7 @@ class ModelV2(LightningModule):
                 left = x[:, 0][:, None]
                 right = x[:, -1][:, None]
                 m = right - left
-                y_corr = torch.flip(self.xs, [1]).to(self.device) * m - right
+                y_corr = self.xs.flipud().to(self.device) * m - right
                 x_ = x + y_corr
 
                 params = self.forward(x_)
@@ -127,7 +127,7 @@ class ModelV2(LightningModule):
                 a = params_[0]
                 b = params_[1]
                 pred = self.polynomial3(a, b, -(a + b), 0, self.xs.to(self.device))
-                results[i, :] = pred + y_corr
+                results[i, :] = pred - y_corr
 
         self.model.eval()  # Set the model back to evaluation mode
         mean_prediction = results.mean(dim=0)
