@@ -46,21 +46,32 @@ class ModelV2(LightningModule):
     def forward(self, x):
         x = x.view(-1, 1, self.length_in)
         x = self.model(x)
-        return x.view(-1, 2)
+        return x.view(-1, 4)
+
+    @staticmethod
+    def polynomial3(a, b, c, d, xs):
+        """f(0) = 0, f(1) = 0"""
+        y = a * xs**3 + b * xs**2 + c * xs + d
+        return y
+
+    def _step(self, inputs, targets):
+        # diff = targets.detach() - inputs.detach()
+        params = self(inputs)
+        params_ = params.split(1, dim=1)
+        a = params_[0]
+        b = params_[1]
+        c = params_[2]
+        d = params_[3]
+        preds = self.polynomial3(a, b, c, d, self.xs.to(self.device))
+        loss = self._loss(preds, targets)
+        # predictions = inputs + pred_diff
+        return preds, loss
 
     def training_step(self, batch, batch_idx):
         inputs, targets, ids, fp = batch
-        diff = targets.detach() - inputs.detach()
 
-        ab = self(inputs)
-        ab_ = ab.split(1, dim=1)
-        a = ab_[0]
-        b = ab_[1]
-        pred_diff = self.polynomial3(a, b, self.xs.to(self.device))
+        predictions, train_loss = self._step(inputs, targets)
 
-        train_loss = self._loss(pred_diff, diff)
-
-        predictions = inputs + pred_diff
         self.log("train_loss", train_loss, prog_bar=True, on_epoch=True, on_step=False, batch_size=self.batch_sz)
         return {
             "loss": train_loss,
@@ -71,25 +82,11 @@ class ModelV2(LightningModule):
             "footprint": fp,
         }
 
-    @staticmethod
-    def polynomial3(a, b, xs):
-        """f(0) = 0, f(1) = 0"""
-        y = a * xs**3 + b * xs**2 - (a + b) * xs
-        return y
-
     def validation_step(self, batch, batch_idx):
         inputs, targets, ids, fp = batch
-        diff = targets.detach() - inputs.detach()
 
-        ab = self(inputs)
-        ab_ = ab.split(1, dim=1)
-        a = ab_[0]
-        b = ab_[1]
-        pred_diff = self.polynomial3(a, b, self.xs.to(self.device))
+        predictions, val_loss = self._step(inputs, targets)
 
-        val_loss = self._loss(pred_diff, diff)
-
-        predictions = inputs + pred_diff
         self.log("val_loss", val_loss, prog_bar=True, on_epoch=True, on_step=False, batch_size=self.batch_sz)
         return {
             "loss": val_loss,
@@ -105,17 +102,9 @@ class ModelV2(LightningModule):
 
     def predict_step(self, batch, batch_idx: int, dataloader_idx: int = 0):
         inputs, targets, ids, fp = batch
-        diff = targets.detach() - inputs.detach()
 
-        ab = self(inputs)
-        ab_ = ab.split(1, dim=1)
-        a = ab_[0]
-        b = ab_[1]
-        pred_diff = self.polynomial3(a, b, self.xs.to(self.device))
+        predictions, pred_loss = self._step(inputs, targets)
 
-        pred_loss = self._loss(pred_diff, diff)
-
-        predictions = inputs + pred_diff
         return {"loss": pred_loss, "preds": predictions, "targets": targets}
 
     @timing.time_it
@@ -125,13 +114,14 @@ class ModelV2(LightningModule):
             results = torch.zeros((num_samples,) + (x.shape[0], self.length_out))
 
             for i in range(num_samples):
-                ab = self.forward(x)
-                ab_ = ab.split(1, dim=1)
-                a = ab_[0]
-                b = ab_[1]
-                pred_diff = self.polynomial3(a, b, self.xs.to(self.device))
-
-                results[i, :] = x + pred_diff
+                params = self.forward(x)
+                params_ = params.split(1, dim=1)
+                a = params_[0]
+                b = params_[1]
+                c = params_[2]
+                d = params_[3]
+                preds = self.polynomial3(a, b, c, d, self.xs.to(self.device))
+                results[i, :] = preds
 
         self.model.eval()  # Set the model back to evaluation mode
         mean_prediction = results.mean(dim=0)
