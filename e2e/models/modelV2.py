@@ -54,12 +54,23 @@ class ModelV2(LightningModule):
         return y
 
     def _step(self, inputs, targets):
+
+        # rotate each input so that the line connecting the left and right edge is parallel to the x-axis and height = 0
+        left = inputs[:, 0][:, None]
+        right = inputs[:, 1][:, None]
+
+        # calculate the angle of the line connecting the left and right edge
+        angle = torch.atan((right - left) / self.length_in)
+
+        # rotate the input
+        inputs = inputs * torch.cos(angle)[:, None] - torch.sin(angle)[:, None]
+
         params = self(inputs)
         params_ = params.split(1, dim=1)
         a = params_[0]
         b = params_[1]
-        pred_diff = self.polynomial3(a, b, -(a + b), 0, self.xs.to(self.device))
-        out = inputs + pred_diff
+        pred = self.polynomial3(a, b, -(a + b), 0, self.xs.to(self.device))
+        out = pred * torch.cos(angle)[:, None] + torch.sin(angle)[:, None]
         loss = self._loss(out, targets)
         return out, loss
 
@@ -111,12 +122,18 @@ class ModelV2(LightningModule):
 
             for i in range(num_samples):
 
-                params = self.forward(x)
+                left = x[:, 0][:, None]
+                right = x[:, 1][:, None]
+                angle = torch.atan((right - left) / self.length_in)
+
+                x_ = x * torch.cos(angle)[:, None] - torch.sin(angle)[:, None]
+
+                params = self.forward(x_)
                 params_ = params.split(1, dim=1)
                 a = params_[0]
                 b = params_[1]
-                pred_diff = self.polynomial3(a, b, -(a + b), 0, self.xs.to(self.device))
-                results[i, :] = x + pred_diff
+                pred = self.polynomial3(a, b, -(a + b), 0, self.xs.to(self.device))
+                results[i, :] = pred * torch.cos(angle)[:, None] + torch.sin(angle)[:, None]
 
         self.model.eval()  # Set the model back to evaluation mode
         mean_prediction = results.mean(dim=0)
