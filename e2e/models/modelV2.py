@@ -57,13 +57,13 @@ class ModelV2(LightningModule):
 
         # rotate each input so that the line connecting the left and right edge is parallel to the x-axis and height = 0
         left = inputs[:, 0][:, None]
-        right = inputs[:, 1][:, None]
+        right = inputs[:, -1][:, None]
 
         # calculate the angle of the line connecting the left and right edge
         angle = torch.atan((right - left) / self.length_in)
 
         # rotate the input
-        inputs = inputs * torch.cos(angle)[:, None] - torch.sin(angle)[:, None]
+        inputs = inputs * torch.cos(angle) - torch.sin(angle)
 
         params = self(inputs)
         params_ = params.split(1, dim=1)
