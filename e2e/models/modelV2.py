@@ -50,7 +50,6 @@ class ModelV2(LightningModule):
 
     @staticmethod
     def polynomial3(a, b, c, d, xs):
-        """f(0) = 0, f(1) = 0"""
         y = a * xs**3 + b * xs**2 + c * xs + d
         return y
 
@@ -61,10 +60,10 @@ class ModelV2(LightningModule):
         x = inputs / factors
         y = targets / factors
 
-        params = self(x)
+        params = self(x.detach().requires_grad_(True))
         params_ = params.split(1, dim=1)
-        a = params_[0]
-        b = params_[1]
+        a = params_[0].detach()
+        b = params_[1].detach()
         pred = self.polynomial3(a, b, (-1 - (a + b)), 1, self.xs.to(self.device))
         loss = self._loss(pred, y)
         out = pred * factors
@@ -121,10 +120,10 @@ class ModelV2(LightningModule):
 
                 x_ = x / factors
 
-                params = self.forward(x_)
+                params = self.forward(x_.detach())
                 params_ = params.split(1, dim=1)
-                a = params_[0]
-                b = params_[1]
+                a = params_[0].detach()
+                b = params_[1].detach()
                 pred = self.polynomial3(a, b, (-1 - (a + b)), 1, self.xs.to(self.device))
                 results[i, :] = pred * factors
 
