@@ -60,7 +60,7 @@ class ModelV2(LightningModule):
         x = inputs / factors
         y = targets / factors
 
-        params = self(x.detach().requires_grad_(True))
+        params = self(x.detach())
         params_ = params.split(1, dim=1)
         a = params_[0].detach()
         b = params_[1].detach()
