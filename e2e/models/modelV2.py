@@ -128,7 +128,7 @@ class ModelV2(LightningModule):
                 a = params_[0]
                 b = params_[1]
                 pred = self.polynomial3(a, b, -(a + b), 0, self.xs.to(self.device))
-                results[i, :] = pred - y_corr
+                results[i, :] = pred + y_corr
 
         self.model.eval()  # Set the model back to evaluation mode
         mean_prediction = results.mean(dim=0)
