@@ -46,7 +46,7 @@ class ModelV2(LightningModule):
     def forward(self, x):
         x = x.view(-1, 1, self.length_in)
         x = self.model(x)
-        return x.view(-1, 4)
+        return x.view(-1, 2)
 
     @staticmethod
     def polynomial3(a, b, c, d, xs):
@@ -55,17 +55,20 @@ class ModelV2(LightningModule):
         return y
 
     def _step(self, inputs, targets):
-        diff = targets.detach() - inputs.detach()
-        params = self(inputs)
+
+        factors = inputs[:, 0][:, None]
+
+        x = inputs / factors
+        y = targets / factors
+
+        params = self(x)
         params_ = params.split(1, dim=1)
         a = params_[0]
         b = params_[1]
-        c = params_[2]
-        d = params_[3]
-        pred_diff = self.polynomial3(a, b, c, d, self.xs.to(self.device))
-        loss = self._loss(pred_diff, diff)
-        preds = inputs + pred_diff
-        return preds, loss
+        pred = self.polynomial3(a, b, (-1 - (a + b)), 1, self.xs.to(self.device))
+        loss = self._loss(pred, y)
+        out = pred * factors
+        return out, loss
 
     def training_step(self, batch, batch_idx):
         inputs, targets, ids, fp = batch
@@ -114,14 +117,16 @@ class ModelV2(LightningModule):
             results = torch.zeros((num_samples,) + (x.shape[0], self.length_out))
 
             for i in range(num_samples):
-                params = self.forward(x)
+                factors = x[:, 0][:, None]
+
+                x_ = x / factors
+
+                params = self.forward(x_)
                 params_ = params.split(1, dim=1)
                 a = params_[0]
                 b = params_[1]
-                c = params_[2]
-                d = params_[3]
-                pred_diff = self.polynomial3(a, b, c, d, self.xs.to(self.device))
-                results[i, :] = x + pred_diff
+                pred = self.polynomial3(a, b, (-1 - (a + b)), 1, self.xs.to(self.device))
+                results[i, :] = pred * factors
 
         self.model.eval()  # Set the model back to evaluation mode
         mean_prediction = results.mean(dim=0)
