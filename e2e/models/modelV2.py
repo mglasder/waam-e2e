@@ -60,7 +60,7 @@ class ModelV2(LightningModule):
 
         m = (right - left) / self.length_in * 0.1
 
-        y_corr = self.xs.flipud() * m - right
+        y_corr = self.xs.flipud().to(self.device) * m - right
         # rotate the input
         inputs = inputs - y_corr
 
@@ -125,7 +125,7 @@ class ModelV2(LightningModule):
 
                 m = (right - left) / self.length_in * 0.1
 
-                y_corr = self.xs.flipud() * m - right
+                y_corr = self.xs.flipud().to(self.device) * m - right
                 # rotate the input
                 x = x - y_corr
 
