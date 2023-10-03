@@ -55,16 +55,17 @@ class ModelV2(LightningModule):
 
     def _step(self, inputs, targets):
 
-        factors = inputs[:, 0][:, None]
+        left = inputs[:, 0][:, None]
+        right = inputs[:, -1][:, None]
 
-        x = inputs / factors
+        x = inputs - right / (left + right)
 
         params = self(x)
         params_ = params.split(1, dim=1)
         a = params_[0]
         b = params_[1]
         pred = self.polynomial3(a, b, (-1 - (a + b)), 1, self.xs.to(self.device))
-        out = pred * factors
+        out = pred * (left + right) - right
         loss = self._loss(out, targets)
         return out, loss
 
@@ -115,16 +116,17 @@ class ModelV2(LightningModule):
             results = torch.zeros((num_samples,) + (x.shape[0], self.length_out))
 
             for i in range(num_samples):
-                factors = x[:, 0][:, None]
+                left = x[:, 0][:, None]
+                right = x[:, -1][:, None]
 
-                x_ = x / factors
+                x_ = x - right / (left + right)
 
                 params = self.forward(x_)
                 params_ = params.split(1, dim=1)
                 a = params_[0]
                 b = params_[1]
                 pred = self.polynomial3(a, b, (-1 - (a + b)), 1, self.xs.to(self.device))
-                results[i, :] = pred * factors
+                results[i, :] = pred * (left + right) - right
 
         self.model.eval()  # Set the model back to evaluation mode
         mean_prediction = results.mean(dim=0)
