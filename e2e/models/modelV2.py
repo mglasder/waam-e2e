@@ -70,7 +70,7 @@ class ModelV2(LightningModule):
         a = params_[0]
         b = params_[1]
         pred = self.polynomial3(a, b, -(a + b), 0, self.xs.to(self.device))
-        out = pred * torch.cos(angle)[:, None] + torch.sin(angle)[:, None]
+        out = pred * torch.cos(angle) + torch.sin(angle)
         loss = self._loss(out, targets)
         return out, loss
 
