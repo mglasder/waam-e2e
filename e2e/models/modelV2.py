@@ -65,7 +65,7 @@ class ModelV2(LightningModule):
         a = params_[0]
         b = params_[1]
         pred = self.polynomial3(a, b, (-1 - (a + b)), 1, self.xs.to(self.device))
-        out = pred * (left + right) - right
+        out = pred * (left + right) + right
         loss = self._loss(out, targets)
         return out, loss
 
@@ -126,7 +126,7 @@ class ModelV2(LightningModule):
                 a = params_[0]
                 b = params_[1]
                 pred = self.polynomial3(a, b, (-1 - (a + b)), 1, self.xs.to(self.device))
-                results[i, :] = pred * (left + right) - right
+                results[i, :] = pred * (left + right) + right
 
         self.model.eval()  # Set the model back to evaluation mode
         mean_prediction = results.mean(dim=0)
