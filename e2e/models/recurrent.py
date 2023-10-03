@@ -40,7 +40,7 @@ class LSTM(nn.Module):
     def forward(self, x):
         r0 = x
 
-        self.bn1(x)
+        x = self.bn1(x)
         x = self.fc(x)
         x = F.relu(x)
         x = F.dropout(x, p=self.p, training=self.training) + r0

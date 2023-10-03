@@ -58,15 +58,14 @@ class ModelV2(LightningModule):
         factors = inputs[:, 0][:, None]
 
         x = inputs / factors
-        y = targets / factors
 
-        params = self(x.detach())
+        params = self(x)
         params_ = params.split(1, dim=1)
         a = params_[0]
         b = params_[1]
         pred = self.polynomial3(a, b, (-1 - (a + b)), 1, self.xs.to(self.device))
-        loss = self._loss(pred, y)
         out = pred * factors
+        loss = self._loss(out, targets)
         return out, loss
 
     def training_step(self, batch, batch_idx):
