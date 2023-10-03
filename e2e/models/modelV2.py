@@ -54,11 +54,10 @@ class ModelV2(LightningModule):
         return y
 
     def _step(self, inputs, targets):
-
         left = inputs[:, 0][:, None]
         right = inputs[:, -1][:, None]
         m = right - left
-        y_corr = self.xs.flipud().to(self.device) * m - right
+        y_corr = torch.flip(self.xs, [1]).to(self.device) * m - right
         inputs_ = inputs + y_corr
 
         params = self(inputs_)
@@ -120,7 +119,7 @@ class ModelV2(LightningModule):
                 left = x[:, 0][:, None]
                 right = x[:, -1][:, None]
                 m = right - left
-                y_corr = self.xs.flipud().to(self.device) * m - right
+                y_corr = torch.flip(self.xs, [1]).to(self.device) * m - right
                 x_ = x + y_corr
 
                 params = self.forward(x_)
