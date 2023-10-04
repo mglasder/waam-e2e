@@ -11,7 +11,7 @@ from e2e.data.sample import CrossSectionSample
 class EXPERIMENT(Enum):
     CONSTANT_EX3 = "0.2or_Ex_3_0302022"
     CONSTANT_EX4 = "0.4or_Ex_4_08082022"
-    RANDOM_EX3 = "Random_Ex3_0302022"
+    RANDOM_EX3 = "Random_Ex3_02032022"
     RANDOM_EX5 = "Random_EX5_08032022"
     RANDOM_EX6 = "Random_Ex6_09032022"
 

@@ -31,7 +31,7 @@ DATASET = VM_DATA_DIR
 SEED = 2345078
 BATCH_SIZE = 64
 MAX_EPOCHS = 50
-N_WORKERS = 16
+N_WORKERS = 1
 DEVICE = "cuda"
 # footprint
 THETA = 0.4
@@ -152,7 +152,7 @@ def main(note: str = ""):
     best_model = ModelV2.load_from_checkpoint(model=lstm, checkpoint_path=model_path)
     best_model.to("cpu")
 
-    mc = McUncertainty(best_model, train_data_loader, val_data_loader, test_data_loader=test_data_loader, logger=logger)
+    mc = McUncertainty(best_model, train_data_loader, val_data_loader, test_dataloader=test_data_loader, logger=logger)
     mc.predict()
     mc.calibrate(strategy="temperature_scaling")
     mc.plot_predictions("train", log=LOGGING, take=10)
