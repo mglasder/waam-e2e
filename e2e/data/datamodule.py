@@ -1,3 +1,4 @@
+from copy import deepcopy
 from pathlib import Path
 from typing import Optional, Union
 
@@ -51,8 +52,11 @@ class ShapePredictionDataModule(LightningDataModule):
 
         if self._sep_ts_set:
             assert self._split[2] == 0
+            dataset = deepcopy(self.dataset)
+            dataset.mirror = False
+
             test_cross_sections = loader.load(which=[self._sep_ts_set])
-            self._dataset_ts = self.dataset.create(test_cross_sections)
+            self._dataset_ts = dataset.create(test_cross_sections)
 
         self._print_stats()
 
