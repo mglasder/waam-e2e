@@ -30,8 +30,8 @@ VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 DATASET = VM_DATA_DIR
 
 SEED = 2345078
-BATCH_SIZE = 128
-MAX_EPOCHS = 100
+BATCH_SIZE = 32
+MAX_EPOCHS = 200
 N_WORKERS = 1
 DEVICE = "cuda"
 # footprint
@@ -169,7 +169,10 @@ def main(note: str = ""):
 
     for name in names:
         items = np.array(mc._uncertainty_preds["test"][name])
-        np.savetxt(f"{name}.csv", items, delimiter=",")
+        if name == "ids":
+            np.savetxt(f"{name}.csv", items, delimiter=",", fmt="%s")
+        else:
+            np.savetxt(f"{name}.csv", items, delimiter=",")
 
 
 if __name__ == "__main__":
