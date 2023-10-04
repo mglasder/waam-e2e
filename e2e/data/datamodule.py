@@ -40,13 +40,11 @@ class ShapePredictionDataModule(LightningDataModule):
         loader = SampleLoader(self._data_dir)
         cross_section_samples = loader.load(which=self._tr_val_sets)
 
-        print(len(cross_section_samples))
+        # first_in_row_samples = [s for s in cross_section_samples if s.welding_params["weld_bead_nr"] == 1]
+        # for _ in range(4):
+        #     cross_section_samples.extend(first_in_row_samples)
 
-        first_in_row_samples = [s for s in cross_section_samples if s.welding_params["weld_bead_nr"] == 1]
-        for _ in range(4):
-            cross_section_samples.extend(first_in_row_samples)
-
-        print(len(cross_section_samples))
+        # print(len(cross_section_samples))
 
         dataset = self.dataset.create(cross_section_samples)
         self._dataset_tr, self._dataset_vl, self._dataset_ts = self._random_split(dataset)
@@ -55,6 +53,13 @@ class ShapePredictionDataModule(LightningDataModule):
             assert self._split[2] == 0
             test_cross_sections = loader.load(which=[self._sep_ts_set])
             self._dataset_ts = self.dataset.create(test_cross_sections)
+
+        self._print_stats()
+
+    def _print_stats(self):
+        print(f"Train set: {len(self._dataset_tr)}")
+        print(f"Val set: {len(self._dataset_vl)}")
+        print(f"Test set: {len(self._dataset_ts)}")
 
     def _random_split(self, dataset):
         size = len(dataset)
