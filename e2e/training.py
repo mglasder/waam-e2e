@@ -1,5 +1,7 @@
+from datetime import datetime
 from pathlib import Path
 
+import numpy as np
 import requests
 import torch
 from lightning import Trainer
@@ -76,7 +78,7 @@ def main(note: str = ""):
     else:
         split = [0.7, 0.3, 0]
         train_val_sets = [EXP.CONSTANT_EX3, EXP.CONSTANT_EX4, EXP.RANDOM_EX3, EXP.RANDOM_EX5]
-        separate_test_set = None
+        separate_test_set = EXP.RANDOM_EX6
 
     if LOGGING:
         logger = WandbLogger(project=PROJECT, log_model="all")
@@ -143,17 +145,26 @@ def main(note: str = ""):
 
     val_data_loader = datamodule.val_dataloader()
     train_data_loader = datamodule.train_dataloader()
+    test_data_loader = datamodule.test_dataloader()
 
     # get best model path
     model_path = trainer.checkpoint_callback.best_model_path
     best_model = ModelV2.load_from_checkpoint(model=lstm, checkpoint_path=model_path)
     best_model.to("cpu")
 
-    mc = McUncertainty(best_model, train_data_loader, val_data_loader, logger=logger)
+    mc = McUncertainty(best_model, train_data_loader, val_data_loader, test_data_loader=test_data_loader, logger=logger)
     mc.predict()
     mc.calibrate(strategy="temperature_scaling")
     mc.plot_predictions("train", log=LOGGING, take=10)
     mc.plot_predictions("val", log=LOGGING, take=50)
+    mc.plot_predictions("test", log=LOGGING, take=None)
+
+    names = ["mean_predictions", "uncertainties_calib", "xs", "ys", "ids"]
+    # date and time up to seconds
+    now = datetime.now().strftime("%Y%m%d-%H%M%S")
+    for name in names:
+        items = np.array(mc._uncertainty_preds["test"][name])
+        np.savetxt(f"{now}_{run_name}_{name}.csv", items, delimiter=",")
 
 
 if __name__ == "__main__":
