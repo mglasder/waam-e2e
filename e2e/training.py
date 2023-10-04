@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -162,9 +163,13 @@ def main(note: str = ""):
     names = ["mean_predictions", "uncertainties_calib", "xs", "ys", "ids"]
     # date and time up to seconds
     now = datetime.now().strftime("%Y%m%d-%H%M%S")
+    os.mkdir(Path(f"outputs/mc/{now}-{run_name}"))
+
+    # create directory
+
     for name in names:
         items = np.array(mc._uncertainty_preds["test"][name])
-        np.savetxt(f"{now}_{run_name}_{name}.csv", items, delimiter=",")
+        np.savetxt(f"{name}.csv", items, delimiter=",")
 
 
 if __name__ == "__main__":
