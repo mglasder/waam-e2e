@@ -11,9 +11,7 @@ from lightning.pytorch.loggers import WandbLogger
 
 from e2e.autogit.autogit import git_add_commit_with
 from e2e.callbacks.metrics import FootprintAvgAbsValErrorLogger, ModHausdorffLogger
-from e2e.callbacks.plotting import PredictionPlotting
 from e2e.data.datamodule import ShapePredictionDataModule
-from e2e.data.dataset import ShapeDataset, ResampledFootprintDataset
 from e2e.data.loader import EXPERIMENT as EXP
 from e2e.data.resampled import ResampledShapeDataset
 from e2e.mcpredict import McUncertainty
@@ -170,9 +168,9 @@ def main(note: str = ""):
     for name in names:
         items = np.array(mc._uncertainty_preds["test"][name])
         if name == "ids":
-            np.savetxt(f"{name}.csv", items, delimiter=",", fmt="%s")
+            np.savetxt(f"outputs/mc/{now}-{run_name}/{name}.csv", items, delimiter=",", fmt="%s")
         else:
-            np.savetxt(f"{name}.csv", items, delimiter=",")
+            np.savetxt(f"outputs/mc/{now}-{run_name}/{name}.csv", items, delimiter=",")
 
 
 if __name__ == "__main__":
