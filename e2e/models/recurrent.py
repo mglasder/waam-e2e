@@ -36,11 +36,13 @@ class LSTM(nn.Module):
 
         self.fc2 = nn.Linear(in_features=n_hidden, out_features=n_output_features)
 
-        self.out = nn.Linear(in_features=n_output_features - 1, out_features=3)
+        self.combine = nn.Linear(in_features=n_output_features + 1, out_features=n_output_features // 2)
+
+        self.out = nn.Linear(in_features=n_output_features // 2, out_features=3)
 
     def forward(self, x):
-        m = x[:, -1]
-        r0 = x[:, :-1]
+        m = x[:, :, -1].unsqueeze(1)
+        r0 = x[:, :, :-1]
 
         x = self.bn1(r0)
         x = self.fc(x)
@@ -52,6 +54,7 @@ class LSTM(nn.Module):
         x, _ = self.lstm(x)
         x = F.relu(self.fc2(x)) + r1
 
-        x_ = torch.concatenate((x, m), dim=1)
-        x = self.out(x_)
+        x_ = torch.concatenate((x, m), dim=2)
+        x = F.relu(self.combine(x_))
+        x = self.out(x)
         return x
