@@ -52,7 +52,7 @@ class LSTM(nn.Module):
 
         x = self.bn2(x)
         x, _ = self.lstm(x)
-        x = F.relu(self.fc2(x)) + r1
+        x = F.tanh(self.fc2(x)) + r1
 
         x_ = torch.concatenate((x, m), dim=2)
         x = F.tanh(self.combine(x_))
