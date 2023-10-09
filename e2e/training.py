@@ -64,7 +64,7 @@ def main(note: str = ""):
         model=lstm,
         batch_size=BATCH_SIZE,
         lr=LR,
-        in_len=INPUT_LENGTH,
+        in_len=INPUT_LENGTH + 1,
         out_len=TARGET_LENGTH,
     )
 
