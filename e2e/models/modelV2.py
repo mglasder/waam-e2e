@@ -65,7 +65,9 @@ class ModelV2(LightningModule):
         y_corr = self.xs.flipud().to(self.device) * m - right
         inputs_ = inputs + y_corr
 
-        params = self(inputs_)
+        x = torch.concatenate((inputs_, m), dim=1)
+
+        params = self(x)
         params_ = params.split(1, dim=1)
         a = params_[0]
         b = params_[1]
@@ -128,7 +130,9 @@ class ModelV2(LightningModule):
                 y_corr = self.xs.flipud().to(self.device) * m - right
                 x_ = x + y_corr
 
-                params = self.forward(x_)
+                input_ = torch.concatenate((x_, m), dim=1)
+
+                params = self.forward(input_)
                 params_ = params.split(1, dim=1)
                 a = params_[0]
                 b = params_[1]
