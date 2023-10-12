@@ -1,8 +1,6 @@
-import numpy as np
 import torch
 import torch.nn.functional as F
 from lightning import LightningModule
-from scipy.interpolate import interp1d
 from torch import nn
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
@@ -34,7 +32,7 @@ class ModelV2(LightningModule):
         self.model = model
         self.model.apply(self._init_weights)
 
-        self.xs = torch.arange(0, 1, 1 / self.length_out).to(self.device).requires_grad_(False)
+        self.xs = torch.arange(0, 90).to(self.device) / (90 - 1)
 
     @staticmethod
     def _init_weights(m):
