@@ -47,7 +47,7 @@ P = 0.5
 MIRROR = True
 DEV_RUN = False
 LOGGING = True
-AUTOCOMMIT = True
+AUTOCOMMIT = False
 AUTOCOMMIT_IP = "172.31.1.8"
 
 PROJECT = "waam-e2e-pre"
@@ -148,6 +148,7 @@ def main(note: str = ""):
 
     # get best model path
     model_path = trainer.checkpoint_callback.best_model_path
+    print(model_path)
     best_model = ModelV2.load_from_checkpoint(model=lstm, checkpoint_path=model_path)
     best_model.to("cpu")
 
