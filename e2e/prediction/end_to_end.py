@@ -1,14 +1,13 @@
+import time
+
 import numpy as np
 import torch
-from loguru import logger
 from matplotlib import pyplot as plt
+from scipy.interpolate import interp1d
 from torch import nn
 
 from e2e.data.loader import SampleLoader
 from e2e.helpers.wandb import download_model
-from e2e.models.modelV2 import ModelV2
-
-# Assuming the necessary imports are present
 
 
 class DataLoader:
@@ -22,13 +21,15 @@ class DataLoader:
 
 
 class ModelHandler:
-    def __init__(self, project_name, run_id, version, lstm: nn.Module):
+    def __init__(self, project_name, run_id, version, model, module: nn.Module, model_path=None):
         self.model_path = download_model(project=project_name, run_id=run_id, version=version)
-        self.model = ModelV2.load_from_checkpoint(model=lstm, checkpoint_path=self.model_path)
+        if model_path:
+            self.model_path = model_path
+        self.model = model.load_from_checkpoint(model=module, checkpoint_path=self.model_path)
         self.model.eval()
 
     def predict_with_uncertainty(self, input_data):
-        return self.model.predict_with_uncertainty(input_data.to(self.model.device), num_samples=150)
+        return self.model.predict_with_uncertainty(input_data.to(self.model.device), num_samples=30)
 
 
 class Plotter:
@@ -54,6 +55,7 @@ class Plotter:
             if ground_truth:
                 t = ground_truth[i]
                 y_true = t - np.mean(t[130:150])
+                x = np.arange(0, len(y_true)) / 10
                 ax.plot(x, y_true, color="green", alpha=0.5, linewidth=0.5)
 
         ax.set_title(title)
@@ -62,8 +64,10 @@ class Plotter:
 
 
 class Predictor:
-    def __init__(self, output_length, model_handler, cross_section_samples):
-        self.model_handler = model_handler
+    def __init__(self, output_length, footprint_handler, shape_handler, cross_section_samples):
+        self.footprint = footprint_handler
+        self.shape = shape_handler
+
         self.output_length = output_length
         self.hl = output_length // 2
 
@@ -90,17 +94,21 @@ class Predictor:
         self.predictions = []
         self.labels = []
 
-    def predict(self, init_input, uncertainty_threshold=4.5, mode="e2e"):
+    def predict(self, init_input, uncertainty_threshold=4.5, mode="e2e", predict_footprint=True):
         self.reset(init_input)
+        self.predict_footprint = predict_footprint
 
         for i in range(self.LEN):
             self.STEP = i
 
-            pred, uncertainty_score = self._handle_prediction()
+            tic = time.time()
+            pred, uncertainty_score, footprint = self._handle_prediction()
+            toc = time.time()
             print(f"uncertainty_score@{self.STEP}: {uncertainty_score}")
+            print(f"prediction took {toc-tic:.2f}s")
 
             if uncertainty_score < uncertainty_threshold:
-                x_section_predicted = self._update_curr_cross_section_with_pred(pred, mode=mode)
+                x_section_predicted = self._update_curr_cross_section_with_pred(pred, footprint, mode=mode)
                 self.labels.append(0)
             else:
                 x_section_predicted = self._handle_alternative_prediction()
@@ -114,12 +122,50 @@ class Predictor:
         return self.predictions, self.labels, self.ground_truth
 
     def _handle_prediction(self):
-        pred, uncertainty = self.model_handler.predict_with_uncertainty(self.curr_input)
+        # predict footprint
+        if self.predict_footprint:
+            footprint, fp_uncertainty = self.footprint.predict_with_uncertainty(self.curr_input)
+
+        else:
+            # use real footprint
+            true_fp = self.true_footprints[self.STEP]
+            tp = self.torchpositions[self.STEP]
+            left_fp = 112 - np.abs(tp - true_fp.left_idx)
+            right_fp = 112 + np.abs(tp - true_fp.right_idx)
+            footprint = torch.tensor([[left_fp, right_fp]], dtype=torch.float32)
+
+        # extract segment for shape prediction
+        segment = self.curr_input.squeeze(0)[:, footprint[:, 0].int() : footprint[:, 1].int()].cpu().numpy().squeeze()
+
+        # upsampling
+        len_segment = len(segment)
+        xs_original = np.arange(0, len_segment) / 10
+
+        f = interp1d(xs_original, segment, kind="linear")
+        xs_90 = np.linspace(0, (len_segment - 1) / 10, 90)
+        curr_input_segment = f(xs_90)
+
+        # predict shape
+        pred, uncertainty = self.shape.predict_with_uncertainty(
+            torch.tensor(curr_input_segment, dtype=torch.float32).view(-1, 90)
+        )
         uncertainty_score = np.sum(uncertainty.detach().cpu().numpy())
         pred = pred.detach().cpu().numpy()
-        return pred, uncertainty_score
 
-    def _update_curr_cross_section_with_pred(self, this_pred, mode: str):
+        # if (self.STEP % 5 == 0) or (self.STEP == 0):
+        #     xs = np.arange(0, 90) / 10
+        #     plt.plot(xs, pred.reshape(-1))
+        #     plt.plot(xs, curr_input_segment.reshape(-1))
+        #     plt.title(f"step {self.STEP}")
+        #     plt.show()
+
+        # downsampling
+        f = interp1d(xs_90, pred, kind="linear")
+        pred_downsampled = f(xs_original)
+
+        return pred_downsampled, uncertainty_score, footprint
+
+    def _update_curr_cross_section_with_pred(self, this_pred, footprint, mode: str):
         this_pred = this_pred.squeeze()
 
         if mode == "e2e":
@@ -136,26 +182,26 @@ class Predictor:
         else:
             raise ValueError(f"mode {mode} not supported")
 
-        mid_idx = len(this_pred) // 2
+        mid_idx = 224 // 2
         curr_torch_idx = self.torchpositions[self.STEP]
-        base = next_input[curr_torch_idx - self.hl : curr_torch_idx + self.hl]
-        diff = np.abs(base - this_pred).squeeze()
+        # base = next_input[curr_torch_idx - self.hl : curr_torch_idx + self.hl]
+        # diff = np.abs(base - this_pred).squeeze()
 
         # find footprint
-        left_fp = max(0, self._find_edge(diff, mid_idx, threshold=0.1, which="left"))
-        right_fp = min(90, self._find_edge(diff, mid_idx, threshold=0.1, which="right"))
+        left_fp = footprint[:, 0].int().item()
+        # max(0, self._find_edge(diff, mid_idx, threshold=0.1, which="left"))
+        right_fp = footprint[:, 1].int().item()
+        # min(90, self._find_edge(diff, mid_idx, threshold=0.1, which="right"))
 
-        true_left_fp = self.true_footprints[self.STEP].left_idx
-        true_right_fp = self.true_footprints[self.STEP].right_idx
+        # true_left_fp = self.true_footprints[self.STEP].left_idx
+        # true_right_fp = self.true_footprints[self.STEP].right_idx
 
-        left_err = np.abs(np.abs(left_fp - mid_idx) - np.abs(true_left_fp - curr_torch_idx))
-        right_err = np.abs(np.abs(right_fp - mid_idx) - np.abs(true_right_fp - curr_torch_idx))
+        # left_err = np.abs(np.abs(left_fp - mid_idx) - np.abs(true_left_fp - curr_torch_idx))
+        # right_err = np.abs(np.abs(right_fp - mid_idx) - np.abs(true_right_fp - curr_torch_idx))
 
-        self.footprint_errors.append([left_err, right_err])
+        # self.footprint_errors.append([left_err, right_err])
 
-        next_input[curr_torch_idx - (mid_idx - left_fp) : curr_torch_idx + (right_fp - mid_idx)] = this_pred[
-            left_fp:right_fp
-        ]
+        next_input[curr_torch_idx - (mid_idx - left_fp) : curr_torch_idx + (right_fp - mid_idx)] = this_pred
         return next_input
 
     def _handle_alternative_prediction(self):
@@ -167,25 +213,26 @@ class Predictor:
         next_input = cross_section_predicted[next_torch_idx - self.hl : next_torch_idx + self.hl]
         return torch.tensor(next_input, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
 
-    def _find_edge(self, y_diff, idx_peak, threshold=0.07, which="left"):
-        # TODO: use different algorithm: e.g. island finding
-        # https://stackoverflow.com/questions/52189433/find-the-first-index-for-which-an-array-goes-below-a-certain-threshold-and-stay
-        if which == "left":
-            sign = -1
-        elif which == "right":
-            sign = 1
-        else:
-            raise ValueError(f"which={which} is undefined.")
-
-        k = 0
-        while y_diff[idx_peak + sign * k] >= threshold:
-            k += 1
-
-            if (idx_peak + sign * k) < 0 or (idx_peak + sign * k) >= len(y_diff):
-                # TODO: find out in which cases this happens and whether it can be avoided
-                logger.debug(f"FootprintDetection: {self.STEP} - index out of bounds for k={k}")
-                # Correcting k by {sign} and skipping.
-                k -= sign
-                break
-
-        return idx_peak + sign * k
+    # def _find_edge(self, y_diff, idx_peak, threshold=0.07, which="left"):
+    #     # TODO: use different algorithm: e.g. island finding
+    #     # https://stackoverflow.com/questions/52189433/find-the-first-index-for-which-an-array-goes-below-a-certain-
+    #     threshold-and-stay
+    #     if which == "left":
+    #         sign = -1
+    #     elif which == "right":
+    #         sign = 1
+    #     else:
+    #         raise ValueError(f"which={which} is undefined.")
+    #
+    #     k = 0
+    #     while y_diff[idx_peak + sign * k] >= threshold:
+    #         k += 1
+    #
+    #         if (idx_peak + sign * k) < 0 or (idx_peak + sign * k) >= len(y_diff):
+    #             # TODO: find out in which cases this happens and whether it can be avoided
+    #             logger.debug(f"FootprintDetection: {self.STEP} - index out of bounds for k={k}")
+    #             # Correcting k by {sign} and skipping.
+    #             k -= sign
+    #             break
+    #
+    #     return idx_peak + sign * k

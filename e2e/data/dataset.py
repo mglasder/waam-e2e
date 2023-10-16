@@ -1,9 +1,11 @@
 from abc import abstractmethod
 from typing import Optional, TypeVar
+
 import numpy as np
 import torch
 from scipy.interpolate import interp1d
 from torch.utils.data import Dataset
+
 from e2e.data.sample import CrossSectionSample, FootprintEdge
 
 IDs = TypeVar("IDs", bound=list[str])
@@ -230,3 +232,102 @@ class ResampledFootprintDataset(WaamDataset):
             right = footprint.right_idx
             footprint_idx.append(torch.tensor([left, right]))
         return footprint_idx
+
+
+class FootprintDataset(WaamDataset):
+    def __init__(self, mirror=False, segment_length=224):
+        self.inputs: Optional[list[LineSegmentZ]] = None
+        self.ids: Optional[IDs] = None
+        self.fp_idx: Optional[list[torch.tensor]] = None
+
+        self.mirror = mirror
+        self._seg_len = segment_length
+
+    def __len__(self):
+        return len(self.ids)
+
+    def __getitem__(self, idx):
+        inpt = self.inputs[idx]
+        sample_id = self.ids[idx]
+        footprint = self.fp_idx[idx]
+
+        return inpt, footprint, sample_id
+
+    def create(self, samples: Samples) -> WaamDataset:
+        inputs = self._extract_inputs(samples)
+        ids = self._get_ids(samples)
+        fp_idx = self._extract_relative_footprint_idx(samples)
+
+        if self.mirror:
+            self.inputs, self.ids, self.fp_idx = self._mirror_dataset(inputs, ids, fp_idx)
+
+        else:
+            self.inputs, self.ids, self.fp_idx = inputs, ids, fp_idx
+
+        return self
+
+    def _extract_inputs(self, samples: Samples) -> list[LineSegmentZ]:
+        inputs = []
+        for s in samples:
+            torch_idx = s.torchposition.global_y_idx
+            zs = self._get_segment_heights(s.slice_based_before.points, torch_idx)
+            inputs.append(zs)
+
+        return inputs
+
+    def _extract_targets(self, samples: Samples) -> list[LineSegmentZ]:
+        targets = []
+        for s in samples:
+            torch_idx = s.torchposition.global_y_idx
+            zs = self._get_segment_heights(s.slice_based_after.points, torch_idx)
+            targets.append(zs)
+
+        return targets
+
+    def _extract_relative_footprint_idx(self, samples: Samples) -> list[torch.tensor]:
+        footprint_idx = []
+        mid = self._seg_len // 2
+        for s in samples:
+            footprint = s.footprint_based
+            left = mid - int(np.abs(footprint.left_idx - s.torchposition.global_y_idx))
+            right = mid + int(np.abs(footprint.right_idx - s.torchposition.global_y_idx))
+            # TODO: do this the right way (filter out samples)
+            if left < 0:
+                left = 0
+            if right > self._seg_len:
+                right = self._seg_len - 1
+            footprint_idx.append(torch.tensor([left, right], dtype=torch.float32))
+        return footprint_idx
+
+    def _mirror_dataset(self, inputs, sample_ids, footprint_idx):
+        inputs_h = []
+        sample_ids_h = []
+        footprint_idx_h = []
+
+        # reverse a torch tensor
+
+        for inpt, id_, fp_idx in zip(inputs, sample_ids, footprint_idx):
+            inputs_h.append(inpt.flipud())
+            sample_ids_h.append(id_ + "_hflip")
+            footprint_idx_h.append(torch.tensor([self._seg_len - 1 - fp_idx[1], self._seg_len - 1 - fp_idx[0]]))
+
+        inputs_h.extend(inputs)
+        sample_ids_h.extend(sample_ids)
+        footprint_idx_h.extend(footprint_idx)
+
+        return inputs_h, sample_ids_h, footprint_idx_h
+
+    @staticmethod
+    def _get_ids(samples: Samples) -> list[str]:
+        ids = []
+        for s in samples:
+            id_ = s.experiment + "_" + str(s.bead_id)
+            ids.append(id_)
+        return ids
+
+    def _get_segment_heights(self, points, torch_idx) -> torch.Tensor:
+        """ys corresponds to global z-coordinates."""
+        left = torch_idx - self._seg_len // 2
+        right = torch_idx + self._seg_len // 2
+        ys = np.array([p.y[0] for p in points])[left:right]
+        return torch.tensor(ys, dtype=torch.float32)

@@ -41,9 +41,9 @@ class ShapePredictionDataModule(LightningDataModule):
         loader = SampleLoader(self._data_dir)
         cross_section_samples = loader.load(which=self._tr_val_sets)
 
-        # first_in_row_samples = [s for s in cross_section_samples if s.welding_params["weld_bead_nr"] == 1]
-        # for _ in range(4):
-        #     cross_section_samples.extend(first_in_row_samples)
+        first_in_row_samples = [s for s in cross_section_samples if s.welding_params["weld_bead_nr"] == 1]
+        for _ in range(2):
+            cross_section_samples.extend(first_in_row_samples)
 
         # print(len(cross_section_samples))
 

@@ -3,6 +3,63 @@ import torch.nn.functional as F
 from torch import nn
 
 
+class Layer(nn.Module):
+    def __init__(self, n_input_features, n_output_features, p=0.5):
+        super().__init__()
+        self.p = p
+
+        self.layer = nn.Sequential(
+            nn.BatchNorm1d(1),
+            nn.Linear(in_features=n_input_features, out_features=n_output_features),
+            nn.ReLU(),
+            nn.Dropout(p=self.p),
+        )
+
+    def forward(self, x):
+        return self.layer(x)
+
+
+class ResMLP(nn.Module):
+    def __init__(
+        self,
+        p=0.5,
+        n_input_features=120,
+        n_hidden=120,
+        n_output_features=120,
+        n_layers=3,
+    ):
+        super().__init__()
+        self.p = p
+
+        self.n_layers = n_layers
+        self.n_hidden = n_hidden
+        self.n_output_features = n_output_features
+
+        self.in_layer = Layer(n_input_features=n_input_features, n_output_features=n_hidden, p=self.p)
+
+        self.h1 = Layer(n_input_features=n_hidden, n_output_features=n_hidden, p=self.p)
+        self.h2 = Layer(n_input_features=n_hidden, n_output_features=n_hidden, p=self.p)
+        self.h3 = Layer(n_input_features=n_hidden, n_output_features=n_hidden, p=self.p)
+
+        self.out_layer = nn.Sequential(
+            nn.BatchNorm1d(1),
+            nn.Linear(in_features=n_hidden, out_features=n_output_features),
+        )
+
+    def forward(self, x):
+        x = self.in_layer(x)
+        r1 = x
+        x = self.h1(x) + r1
+        r2 = x
+        x = self.h2(x) + r2
+        r3 = x
+        x = self.h3(x) + r3
+
+        x = self.out_layer(x)
+
+        return x
+
+
 class MLP(nn.Module):
     def __init__(
         self,
