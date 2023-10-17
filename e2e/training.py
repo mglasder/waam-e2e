@@ -171,7 +171,7 @@ def main(note: str = ""):
     #     else:
     #         np.savetxt(f"outputs/mc/{now}-{run_name}/{name}.csv", items, delimiter=",")
 
-    run_e2e_prediction(best_model, DEVICE)
+    # run_e2e_prediction(best_model, DEVICE)
 
 
 if __name__ == "__main__":

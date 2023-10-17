@@ -37,9 +37,9 @@ def run_e2e_prediction(shape_predictor, DEVICE="cpu", FOOTPRINT_PREDICT=False, U
     # LSTM
     LSTM_INPUT_LENGTH = 90
     LSTM_TARGET_LENGTH = 90
-    LSTM_P = 0.9
+    LSTM_P = 0.5
 
-    N_PREDICTIONS = 30
+    N_PREDICTIONS = 150
 
     mlp = ResMLP(
         p=MLP_P,
@@ -58,7 +58,7 @@ def run_e2e_prediction(shape_predictor, DEVICE="cpu", FOOTPRINT_PREDICT=False, U
     )
 
     # load dataset
-    data_loader = DataLoader(MAC_DATA_DIR)
+    data_loader = DataLoader(VM_DATA_DIR)
     cross_section_samples = data_loader.load_samples([EXP.RANDOM_EX6])
     dataset = ResampledE2EDataset(mirror=False, segment_length=MLP_INPUT_LENGTH).create(cross_section_samples)
 
@@ -71,8 +71,8 @@ def run_e2e_prediction(shape_predictor, DEVICE="cpu", FOOTPRINT_PREDICT=False, U
     )
 
     if not shape_predictor:
-        base = Path("/Users/magnus/repos/waam-e2e/e2e/")
-        lstm_path = base / Path("./waam-e2e-pre/mbw4tdhh/checkpoints/epoch=199-step=2400.ckpt")
+        base = Path("/home/magnus/repos/waam-e2e/e2e/")
+        lstm_path = base / Path("./waam-e2e-pre/ma9hzh4c/checkpoints/epoch=199-step=2000.ckpt")
         shape_predictor = ModelV2.load_from_checkpoint(
             model=lstm, checkpoint_path=lstm_path, map_location=torch.device(DEVICE)
         )
@@ -173,4 +173,4 @@ def run_e2e_prediction(shape_predictor, DEVICE="cpu", FOOTPRINT_PREDICT=False, U
 
 
 if __name__ == "__main__":
-    run_e2e_prediction(None, DEVICE="cpu", FOOTPRINT_PREDICT=True, U_THRESHOLD=100.0)
+    run_e2e_prediction(None, DEVICE="cpu", FOOTPRINT_PREDICT=True, U_THRESHOLD=1000.0)
