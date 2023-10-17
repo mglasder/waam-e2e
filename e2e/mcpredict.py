@@ -47,7 +47,7 @@ class McUncertainty:
         for i, batch in enumerate(data_loader):
             x, y, id_, fp = batch
 
-            mean_prediction, uncertainty = self._model.predict_with_uncertainty(x, fp, num_samples=150)
+            mean_prediction, uncertainty = self._model.predict_with_uncertainty(x, num_samples=150)
 
             error = np.abs(mean_prediction.detach().cpu().numpy() - y.detach().cpu().numpy()).tolist()
             mean_predictions.append(mean_prediction.detach().cpu().numpy().tolist())
