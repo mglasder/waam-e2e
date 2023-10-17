@@ -1,8 +1,5 @@
-import os
-from datetime import datetime
 from pathlib import Path
 
-import numpy as np
 import requests
 import torch
 from lightning import Trainer
@@ -14,6 +11,7 @@ from e2e.callbacks.metrics import FootprintAvgAbsValErrorLogger, ModHausdorffLog
 from e2e.data.datamodule import ShapePredictionDataModule
 from e2e.data.loader import EXPERIMENT as EXP
 from e2e.data.resampled import ResampledShapeDataset
+from e2e.e2esim import run_e2e_prediction
 from e2e.mcpredict import McUncertainty
 from e2e.models.modelV2 import ModelV2
 from e2e.models.recurrent import LSTM
@@ -158,20 +156,22 @@ def main(note: str = ""):
     mc.plot_predictions("train", log=LOGGING, take=10)
     mc.plot_predictions("val", log=LOGGING, take=50)
     mc.plot_predictions("test", log=LOGGING, take=None)
-
-    names = ["mean_predictions", "uncertainties_calib", "xs", "ys", "ids"]
-    # date and time up to seconds
-    now = datetime.now().strftime("%Y%m%d-%H%M%S")
-    os.mkdir(Path(f"outputs/mc/{now}-{run_name}"))
+    #
+    # names = ["mean_predictions", "uncertainties_calib", "xs", "ys", "ids"]
+    # # date and time up to seconds
+    # now = datetime.now().strftime("%Y%m%d-%H%M%S")
+    # os.mkdir(Path(f"outputs/mc/{now}-{run_name}"))
 
     # create directory
+    #
+    # for name in names:
+    #     items = np.array(mc._uncertainty_preds["test"][name])
+    #     if name == "ids":
+    #         np.savetxt(f"outputs/mc/{now}-{run_name}/{name}.csv", items, delimiter=",", fmt="%s")
+    #     else:
+    #         np.savetxt(f"outputs/mc/{now}-{run_name}/{name}.csv", items, delimiter=",")
 
-    for name in names:
-        items = np.array(mc._uncertainty_preds["test"][name])
-        if name == "ids":
-            np.savetxt(f"outputs/mc/{now}-{run_name}/{name}.csv", items, delimiter=",", fmt="%s")
-        else:
-            np.savetxt(f"outputs/mc/{now}-{run_name}/{name}.csv", items, delimiter=",")
+    run_e2e_prediction(best_model, DEVICE)
 
 
 if __name__ == "__main__":

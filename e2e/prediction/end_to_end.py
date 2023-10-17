@@ -25,7 +25,9 @@ class ModelHandler:
         self.model_path = download_model(project=project_name, run_id=run_id, version=version)
         if model_path:
             self.model_path = model_path
-        self.model = model.load_from_checkpoint(model=module, checkpoint_path=self.model_path)
+        self.model = model.load_from_checkpoint(
+            model=module, checkpoint_path=self.model_path, map_location=torch.device("cpu")
+        )
         self.model.eval()
 
     def predict_with_uncertainty(self, input_data):
@@ -47,9 +49,9 @@ class Plotter:
         fig, ax = plt.subplots(figsize=(15, 5), dpi=300)
         for i in range(len(predictions)):
             pred = predictions[i]
-            y = pred - np.mean(pred[130:150])
+            y = pred  # - np.mean(pred[130:150])
             x = np.arange(0, len(y)) / 10
-            color = "black" if labels[i] == 1 else "blue"
+            color = "red" if labels[i] == 1 else "blue"
             ax.plot(x, y, color=color, alpha=1, linewidth=0.5)
 
             if ground_truth:

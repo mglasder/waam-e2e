@@ -1,9 +1,10 @@
 from typing import Optional
+
 import numpy as np
 import torch
 from scipy.interpolate import interp1d
 
-from e2e.data.dataset import WaamDataset, LineSegmentZ, IDs, Samples
+from e2e.data.dataset import IDs, LineSegmentZ, Samples, WaamDataset
 
 
 class ResampledShapeDataset(WaamDataset):
@@ -108,3 +109,33 @@ class ResampledShapeDataset(WaamDataset):
         ys_new = f(xs_new)
 
         return torch.tensor(ys_new, dtype=torch.float32)
+
+
+class ResampledE2EDataset(ResampledShapeDataset):
+    def __init__(self, mirror=False, segment_length=90):
+        super().__init__(mirror, segment_length)
+
+        self.x_sections = []
+
+        self.torchpositions = []
+        self.ground_truth = []
+        self.true_footprints = []
+
+        self.predictions = []
+        self.labels = []
+
+    def create(self, samples: Samples) -> WaamDataset:
+        self.x_sections = samples
+
+        fp_indices = self._extract_footprint_idx(samples)
+        inputs = self._extract_inputs(samples, fp_indices)
+        targets = self._extract_targets(samples, fp_indices)
+        ids = self._get_ids(samples)
+
+        self.torchpositions = [s.torchposition.global_y_idx for s in samples]
+        self.ground_truth = [s.slice_based_before.ys for s in samples]
+        self.true_footprints = [s.footprint_based for s in samples]
+
+        self.inputs, self.targets, self.ids, self.fp_idx = inputs, targets, ids, fp_indices
+
+        return self

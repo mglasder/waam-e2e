@@ -56,14 +56,16 @@ class ModelV2(LightningModule):
         y = a * xs**4 + b * xs**3 + c * xs**2 + d * xs + e
         return y
 
-    def _step(self, inputs, targets):
+    def _step(self, inputs, targets, fp):
         left = inputs[:, 0][:, None]
         right = inputs[:, -1][:, None]
         m = right - left
         y_corr = self.xs.flipud().to(self.device) * m - right
         inputs_ = inputs + y_corr
 
-        x = torch.concatenate((inputs_, m), dim=1)
+        width = torch.abs(fp[:, 1] - fp[:, 0]).unsqueeze(1) * 0.1
+
+        x = torch.concatenate((inputs_, m / width), dim=1)
 
         params = self(x)
         params_ = params.split(1, dim=1)
@@ -78,7 +80,7 @@ class ModelV2(LightningModule):
     def training_step(self, batch, batch_idx):
         inputs, targets, ids, fp = batch
 
-        predictions, train_loss = self._step(inputs, targets)
+        predictions, train_loss = self._step(inputs, targets, fp)
 
         self.log("train_loss", train_loss, prog_bar=True, on_epoch=True, on_step=False, batch_size=self.batch_sz)
         return {
@@ -93,7 +95,7 @@ class ModelV2(LightningModule):
     def validation_step(self, batch, batch_idx):
         inputs, targets, ids, fp = batch
 
-        predictions, val_loss = self._step(inputs, targets)
+        predictions, val_loss = self._step(inputs, targets, fp)
 
         self.log("val_loss", val_loss, prog_bar=True, on_epoch=True, on_step=False, batch_size=self.batch_sz)
         return {
@@ -145,7 +147,10 @@ class ModelV2(LightningModule):
 
     def _loss(self, predictions, targets):
         loss = self.loss(predictions, targets)
-        return loss
+        # diff = torch.abs(predictions - targets)
+        # area_loss = (diff.sum(dim=1) * 0.1 - 14.6)**2
+
+        return loss  # + area_loss.mean()
 
     def configure_optimizers(self):
         optimizer = Adam(self.model.parameters(), lr=self.lr, weight_decay=0)

@@ -4,10 +4,8 @@ import numpy as np
 import torch
 from lightning import LightningModule
 from matplotlib import pyplot as plt
-from scipy.interpolate import interp1d
 from sklearn.neural_network import MLPRegressor
 from torch.utils.data import DataLoader
-import torch.nn.functional as F
 
 
 class McUncertainty:
@@ -49,7 +47,7 @@ class McUncertainty:
         for i, batch in enumerate(data_loader):
             x, y, id_, fp = batch
 
-            mean_prediction, uncertainty = self._model.predict_with_uncertainty(x, num_samples=150)
+            mean_prediction, uncertainty = self._model.predict_with_uncertainty(x, fp, num_samples=150)
 
             error = np.abs(mean_prediction.detach().cpu().numpy() - y.detach().cpu().numpy()).tolist()
             mean_predictions.append(mean_prediction.detach().cpu().numpy().tolist())
@@ -106,7 +104,6 @@ class McUncertainty:
                 )
 
         elif strategy == "temperature_scaling":
-
             uncertainties = self._uncertainty_preds["train"]["uncertainties"]
             errors = self._uncertainty_preds["train"]["errors"]
 
