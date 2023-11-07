@@ -46,23 +46,87 @@ class Plotter:
 
     @staticmethod
     def plot_e2e(predictions, labels, ground_truth, title: str):
-        fig, ax = plt.subplots(figsize=(15, 5), dpi=300)
+        fig, ax = plt.subplots(figsize=(15, 5), dpi=600)
         for i in range(len(predictions)):
-            pred = predictions[i]
+            pred = predictions[i][200:901]
             y = pred  # - np.mean(pred[130:150])
-            x = np.arange(0, len(y)) / 10
+            xa = np.arange(0, len(y)) / 10
             color = "red" if labels[i] == 1 else "blue"
-            ax.plot(x, y, color=color, alpha=1, linewidth=0.5)
+            ax.plot(xa, y, color=color, alpha=1, ls="-", linewidth=1)
 
             if ground_truth:
-                t = ground_truth[i]
-                y_true = t - np.mean(t[130:150])
-                x = np.arange(0, len(y_true)) / 10
-                ax.plot(x, y_true, color="green", alpha=0.5, linewidth=0.5)
+                t = ground_truth[i][200:901]
+                y_true = t - np.mean(t[:40])
+                xb = np.arange(0, len(y_true)) / 10
+                ax.plot(xb, y_true, color="black", alpha=1, ls="-", linewidth=0.8)
 
+        ax.set_ylim(0, 22)
+        ax.set_xlim(0, 70)
         ax.set_title(title)
         ax.set_aspect("equal")
+
+        # add legend below graph
+        ax.plot([], [], color="blue", alpha=1, linewidth=1, label="prediction")
+        ax.plot([], [], color="black", alpha=1, linewidth=1, ls="-", label="measurement")
+        handles, labels = ax.get_legend_handles_labels()
+        fig.legend(handles, labels, loc="lower center", ncol=2, bbox_to_anchor=(0.5, -0.05))
+        ax.set_xlabel("x [mm]")
+        ax.set_ylabel("z [mm]")
         plt.show()
+
+        return fig
+
+    @staticmethod
+    def plot_outline(outline_pred, outline_true):
+        fig, ax = plt.subplots(figsize=(15, 5), dpi=600)
+
+        xa = np.arange(0, len(outline_pred)) / 10
+        ax.plot(xa, outline_pred, color="blue", alpha=1, ls="-", linewidth=1)
+
+        xb = np.arange(0, len(outline_true)) / 10
+        ax.plot(xb, outline_true, color="black", alpha=1, ls="--", linewidth=0.8)
+
+        ax.set_ylim(0, 22)
+        ax.set_xlim(0, xb.max())
+        ax.set_aspect("equal")
+
+        # shade the area between the true outline and the predicted outline
+        # in green if the difference is positive, and in red if it is negative
+
+        diff = outline_pred - outline_true
+        ax.fill_between(
+            xa,
+            outline_pred,
+            outline_true,
+            where=diff > 0,
+            color="red",
+            alpha=0.3,
+            label="over predicted",
+        )
+        ax.fill_between(
+            xa, outline_pred, outline_true, where=diff < 0, color="green", alpha=0.3, label="under predicted"
+        )
+
+        # fill inside of min of the two outlines with dashed lines
+        ax.fill_between(
+            xa,
+            np.min((outline_pred, outline_true), axis=0),
+            color="lightgrey",
+            hatch="\\",
+            edgecolor="black",
+            alpha=0.3,
+        )
+
+        # add legend below graph
+        ax.plot([], [], color="blue", alpha=1, linewidth=1, label="prediction")
+        ax.plot([], [], color="black", alpha=1, linewidth=1, ls="--", label="measurement")
+
+        handles, labels = ax.get_legend_handles_labels()
+        fig.legend(handles, labels, loc="lower center", ncol=4, bbox_to_anchor=(0.5, -0.05))
+        ax.set_xlabel("x [mm]")
+        ax.set_ylabel("z [mm]")
+        plt.show()
+        return fig
 
 
 class Predictor:

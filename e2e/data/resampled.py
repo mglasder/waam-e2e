@@ -122,7 +122,11 @@ class ResampledE2EDataset(ResampledShapeDataset):
         self.true_footprints = []
 
         self.predictions = []
+        self.fp_predictions = []
         self.labels = []
+        self.fp_uncertainty_scores = []
+        self.shape_uncertainty_scores = []
+        self.prediction_times = []
 
     def create(self, samples: Samples) -> WaamDataset:
         self.x_sections = samples
@@ -134,6 +138,8 @@ class ResampledE2EDataset(ResampledShapeDataset):
 
         self.torchpositions = [s.torchposition.global_y_idx for s in samples]
         self.ground_truth = [s.slice_based_before.ys for s in samples]
+        self.ground_truth.append(samples[-1].slice_based_after.ys)
+
         self.true_footprints = [s.footprint_based for s in samples]
 
         self.inputs, self.targets, self.ids, self.fp_idx = inputs, targets, ids, fp_indices

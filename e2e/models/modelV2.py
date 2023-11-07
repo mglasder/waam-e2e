@@ -118,7 +118,7 @@ class ModelV2(LightningModule):
         return {"loss": pred_loss, "preds": predictions, "targets": targets}
 
     @timing.time_it
-    def predict_with_uncertainty(self, x, num_samples=30):
+    def predict_with_uncertainty(self, x, num_samples=30, reduction="mean"):
         self.model.train()  # Set the model to training mode to enable dropout
         with torch.no_grad():
             results = torch.zeros((num_samples,) + (x.shape[0], self.length_out))
@@ -141,9 +141,13 @@ class ModelV2(LightningModule):
                 results[i, :] = pred - y_corr
 
         self.model.eval()  # Set the model back to evaluation mode
-        mean_prediction = results.mean(dim=0)
-        prediction_std = results.std(dim=0)
-        return mean_prediction, prediction_std
+
+        if reduction == "mean":
+            mean_prediction = results.mean(dim=0)
+            prediction_std = results.std(dim=0)
+            return mean_prediction, prediction_std
+        else:
+            return results
 
     def _loss(self, predictions, targets):
         loss = self.loss(predictions, targets)
