@@ -10,6 +10,7 @@ class LSTM(nn.Module):
         n_input_features=120,
         n_hidden=120,
         n_output_features=120,
+        n_outputs=4,
         n_layers=3,
     ):
         super().__init__()
@@ -36,7 +37,7 @@ class LSTM(nn.Module):
 
         self.combine = nn.Linear(in_features=n_output_features + 1, out_features=n_output_features // 2)
 
-        self.out = nn.Linear(in_features=n_output_features // 2, out_features=3)
+        self.out = nn.Linear(in_features=n_output_features // 2, out_features=n_outputs)
 
     def forward(self, x):
         m = x[:, :, -1].unsqueeze(1)

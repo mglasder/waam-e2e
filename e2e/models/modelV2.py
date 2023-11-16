@@ -12,9 +12,11 @@ class ModelV2(LightningModule):
     def __init__(
         self,
         model: nn.Module,
+        device,
         loss=F.mse_loss,
         in_len=224,
         out_len=100,
+        n_outputs=5,
         batch_size=16,
         lr=0.001,
     ):
@@ -28,11 +30,13 @@ class ModelV2(LightningModule):
 
         self.length_in = in_len
         self.length_out = out_len
+        self.n_outputs = n_outputs
 
         self.model = model
         self.model.apply(self._init_weights)
 
         self.xs = torch.arange(0, 90).to(self.device) / (90 - 1)
+        self.ts = torch.linspace(0, 1, 90, dtype=torch.float32)
 
     @staticmethod
     def _init_weights(m):
@@ -44,7 +48,7 @@ class ModelV2(LightningModule):
     def forward(self, x):
         x = x.view(-1, 1, self.length_in)
         x = self.model(x)
-        return x.view(-1, 3)
+        return x.view(-1, self.n_outputs)
 
     @staticmethod
     def polynomial3(a, b, c, d, xs):
@@ -55,6 +59,16 @@ class ModelV2(LightningModule):
     def polynomial4(a, b, c, d, e, xs):
         y = a * xs**4 + b * xs**3 + c * xs**2 + d * xs + e
         return y
+
+    @staticmethod
+    def _hermite(p0, p1, m0, m1, ts):
+        t3 = ts**3
+        t2 = ts**2
+        h00 = 2 * t3 - 3 * t2 + 1
+        h10 = t3 - 2 * t2 + ts
+        h01 = -2 * t3 + 3 * t2
+        h11 = t3 - t2
+        return h00 * p0 + h10 * m0 + h01 * p1 + h11 * m1
 
     def _step(self, inputs, targets, fp):
         left = inputs[:, 0][:, None]
@@ -69,10 +83,22 @@ class ModelV2(LightningModule):
 
         params = self(x)
         params_ = params.split(1, dim=1)
-        a = params_[0]
-        b = params_[1]
-        c = params_[2]
-        pred = self.polynomial4(a, b, c, -(a + b + c), 0, self.xs.to(self.device))
+
+        m0 = params_[0]
+        m_mid = params_[1]
+        p_mid = params_[2]
+        m1 = params_[3]
+        x_mid = params_[4].sigmoid()
+
+        ts = self.ts.to(self.device)
+
+        mask = (ts <= x_mid).float()
+        ts1 = ts / x_mid
+        ts2 = (ts - x_mid) / (1 - x_mid)
+        ys1 = self._hermite(0, p_mid, m0, m_mid, ts1)
+        ys2 = self._hermite(p_mid, 0, m_mid, m1, ts2)
+        pred = mask * ys1 + (1 - mask) * ys2
+
         out = pred - y_corr
         loss = self._loss(out, targets)
         return out, loss
@@ -134,10 +160,22 @@ class ModelV2(LightningModule):
 
                 params = self.forward(input_)
                 params_ = params.split(1, dim=1)
-                a = params_[0]
-                b = params_[1]
-                c = params_[2]
-                pred = self.polynomial4(a, b, c, -(a + b + c), 0, self.xs.to(self.device))
+
+                m0 = params_[0]
+                m_mid = params_[1]
+                m1 = params_[3]
+                p_mid = params_[2]
+                x_mid = params_[4].sigmoid()
+
+                ts = self.ts.to(self.device)
+
+                mask = (ts <= x_mid).float()
+                ts1 = ts / x_mid
+                ts2 = (ts - x_mid) / (1 - x_mid)
+                ys1 = self._hermite(0, p_mid, m0, m_mid, ts1)
+                ys2 = self._hermite(p_mid, 0, m_mid, m1, ts2)
+                pred = mask * ys1 + (1 - mask) * ys2
+
                 results[i, :] = pred - y_corr
 
         self.model.eval()  # Set the model back to evaluation mode

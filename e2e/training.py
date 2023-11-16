@@ -18,7 +18,7 @@ from e2e.models.recurrent import LSTM
 
 # os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 
-NAS_DATA_DIR_DEV = Path("/Volumes/hornets/homes/mglasder/datasets/TrainingDev")
+# NAS_DATA_DIR_DEV = Path("/Volumes/hornets/homes/mglasder/datasets/TrainingDev")
 MAC_DATA_DIR_DEV = Path("/Users/magnus/datasets/WAAM/TrainingDev")
 VM_DATA_DIR = Path("/home/magnus/datasets/waam/30_processing_results/ImageGenerator")
 VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
@@ -26,8 +26,8 @@ VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 DATASET = VM_DATA_DIR
 
 SEED = 2345078
-BATCH_SIZE = 32
-MAX_EPOCHS = 600
+BATCH_SIZE = 64
+MAX_EPOCHS = 400
 N_WORKERS = 1
 DEVICE = "cuda"
 # footprint
@@ -39,8 +39,9 @@ GAMMA = 0.0
 
 INPUT_LENGTH = 90
 TARGET_LENGTH = 90
-LR = 0.001
-P = 0.9
+N_OUTPUTS = 5
+LR = 0.00025
+P = 0.6
 
 MIRROR = True
 DEV_RUN = False
@@ -55,16 +56,26 @@ if torch.cuda.is_available():
 
 
 def main(note: str = ""):
-    lstm = LSTM(p=P, n_input_features=INPUT_LENGTH, n_output_features=90, n_hidden=TARGET_LENGTH * 3, n_layers=10)
+    lstm = LSTM(
+        p=P,
+        n_input_features=INPUT_LENGTH,
+        n_output_features=TARGET_LENGTH,
+        n_outputs=N_OUTPUTS,
+        n_hidden=TARGET_LENGTH * 3,
+        n_layers=10,
+    )
     lstm.to(DEVICE)
 
     model = ModelV2(
         model=lstm,
+        device=DEVICE,
         batch_size=BATCH_SIZE,
         lr=LR,
         in_len=INPUT_LENGTH + 1,
         out_len=TARGET_LENGTH,
+        n_outputs=N_OUTPUTS,
     )
+    model.to(DEVICE)
 
     if DEV_RUN:
         print("THIS IS A DEV RUN! Used dataset and split are adjusted accordingly.")
