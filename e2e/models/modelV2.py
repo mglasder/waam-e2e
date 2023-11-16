@@ -84,10 +84,10 @@ class ModelV2(LightningModule):
         params = self(x)
         params_ = params.split(1, dim=1)
 
-        m0 = params_[0]
+        m0 = params_[0].relu()
         m_mid = params_[1]
+        m1 = -params_[3].relu()
         p_mid = params_[2]
-        m1 = params_[3]
         x_mid = params_[4].sigmoid()
 
         ts = self.ts.to(self.device)
@@ -161,9 +161,9 @@ class ModelV2(LightningModule):
                 params = self.forward(input_)
                 params_ = params.split(1, dim=1)
 
-                m0 = params_[0]
+                m0 = params_[0].relu()
                 m_mid = params_[1]
-                m1 = params_[3]
+                m1 = -params_[3].relu()
                 p_mid = params_[2]
                 x_mid = params_[4].sigmoid()
 
