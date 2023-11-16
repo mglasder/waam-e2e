@@ -84,9 +84,9 @@ class ModelV2(LightningModule):
         params = self(x)
         params_ = params.split(1, dim=1)
 
-        m0 = params_[0].sigmoid()
+        m0 = params_[0].relu() + 0.1
         m_mid = params_[1]
-        m1 = -params_[3].sigmoid()
+        m1 = -(params_[3].relu() + 0.1)
         p_mid = params_[2]
         x_mid = params_[4].sigmoid()
 
