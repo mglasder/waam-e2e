@@ -195,10 +195,9 @@ class ModelV2(LightningModule):
         return loss  # + area_loss.mean()
 
     def configure_optimizers(self):
-        optimizer = Adam(self.model.parameters(), lr=self.lr, weight_decay=0)
+        optimizer = Adam(self.model.parameters(), lr=self.lr, weight_decay=0.1)
 
-        # scheduler = ReduceLROnPlateau(optimizer, mode="min", patience=5, factor=0.5, verbose=True)
-        scheduler = None
+        scheduler = ReduceLROnPlateau(optimizer, mode="min", patience=10, factor=0.8, verbose=True)
         if scheduler:
             # Every metric logged with log() or log_dict() in LightningModule
             # is a candidate for the monitor key.
