@@ -164,7 +164,7 @@ def main(note: str = ""):
     mc = McUncertainty(best_model, train_data_loader, val_data_loader, test_dataloader=test_data_loader, logger=logger)
     mc.predict()
     mc.calibrate(strategy="temperature_scaling")
-    mc.plot_predictions("train", log=LOGGING, take=None)
+    mc.plot_predictions("train", log=LOGGING, take=100)
     mc.plot_predictions("val", log=LOGGING, take=20)
     mc.plot_predictions("test", log=LOGGING, take=30)
     #
