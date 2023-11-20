@@ -40,7 +40,7 @@ GAMMA = 0.0
 INPUT_LENGTH = 90
 TARGET_LENGTH = 90
 N_OUTPUTS = 2
-LR = 0.0005
+LR = 0.001
 P = 0.6
 
 MIRROR = True
@@ -164,9 +164,9 @@ def main(note: str = ""):
     mc = McUncertainty(best_model, train_data_loader, val_data_loader, test_dataloader=test_data_loader, logger=logger)
     mc.predict()
     mc.calibrate(strategy="temperature_scaling")
-    mc.plot_predictions("train", log=LOGGING, take=100)
+    mc.plot_predictions("train", log=LOGGING, take=20)
     mc.plot_predictions("val", log=LOGGING, take=20)
-    mc.plot_predictions("test", log=LOGGING, take=30)
+    mc.plot_predictions("test", log=LOGGING, take=None)
     #
     # names = ["mean_predictions", "uncertainties_calib", "xs", "ys", "ids"]
     # # date and time up to seconds

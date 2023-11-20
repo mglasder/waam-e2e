@@ -88,7 +88,7 @@ class ModelV2(LightningModule):
         m1 = params_[1]  # .relu() + 0.1)
 
         ts = self.ts.to(self.device)
-        pred = self._hermite(0, 1, m0, m1, ts)
+        pred = self._hermite(0, 0, m0, m1, ts)
 
         out = pred - y_corr
         return out
@@ -165,7 +165,7 @@ class ModelV2(LightningModule):
     def configure_optimizers(self):
         optimizer = Adam(self.model.parameters(), lr=self.lr, weight_decay=0.0)
 
-        scheduler = ReduceLROnPlateau(optimizer, mode="min", patience=5, factor=0.5, verbose=True)
+        scheduler = ReduceLROnPlateau(optimizer, mode="min", patience=10, factor=0.5, verbose=True)
         if scheduler:
             # Every metric logged with log() or log_dict() in LightningModule
             # is a candidate for the monitor key.
