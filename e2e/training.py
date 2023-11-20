@@ -197,7 +197,7 @@ if __name__ == "__main__":
     #     note = ""
 
     # loop from 10 to 1
-    for n_hidden in [90 * 2, 135, 90, 45, 20]:
+    for n_hidden in [20]:
         n_layers = 1
-        note = f"pure lstm; depth = {n_layers}, n_hidden = {n_hidden}"
+        note = f"pure lstm, relu instead of tanh; depth = {n_layers}, n_hidden = {n_hidden}"
         main(note=note, n_layers=n_layers, n_hidden=n_hidden)

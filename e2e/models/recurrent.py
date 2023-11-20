@@ -54,6 +54,6 @@ class LSTM(nn.Module):
         x = F.relu(self.fc2(x)) + r1
 
         x_ = torch.concatenate((x, m), dim=2)
-        x = F.tanh(self.combine(x_))
+        x = F.relu(self.combine(x_))
         x = self.out(x)
         return x
