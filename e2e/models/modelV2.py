@@ -84,29 +84,20 @@ class ModelV2(LightningModule):
         params = self(x)
         params_ = params.split(1, dim=1)
 
-        m0 = params_[0].relu() + 0.1
-        m_mid = params_[1]
-        m1 = -(params_[3].relu() + 0.1)
-        p_mid = params_[2]
-        x_mid = params_[4].sigmoid()
+        m0 = params_[0]  # .relu() + 0.1
+        m1 = params_[3]  # .relu() + 0.1)
 
         ts = self.ts.to(self.device)
-
-        mask = (ts <= x_mid).float()
-        ts1 = ts / x_mid
-        ts2 = (ts - x_mid) / (1 - x_mid)
-        ys1 = self._hermite(0, p_mid, m0, m_mid, ts1)
-        ys2 = self._hermite(p_mid, 0, m_mid, m1, ts2)
-        pred = mask * ys1 + (1 - mask) * ys2
+        pred = self._hermite(0, 1, m0, m1, ts)
 
         out = pred - y_corr
-        loss = self._loss(out, targets)
-        return out, loss
+        return out
 
     def training_step(self, batch, batch_idx):
         inputs, targets, ids, fp = batch
 
-        predictions, train_loss = self._step(inputs, targets, fp)
+        predictions = self._step(inputs, targets, fp)
+        train_loss = self._loss(predictions, targets)
 
         self.log("train_loss", train_loss, prog_bar=True, on_epoch=True, on_step=False, batch_size=self.batch_sz)
         return {
@@ -121,7 +112,8 @@ class ModelV2(LightningModule):
     def validation_step(self, batch, batch_idx):
         inputs, targets, ids, fp = batch
 
-        predictions, val_loss = self._step(inputs, targets, fp)
+        predictions = self._step(inputs, targets, fp)
+        val_loss = self._loss(predictions, targets)
 
         self.log("val_loss", val_loss, prog_bar=True, on_epoch=True, on_step=False, batch_size=self.batch_sz)
         return {
@@ -139,44 +131,20 @@ class ModelV2(LightningModule):
     def predict_step(self, batch, batch_idx: int, dataloader_idx: int = 0):
         inputs, targets, ids, fp = batch
 
-        predictions, pred_loss = self._step(inputs, targets)
+        predictions = self._step(inputs, targets, fp)
+        pred_loss = self._loss(predictions, targets)
 
         return {"loss": pred_loss, "preds": predictions, "targets": targets}
 
     @timing.time_it
-    def predict_with_uncertainty(self, x, num_samples=30, reduction="mean"):
+    def predict_with_uncertainty(self, x, fp=None, num_samples=30, reduction="mean"):
         self.model.train()  # Set the model to training mode to enable dropout
         with torch.no_grad():
             results = torch.zeros((num_samples,) + (x.shape[0], self.length_out))
 
             for i in range(num_samples):
-                left = x[:, 0][:, None]
-                right = x[:, -1][:, None]
-                m = right - left
-                y_corr = self.xs.flipud().to(self.device) * m - right
-                x_ = x + y_corr
-
-                input_ = torch.concatenate((x_, m), dim=1)
-
-                params = self.forward(input_)
-                params_ = params.split(1, dim=1)
-
-                m0 = params_[0].relu()
-                m_mid = params_[1]
-                m1 = -params_[3].relu()
-                p_mid = params_[2]
-                x_mid = params_[4].sigmoid()
-
-                ts = self.ts.to(self.device)
-
-                mask = (ts <= x_mid).float()
-                ts1 = ts / x_mid
-                ts2 = (ts - x_mid) / (1 - x_mid)
-                ys1 = self._hermite(0, p_mid, m0, m_mid, ts1)
-                ys2 = self._hermite(p_mid, 0, m_mid, m1, ts2)
-                pred = mask * ys1 + (1 - mask) * ys2
-
-                results[i, :] = pred - y_corr
+                out = self._step(inputs=x, targets=None, fp=fp)
+                results[i, :] = out
 
         self.model.eval()  # Set the model back to evaluation mode
 
