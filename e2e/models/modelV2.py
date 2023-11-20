@@ -85,7 +85,7 @@ class ModelV2(LightningModule):
         params_ = params.split(1, dim=1)
 
         m0 = params_[0]  # .relu() + 0.1
-        m1 = params_[3]  # .relu() + 0.1)
+        m1 = params_[1]  # .relu() + 0.1)
 
         ts = self.ts.to(self.device)
         pred = self._hermite(0, 1, m0, m1, ts)
