@@ -163,7 +163,7 @@ class ModelV2(LightningModule):
         return loss  # + area_loss.mean()
 
     def configure_optimizers(self):
-        optimizer = Adam(self.model.parameters(), lr=self.lr, weight_decay=0.0)
+        optimizer = Adam(self.model.parameters(), lr=self.lr, weight_decay=0.01)
 
         scheduler = ReduceLROnPlateau(optimizer, mode="min", patience=10, factor=0.5, verbose=True)
         if scheduler:
