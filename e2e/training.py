@@ -199,5 +199,5 @@ if __name__ == "__main__":
     # loop from 10 to 1
     for n_hidden in [20]:
         n_layers = 1
-        note = f"pure lstm, relu, bn after layer, no bias before bn; depth = {n_layers}, n_hidden = {n_hidden}"
+        note = f"pure lstm, tanh last, ln after layer, no bias before ln; depth = {n_layers}, n_hidden = {n_hidden}"
         main(note=note, n_layers=n_layers, n_hidden=n_hidden)
