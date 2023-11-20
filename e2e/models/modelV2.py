@@ -71,6 +71,10 @@ class ModelV2(LightningModule):
         return h00 * p0 + h10 * m0 + h01 * p1 + h11 * m1
 
     def _step(self, inputs, targets, fp):
+        """
+        Defines pre- and post processing of model input for train, val, test and predict steps,
+        and for predict_with_uncertainty.
+        """
         left = inputs[:, 0][:, None]
         right = inputs[:, -1][:, None]
         m = right - left
@@ -80,16 +84,7 @@ class ModelV2(LightningModule):
         width = torch.abs(fp[:, 1] - fp[:, 0]).unsqueeze(1) * 0.1
 
         x = torch.concatenate((inputs_, m / width), dim=1)
-
-        params = self(x)
-        params_ = params.split(1, dim=1)
-
-        m0 = params_[0]  # .relu() + 0.1
-        m1 = params_[1]  # .relu() + 0.1)
-
-        ts = self.ts.to(self.device)
-        pred = self._hermite(0, 0, m0, m1, ts)
-
+        pred = self(x)
         out = pred - y_corr
         return out
 

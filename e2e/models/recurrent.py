@@ -35,9 +35,9 @@ class LSTM(nn.Module):
 
         self.fc2 = nn.Linear(in_features=n_hidden, out_features=n_output_features)
 
-        self.combine = nn.Linear(in_features=n_output_features + 1, out_features=n_output_features // 2)
+        self.combine = nn.Linear(in_features=n_output_features + 1, out_features=n_output_features)
 
-        self.out = nn.Linear(in_features=n_output_features // 2, out_features=n_outputs)
+        self.out = nn.Linear(in_features=n_output_features, out_features=n_output_features)
 
     def forward(self, x):
         m = x[:, :, -1].unsqueeze(1)

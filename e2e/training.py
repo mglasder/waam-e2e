@@ -42,7 +42,7 @@ GAMMA = 0.0
 
 INPUT_LENGTH = 90
 TARGET_LENGTH = 90
-N_OUTPUTS = 2
+N_OUTPUTS = TARGET_LENGTH  # predict z-values directly
 LR = 0.001
 P = 0.6
 
