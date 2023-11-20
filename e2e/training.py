@@ -58,14 +58,14 @@ if torch.cuda.is_available():
     torch.set_float32_matmul_precision("medium")
 
 
-def main(note: str = ""):
+def main(note: str = "", n_layers: int = 10):
     lstm = LSTM(
         p=P,
         n_input_features=INPUT_LENGTH,
         n_output_features=TARGET_LENGTH,
         n_outputs=N_OUTPUTS,
         n_hidden=TARGET_LENGTH * 3,
-        n_layers=10,
+        n_layers=n_layers,
     )
     lstm.to(DEVICE)
 
@@ -189,8 +189,12 @@ def main(note: str = ""):
 
 if __name__ == "__main__":
     # get input from stdin
-    if LOGGING:
-        note = input("Enter run note: ")
-    else:
-        note = ""
-    main(note=note)
+    # if LOGGING:
+    #     note = input("Enter run note: ")
+    # else:
+    #     note = ""
+
+    # loop from 10 to 1
+    for n_layers in range(10, 0, -1):
+        note = f"pure lstm with LSTM depth = {n_layers}"
+        main(note=note, n_layers=n_layers)
