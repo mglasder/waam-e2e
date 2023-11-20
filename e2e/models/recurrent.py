@@ -14,7 +14,7 @@ class LSTM(nn.Module):
         self.n_hidden = n_hidden
 
         self.fc = nn.Linear(in_features=n_input_features, out_features=n_output_features, bias=False)
-        self.ln1 = nn.LayerNorm((batch_size, 1, n_input_features))
+        self.ln1 = nn.LayerNorm((1, n_input_features))
 
         self.lstm = nn.LSTM(
             input_size=n_output_features,
@@ -26,11 +26,11 @@ class LSTM(nn.Module):
             bias=False,
         )
 
-        self.ln2 = nn.LayerNorm((batch_size, 1, n_hidden))
+        self.ln2 = nn.LayerNorm((1, n_hidden))
 
         self.fc2 = nn.Linear(in_features=n_hidden, out_features=n_output_features, bias=False)
 
-        self.ln3 = nn.LayerNorm((batch_size, 1, n_output_features))
+        self.ln3 = nn.LayerNorm((1, n_output_features))
 
         self.combine = nn.Linear(in_features=n_output_features + 1, out_features=n_output_features)
 
