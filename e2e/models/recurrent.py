@@ -20,7 +20,7 @@ class LSTM(nn.Module):
         self.n_hidden = n_hidden
 
         self.bn1 = nn.BatchNorm1d(1)
-        self.fc = nn.Linear(in_features=n_input_features, out_features=n_output_features)
+        self.fc = nn.Linear(in_features=n_input_features, out_features=n_output_features, bias=False)
 
         self.bn2 = nn.BatchNorm1d(1)
 
@@ -31,6 +31,7 @@ class LSTM(nn.Module):
             bidirectional=False,
             batch_first=True,
             dropout=p,
+            bias=False,
         )
 
         self.fc2 = nn.Linear(in_features=n_hidden, out_features=n_output_features)
@@ -43,17 +44,17 @@ class LSTM(nn.Module):
         m = x[:, :, -1].unsqueeze(1)
         r0 = x[:, :, :-1]
 
-        x = self.bn1(r0)
         x = self.fc(x)
+        x = self.bn1(r0)
         x = F.relu(x)
         x = F.dropout(x, p=self.p, training=self.training) + r0
         r1 = x
 
-        x = self.bn2(x)
         x, _ = self.lstm(x)
+        x = self.bn2(x)
         x = F.relu(self.fc2(x)) + r1
 
         x_ = torch.concatenate((x, m), dim=2)
-        x = F.relu(self.combine(x_))
+        x = F.tanh(self.combine(x_))
         x = self.out(x)
         return x

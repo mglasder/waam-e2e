@@ -31,7 +31,7 @@ DATASET = VM_DATA_DIR
 SEED = 2345078
 BATCH_SIZE = 64
 MAX_EPOCHS = 200
-N_WORKERS = 1
+N_WORKERS = 8
 DEVICE = "cuda"
 # footprint
 THETA = 0.4
@@ -199,5 +199,5 @@ if __name__ == "__main__":
     # loop from 10 to 1
     for n_hidden in [20]:
         n_layers = 1
-        note = f"pure lstm, relu instead of tanh; depth = {n_layers}, n_hidden = {n_hidden}"
+        note = f"pure lstm, relu, bn after layer, no bias before bn; depth = {n_layers}, n_hidden = {n_hidden}"
         main(note=note, n_layers=n_layers, n_hidden=n_hidden)
