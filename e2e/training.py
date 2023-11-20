@@ -184,6 +184,8 @@ def main(note: str = "", n_layers: int = 10):
         else:
             np.savetxt(f"outputs/mc/{now}-{run_name}/{name}.csv", items, delimiter=",")
 
+    logger.experiment.finish()
+
     # run_e2e_prediction(best_model, DEVICE)
 
 
@@ -195,6 +197,6 @@ if __name__ == "__main__":
     #     note = ""
 
     # loop from 10 to 1
-    for n_layers in range(10, 0, -1):
+    for n_layers in range(9, 0, -1):
         note = f"pure lstm with LSTM depth = {n_layers}"
         main(note=note, n_layers=n_layers)
