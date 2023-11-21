@@ -32,7 +32,7 @@ DATASET = VM_DATA_DIR
 
 SEED = 2345078
 BATCH_SIZE = 64
-MAX_EPOCHS = 200
+MAX_EPOCHS = 100
 N_WORKERS = 1
 DEVICE = "cuda"
 # footprint
@@ -72,8 +72,8 @@ def main(note: str = ""):
         n_input_features=INPUT_LENGTH,
         n_output_features=TARGET_LENGTH,
         n_outputs=N_OUTPUTS,
-        n_hidden=135,
-        n_layers=2,
+        n_hidden=config["n_lstm_hidden"],
+        n_layers=config["n_lstm_layers"],
     )
     lstm.to(DEVICE)
 
@@ -129,7 +129,7 @@ def main(note: str = ""):
         workers=N_WORKERS,
         dataset=ResampledShapeDataset(mirror=MIRROR, segment_length=TARGET_LENGTH),
         split=split,
-        data_fraction=config["data_fraction"],
+        data_fraction=1.0,
         train_val_sets=train_val_sets,
         separate_test_set=separate_test_set,
         seed=SEED,
