@@ -1,10 +1,13 @@
-from datetime import datetime
 import os
+from datetime import datetime
 from pathlib import Path
+from pprint import pprint
 
 import numpy as np
 import requests
 import torch
+import wandb
+import yaml
 from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.loggers import WandbLogger
@@ -14,7 +17,6 @@ from e2e.callbacks.metrics import FootprintAvgAbsValErrorLogger, ModHausdorffLog
 from e2e.data.datamodule import ShapePredictionDataModule
 from e2e.data.loader import EXPERIMENT as EXP
 from e2e.data.resampled import ResampledShapeDataset
-from e2e.e2esim import run_e2e_prediction
 from e2e.mcpredict import McUncertainty
 from e2e.models.modelV2 import ModelV2
 from e2e.models.recurrent import LSTM
@@ -49,7 +51,7 @@ P = 0.6
 MIRROR = True
 DEV_RUN = False
 LOGGING = True
-AUTOCOMMIT = True
+AUTOCOMMIT = False
 AUTOCOMMIT_IP = "172.31.1.8"
 
 PROJECT = "waam-e2e-pre"
@@ -58,14 +60,20 @@ if torch.cuda.is_available():
     torch.set_float32_matmul_precision("medium")
 
 
-def main(note: str = "", n_layers: int = 10, n_hidden: int = 120):
+def main(note: str = ""):
+    wandb.init(project=PROJECT)
+    config = wandb.config
+
+    print("Sweep config: \n")
+    pprint(config)
+
     lstm = LSTM(
         p=P,
         n_input_features=INPUT_LENGTH,
         n_output_features=TARGET_LENGTH,
         n_outputs=N_OUTPUTS,
-        n_hidden=n_hidden,
-        n_layers=n_layers,
+        n_hidden=135,
+        n_layers=2,
     )
     lstm.to(DEVICE)
 
@@ -121,6 +129,7 @@ def main(note: str = "", n_layers: int = 10, n_hidden: int = 120):
         workers=N_WORKERS,
         dataset=ResampledShapeDataset(mirror=MIRROR, segment_length=TARGET_LENGTH),
         split=split,
+        data_fraction=config["data_fraction"],
         train_val_sets=train_val_sets,
         separate_test_set=separate_test_set,
         seed=SEED,
@@ -167,7 +176,7 @@ def main(note: str = "", n_layers: int = 10, n_hidden: int = 120):
     mc = McUncertainty(best_model, train_data_loader, val_data_loader, test_dataloader=test_data_loader, logger=logger)
     mc.predict()
     mc.calibrate(strategy="temperature_scaling")
-    mc.plot_predictions("train", log=LOGGING, take=20)
+    # mc.plot_predictions("train", log=LOGGING, take=20)
     mc.plot_predictions("val", log=LOGGING, take=20)
     mc.plot_predictions("test", log=LOGGING, take=None)
     #
@@ -196,8 +205,11 @@ if __name__ == "__main__":
     # else:
     #     note = ""
 
-    # loop from 10 to 1
-    for n_hidden in [90]:
-        n_layers = 1
-        note = f"pure lstm, tanh last, ln after layer, no bias before ln; depth = {n_layers}, n_hidden = {n_hidden}"
-        main(note=note, n_layers=n_layers, n_hidden=n_hidden)
+    # for n_hidden in [90]:
+    #     n_layers = 1
+    #     note = f"pure lstm, tanh last, ln after layer, no bias before ln; depth = {n_layers}, n_hidden = {n_hidden}"
+    #     main(note=note, n_layers=n_layers, n_hidden=n_hidden)
+
+    sweep_config = yaml.safe_load((open("sweep-config.yaml", "r")))
+    sweep_id = wandb.sweep(sweep_config, project=PROJECT)
+    wandb.agent(sweep_id, function=main, project=PROJECT)

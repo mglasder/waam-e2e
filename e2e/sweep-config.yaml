@@ -1,0 +1,11 @@
+method: grid
+metric:
+  goal: "minimize"
+  name: "val_loss"
+parameters:
+  # n_lstm_layers:
+  #   values: [1, 2]
+  # n_lstm_hidden:
+  #   values: [90, 135]
+  data_fraction:
+    values: [1.0, 0.8, 0.6, 0.4, 0.3, 0.2, 0.1]

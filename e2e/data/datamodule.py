@@ -18,6 +18,7 @@ class ShapePredictionDataModule(LightningDataModule):
         batch_size=16,
         workers=1,
         split=[0.5, 0.5, 0],
+        data_fraction=1,
         train_val_sets: Union[str, list[EXPERIMENT]] = "all",
         separate_test_set: Optional[EXPERIMENT] = None,
         seed=42,
@@ -36,10 +37,11 @@ class ShapePredictionDataModule(LightningDataModule):
         self._dataset_tr, self._dataset_vl, self._dataset_ts = None, None, None
 
         self._gen = torch.Generator().manual_seed(seed)
+        self._data_fraction = data_fraction
 
     def setup(self, stage: str) -> None:
         loader = SampleLoader(self._data_dir)
-        cross_section_samples = loader.load(which=self._tr_val_sets)
+        cross_section_samples = loader.load(which=self._tr_val_sets, subset_size=1)
 
         # first_in_row_samples = [s for s in cross_section_samples if s.welding_params["weld_bead_nr"] == 1]
         # for _ in range(6):
@@ -49,6 +51,11 @@ class ShapePredictionDataModule(LightningDataModule):
 
         dataset = self.dataset.create(cross_section_samples)
         self._dataset_tr, self._dataset_vl, self._dataset_ts = self._random_split(dataset)
+
+        if self._data_fraction < 1:
+            size = int(len(self._dataset_tr) * self._data_fraction)
+            print(f"Using {size} samples for training.")
+            self._dataset_tr = torch.utils.data.Subset(self._dataset_tr, torch.randperm(len(self._dataset_tr))[:size])
 
         if self._sep_ts_set:
             assert self._split[2] == 0
