@@ -22,6 +22,7 @@ class ShapePredictionDataModule(LightningDataModule):
         train_val_sets: Union[str, list[EXPERIMENT]] = "all",
         separate_test_set: Optional[EXPERIMENT] = None,
         seed=42,
+        sample_loader: SampleLoader = None,
     ):
         super().__init__()
 
@@ -29,7 +30,7 @@ class ShapePredictionDataModule(LightningDataModule):
 
         self._num_workers = workers
         self._batch_sz = batch_size
-        self._data_dir = data_dir
+        # self._data_dir = data_dir
         self._split = split
 
         self._sep_ts_set = separate_test_set
@@ -39,9 +40,11 @@ class ShapePredictionDataModule(LightningDataModule):
         self._gen = torch.Generator().manual_seed(seed)
         self._data_fraction = data_fraction
 
+        self._loader = sample_loader
+        assert self._loader is not None
+
     def setup(self, stage: str) -> None:
-        loader = SampleLoader(self._data_dir)
-        cross_section_samples = loader.load(which=self._tr_val_sets, subset_size=1)
+        cross_section_samples = self._loader.load(which=self._tr_val_sets, subset_size=1)
 
         # first_in_row_samples = [s for s in cross_section_samples if s.welding_params["weld_bead_nr"] == 1]
         # for _ in range(6):
@@ -62,7 +65,7 @@ class ShapePredictionDataModule(LightningDataModule):
             dataset = deepcopy(self.dataset)
             dataset.mirror = False
 
-            test_cross_sections = loader.load(which=[self._sep_ts_set])
+            test_cross_sections = self._loader.load(which=[self._sep_ts_set])
             self._dataset_ts = dataset.create(test_cross_sections)
 
         self._print_stats()

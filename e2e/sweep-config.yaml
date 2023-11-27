@@ -4,8 +4,8 @@ metric:
   name: "val_loss"
 parameters:
   n_lstm_layers:
-    values: [1, 2, 3, 4]
+    values: [1]
   n_lstm_hidden:
-    values: [45, 90, 135]
+    values: [5, 45, 90, 120, 150, 180]
 #   data_fraction:
 #     values: [1.0]

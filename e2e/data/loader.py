@@ -1,4 +1,5 @@
 import glob
+from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
 from pathlib import Path
 from typing import Callable, List, Union
@@ -18,9 +19,10 @@ class EXPERIMENT(Enum):
 
 
 class SampleLoader:
-    def __init__(self, sample_dir: Union[str, Path], seed=42):
+    def __init__(self, sample_dir: Union[str, Path], seed=42, workers=1):
         self._sample_dir = Path(sample_dir)
         self._generator = np.random.default_rng(seed=seed)
+        self._workers = workers
 
     def load(self, which: Union[str, list[EXPERIMENT]] = "all", subset_size: float = 1) -> list[CrossSectionSample]:
         if which == "all":
@@ -44,7 +46,10 @@ class SampleLoader:
             print(f"loading {k} out of {len(filepaths)} samples.")
             filepaths = self._generator.choice(filepaths, k, replace=False)
 
-        return self._read_files(filepaths, condition)
+        if self._workers > 1:
+            return self._read_files_multithreading(filepaths, condition)
+        else:
+            return self._read_files(filepaths, condition)
 
     def _get_filepaths(self) -> np.ndarray:
         # assumes all data is in the provided directory without nested directories
@@ -54,3 +59,13 @@ class SampleLoader:
     @staticmethod
     def _read_files(filepaths: np.ndarray, condition: Callable[[str], bool]) -> list[CrossSectionSample]:
         return [CrossSectionSample.read_file(f) for f in tqdm(filepaths) if condition(f)]
+
+    def _read_files_multithreading(
+        self, filepaths: np.ndarray, condition: Callable[[str], bool]
+    ) -> list[CrossSectionSample]:
+        filepaths = [f for f in filepaths if condition(f)]
+
+        with ThreadPoolExecutor(max_workers=self._workers) as executor:
+            results = tqdm(executor.map(CrossSectionSample.read_file, filepaths), total=len(filepaths))
+
+        return list(results)

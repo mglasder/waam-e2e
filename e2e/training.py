@@ -16,6 +16,7 @@ from e2e.autogit.autogit import git_add_commit_with
 from e2e.callbacks.metrics import FootprintAvgAbsValErrorLogger, ModHausdorffLogger
 from e2e.data.datamodule import ShapePredictionDataModule
 from e2e.data.loader import EXPERIMENT as EXP
+from e2e.data.loader import SampleLoader
 from e2e.data.resampled import ResampledShapeDataset
 from e2e.mcpredict import McUncertainty
 from e2e.models.modelV2 import ModelV2
@@ -33,7 +34,7 @@ DATASET = VM_DATA_DIR
 SEED = 2345078
 BATCH_SIZE = 64
 MAX_EPOCHS = 100
-N_WORKERS = 1
+N_WORKERS = 3
 DEVICE = "cuda"
 # footprint
 THETA = 0.4
@@ -64,7 +65,8 @@ def main(note: str = ""):
     wandb.init(project=PROJECT)
     config = wandb.config
 
-    print("Sweep config: \n")
+    config.update({"n_lstm_hidden": 90, "n_lstm_layers": 1})
+    print("Config: \n")
     pprint(config)
 
     lstm = LSTM(
@@ -85,6 +87,7 @@ def main(note: str = ""):
         in_len=INPUT_LENGTH + 1,
         out_len=TARGET_LENGTH,
         n_outputs=N_OUTPUTS,
+        mode="pure",
     )
     model.to(DEVICE)
 
@@ -123,6 +126,8 @@ def main(note: str = ""):
         print(f"Commit hash:, {commit_hash}")
         logger.experiment.config.update({"commit": commit_hash})
 
+    loader = SampleLoader(sample_dir=DATASET)
+
     datamodule = ShapePredictionDataModule(
         batch_size=BATCH_SIZE,
         data_dir=DATASET,
@@ -133,6 +138,7 @@ def main(note: str = ""):
         train_val_sets=train_val_sets,
         separate_test_set=separate_test_set,
         seed=SEED,
+        sample_loader=loader,
     )
 
     callbacks = []
@@ -199,16 +205,12 @@ def main(note: str = ""):
 
 
 if __name__ == "__main__":
-    # get input from stdin
     # if LOGGING:
     #     note = input("Enter run note: ")
     # else:
     #     note = ""
-
-    # for n_hidden in [90]:
-    #     n_layers = 1
-    #     note = f"pure lstm, tanh last, ln after layer, no bias before ln; depth = {n_layers}, n_hidden = {n_hidden}"
-    #     main(note=note, n_layers=n_layers, n_hidden=n_hidden)
+    #
+    # main(note=note)
 
     sweep_config = yaml.safe_load((open("sweep-config.yaml", "r")))
     sweep_id = wandb.sweep(sweep_config, project=PROJECT)

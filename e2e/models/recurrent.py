@@ -16,15 +16,17 @@ class LSTM(nn.Module):
         self.fc = nn.Linear(in_features=n_input_features, out_features=n_output_features, bias=False)
         self.ln1 = nn.LayerNorm((1, n_input_features))
 
-        self.lstm = nn.LSTM(
-            input_size=n_output_features,
-            hidden_size=n_hidden,
-            num_layers=n_layers,
-            bidirectional=False,
-            batch_first=True,
-            dropout=p,
-            bias=False,
-        )
+        # self.lstm = nn.LSTM(
+        #     input_size=n_output_features,
+        #     hidden_size=n_hidden,
+        #     num_layers=n_layers,
+        #     bidirectional=False,
+        #     batch_first=True,
+        #     dropout=p,
+        #     bias=False,
+        # )
+
+        self.main_fc = nn.Linear(in_features=n_output_features, out_features=n_hidden, bias=False)
 
         self.ln2 = nn.LayerNorm((1, n_hidden))
 
@@ -46,7 +48,8 @@ class LSTM(nn.Module):
         x = F.dropout(x, p=self.p, training=self.training) + r0
         r1 = x
 
-        x, _ = self.lstm(x)
+        # x, _ = self.lstm(x)
+        x = self.main_fc(x)
         x = self.ln2(x)
         x = self.fc2(x) + r1
         x = F.relu(self.ln3(x))

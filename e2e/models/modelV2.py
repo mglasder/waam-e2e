@@ -14,11 +14,12 @@ class ModelV2(LightningModule):
         model: nn.Module,
         device,
         loss=F.mse_loss,
-        in_len=224,
-        out_len=100,
-        n_outputs=5,
-        batch_size=16,
+        in_len=90,
+        out_len=90,
+        n_outputs=90,
+        batch_size=64,
         lr=0.001,
+        mode = "pure",
     ):
         super().__init__()
         self.save_hyperparameters(ignore=["model"])
@@ -37,6 +38,16 @@ class ModelV2(LightningModule):
 
         self.xs = torch.arange(0, 90).to(self.device) / (90 - 1)
         self.ts = torch.linspace(0, 1, 90, dtype=torch.float32)
+
+        match mode:
+            case "pure":
+                assert self.n_outputs == self.length_out
+                self._step = self._step_pure
+            case "hermite":
+                assert self.n_outputs == 2
+                self._step = self._step_hermite
+            case _:
+                raise NotImplementedError
 
     @staticmethod
     def _init_weights(m):
@@ -70,7 +81,7 @@ class ModelV2(LightningModule):
         h11 = t3 - t2
         return h00 * p0 + h10 * m0 + h01 * p1 + h11 * m1
 
-    def _step(self, inputs, targets, fp):
+    def _step_pure(self, inputs, targets, fp):
         """
         Defines pre- and post processing of model input for train, val, test and predict steps,
         and for predict_with_uncertainty.
@@ -85,6 +96,29 @@ class ModelV2(LightningModule):
 
         x = torch.concatenate((inputs_, m / width), dim=1)
         pred = self(x)
+        out = pred - y_corr
+        return out
+
+    def _step_hermite(self, inputs, targets, fp):
+        left = inputs[:, 0][:, None]
+        right = inputs[:, -1][:, None]
+        m = right - left
+        y_corr = self.xs.flipud().to(self.device) * m - right
+        inputs_ = inputs + y_corr
+
+        width = torch.abs(fp[:, 1] - fp[:, 0]).unsqueeze(1) * 0.1
+
+        x = torch.concatenate((inputs_, m / width), dim=1)
+
+        params = self(x)
+        params_ = params.split(1, dim=1)
+
+        m0 = params_[0]  # .relu() + 0.1
+        m1 = params_[1]  # .relu() + 0.1)
+
+        ts = self.ts.to(self.device)
+        pred = self._hermite(0, 0, m0, m1, ts)
+
         out = pred - y_corr
         return out
 
