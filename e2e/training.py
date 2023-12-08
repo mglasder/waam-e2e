@@ -19,7 +19,7 @@ from e2e.data.loader import EXPERIMENT as EXP
 from e2e.data.loader import SampleLoader
 from e2e.data.resampled import ResampledShapeDataset
 from e2e.mcpredict import McUncertainty
-from e2e.models.modelV2 import ModelV2
+from e2e.models.modelV2 import ModelPoints
 from e2e.models.recurrent import LSTM
 
 # os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
@@ -29,23 +29,17 @@ MAC_DATA_DIR_DEV = Path("/Users/magnus/datasets/WAAM/TrainingDev")
 VM_DATA_DIR = Path("/home/magnus/datasets/waam/30_processing_results/ImageGenerator")
 VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 
-DATASET = VM_DATA_DIR
+DATASET = MAC_DATA_DIR_DEV
 
 SEED = 2345078
-BATCH_SIZE = 64
-MAX_EPOCHS = 100
-N_WORKERS = 3
-DEVICE = "cuda"
-# footprint
-THETA = 0.4
-# smoothness
-LAMBDA = 0.0
-# surface energy
-GAMMA = 0.0
+BATCH_SIZE = 4
+MAX_EPOCHS = 10
+N_WORKERS = 1
+DEVICE = "cpu"
 
 INPUT_LENGTH = 90
 TARGET_LENGTH = 90
-N_OUTPUTS = TARGET_LENGTH  # predict z-values directly
+
 LR = 0.001
 P = 0.6
 
@@ -73,20 +67,18 @@ def main(note: str = ""):
         p=P,
         n_input_features=INPUT_LENGTH,
         n_output_features=TARGET_LENGTH,
-        n_outputs=N_OUTPUTS,
+        n_outputs=2,
         n_hidden=config["n_lstm_hidden"],
         n_layers=config["n_lstm_layers"],
     )
     lstm.to(DEVICE)
 
-    model = ModelV2(
+    model = ModelPoints(
         model=lstm,
-        device=DEVICE,
         batch_size=BATCH_SIZE,
         lr=LR,
-        in_len=INPUT_LENGTH + 1,
+        in_len=INPUT_LENGTH,
         out_len=TARGET_LENGTH,
-        n_outputs=N_OUTPUTS,
         mode="pure",
     )
     model.to(DEVICE)
@@ -176,7 +168,7 @@ def main(note: str = ""):
     # get best model path
     model_path = trainer.checkpoint_callback.best_model_path
     print(model_path)
-    best_model = ModelV2.load_from_checkpoint(model=lstm, checkpoint_path=model_path)
+    best_model = ModelPoints.load_from_checkpoint(model=lstm, checkpoint_path=model_path)
     best_model.to("cpu")
 
     mc = McUncertainty(best_model, train_data_loader, val_data_loader, test_dataloader=test_data_loader, logger=logger)
