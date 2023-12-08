@@ -69,39 +69,11 @@ class ShapePointsModel(nn.Module):
         n_output_features=100,
     ):
         super().__init__()
-        self.p = p
 
-        self.z_in = nn.Linear(n_input_features, n_input_features)
-        self.z_out = nn.Linear(n_input_features, n_output_features)
-        self.fc1 = nn.Linear(n_input_features, n_hidden)
-
-        self.fc = nn.Linear(in_features=n_input_features, out_features=n_output_features, bias=False)
-        self.ln1 = nn.LayerNorm((1, n_input_features))
-
-        self.ln3 = nn.LayerNorm((1, n_output_features))
-
-        self.combine = nn.Linear(in_features=n_output_features + 1, out_features=n_output_features)
-
-        self.z_out = nn.Linear(in_features=n_output_features, out_features=n_output_features, bias=True)
-        self.x_out = nn.Linear(in_features=n_output_features, out_features=n_output_features, bias=True)
+        self.fc1 = nn.Linear(2 * n_input_features, 2 * n_output_features)
 
     def forward(self, x):
-        m = x[:, :, -1].unsqueeze(1)
-        r0 = x[:, :, :-1]
-
-        x = self.fc(r0)
-        x = self.ln1(x)
-        x = F.relu(x)
-        x = F.dropout(x, p=self.p, training=self.training) + r0
-        r1 = x
-
-        # x, _ = self.lstm(x)
-        x = self.main_fc(x)
-        x = self.ln2(x)
-        x = self.fc2(x) + r1
-        x = F.relu(self.ln3(x))
-
-        x_ = torch.concatenate((x, m), dim=2)
-        x = F.tanh(self.combine(x_))
-        x = self.out(x)
-        return x
+        batch_sz = x.shape[0]
+        x = x.reshape(batch_sz, -1)
+        x = F.relu(self.fc1(x))
+        return x.reshape(batch_sz, 2, -1)
