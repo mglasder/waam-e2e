@@ -173,23 +173,25 @@ class ResampledShapePointsDataset(WaamDataset):
         return footprint_idx
 
     def _mirror_dataset(self, inputs, targets, sample_ids, fp_indices):
-        inputs_h = []
-        targets_h = []
-        sample_ids_h = []
-        footprint_idx_h = []
+        inputs_h, targets_h, sample_ids_h, footprint_idx_h = [], [], [], []
 
-        for inpt, target, id_, fp_idx in zip(inputs, targets, sample_ids, fp_indices):
-            inputs_h.append(inpt.flipud())
-            targets_h.append(target.flipud())
+        for inpt, trgt, id_, fp_idx in zip(inputs, targets, sample_ids, fp_indices):
+            inpt_h, trgt_h = map(self._flip_points_tensor, [inpt, trgt])
+            inputs_h.append(inpt_h)
+            targets_h.append(trgt_h)
             footprint_idx_h.append(fp_idx.flipud())
             sample_ids_h.append(id_ + "_hflip")
 
-        inputs_h.extend(inputs)
-        targets_h.extend(targets)
-        sample_ids_h.extend(sample_ids)
-        footprint_idx_h.extend(fp_indices)
+        return (
+            inputs_h.extend(inputs),
+            targets_h.extend(targets),
+            sample_ids_h.extend(sample_ids),
+            footprint_idx_h.extend(fp_indices),
+        )
 
-        return inputs_h, targets_h, sample_ids_h, footprint_idx_h
+    @staticmethod
+    def _flip_points_tensor(data: torch.tensor) -> torch.tensor:
+        return torch.flip(data, dims=(1,))
 
     @staticmethod
     def _get_ids(samples: Samples) -> list[str]:
