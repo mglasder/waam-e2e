@@ -8,18 +8,16 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from e2e.helpers import timing
 
 
-class ModelV2(LightningModule):
+class ModelPoints(LightningModule):
     def __init__(
         self,
         model: nn.Module,
-        device,
         loss=F.mse_loss,
         in_len=90,
         out_len=90,
-        n_outputs=90,
         batch_size=64,
         lr=0.001,
-        mode = "pure",
+        mode="pure",
     ):
         super().__init__()
         self.save_hyperparameters(ignore=["model"])
@@ -31,96 +29,46 @@ class ModelV2(LightningModule):
 
         self.length_in = in_len
         self.length_out = out_len
-        self.n_outputs = n_outputs
 
         self.model = model
-        self.model.apply(self._init_weights)
-
-        self.xs = torch.arange(0, 90).to(self.device) / (90 - 1)
-        self.ts = torch.linspace(0, 1, 90, dtype=torch.float32)
+        # self.model.apply(self._init_weights)
 
         match mode:
             case "pure":
                 assert self.n_outputs == self.length_out
                 self._step = self._step_pure
-            case "hermite":
-                assert self.n_outputs == 2
-                self._step = self._step_hermite
             case _:
                 raise NotImplementedError
 
     @staticmethod
     def _init_weights(m):
-        if type(m) == nn.Conv1d or type(m) == nn.Linear or type(m) == nn.ConvTranspose1d:
+        if type(m) is nn.Linear:
             torch.nn.init.xavier_uniform_(m.weight)
             if m.bias is not None:
                 m.bias.data.fill_(0.01)
 
     def forward(self, x):
-        x = x.view(-1, 1, self.length_in)
+        x = x.view(-1, 2, self.length_in)
         x = self.model(x)
-        return x.view(-1, self.n_outputs)
-
-    @staticmethod
-    def polynomial3(a, b, c, d, xs):
-        y = a * xs**3 + b * xs**2 + c * xs + d
-        return y
-
-    @staticmethod
-    def polynomial4(a, b, c, d, e, xs):
-        y = a * xs**4 + b * xs**3 + c * xs**2 + d * xs + e
-        return y
-
-    @staticmethod
-    def _hermite(p0, p1, m0, m1, ts):
-        t3 = ts**3
-        t2 = ts**2
-        h00 = 2 * t3 - 3 * t2 + 1
-        h10 = t3 - 2 * t2 + ts
-        h01 = -2 * t3 + 3 * t2
-        h11 = t3 - t2
-        return h00 * p0 + h10 * m0 + h01 * p1 + h11 * m1
+        return x.view(-1, 2, self.out_len)
 
     def _step_pure(self, inputs, targets, fp):
         """
         Defines pre- and post processing of model input for train, val, test and predict steps,
         and for predict_with_uncertainty.
         """
-        left = inputs[:, 0][:, None]
-        right = inputs[:, -1][:, None]
-        m = right - left
-        y_corr = self.xs.flipud().to(self.device) * m - right
-        inputs_ = inputs + y_corr
+        # left = inputs[:, 0][:, None]
+        # right = inputs[:, -1][:, None]
+        # m = right - left
+        # y_corr = self.xs.flipud().to(self.device) * m - right
+        # inputs_ = inputs + y_corr
+        #
+        # width = torch.abs(fp[:, 1] - fp[:, 0]).unsqueeze(1) * 0.1
 
-        width = torch.abs(fp[:, 1] - fp[:, 0]).unsqueeze(1) * 0.1
-
-        x = torch.concatenate((inputs_, m / width), dim=1)
-        pred = self(x)
-        out = pred - y_corr
-        return out
-
-    def _step_hermite(self, inputs, targets, fp):
-        left = inputs[:, 0][:, None]
-        right = inputs[:, -1][:, None]
-        m = right - left
-        y_corr = self.xs.flipud().to(self.device) * m - right
-        inputs_ = inputs + y_corr
-
-        width = torch.abs(fp[:, 1] - fp[:, 0]).unsqueeze(1) * 0.1
-
-        x = torch.concatenate((inputs_, m / width), dim=1)
-
-        params = self(x)
-        params_ = params.split(1, dim=1)
-
-        m0 = params_[0]  # .relu() + 0.1
-        m1 = params_[1]  # .relu() + 0.1)
-
-        ts = self.ts.to(self.device)
-        pred = self._hermite(0, 0, m0, m1, ts)
-
-        out = pred - y_corr
-        return out
+        # x = torch.concatenate((inputs_, m / width), dim=1)
+        pred = self(inputs)
+        # out = pred - y_corr
+        return pred
 
     def training_step(self, batch, batch_idx):
         inputs, targets, ids, fp = batch
@@ -185,11 +133,26 @@ class ModelV2(LightningModule):
             return results
 
     def _loss(self, predictions, targets):
-        loss = self.loss(predictions, targets)
-        # diff = torch.abs(predictions - targets)
-        # area_loss = (diff.sum(dim=1) * 0.1 - 14.6)**2
+        """
+        :param predictions: A tensor containing the predicted values. Its shape should be (batch_size, 2, length_out).
+        :param targets: A tensor containing the target values. Its shape should be (batch_size, 2, length_out).
+        :return: A scalar tensor representing the batch mean distance between the predictions and targets.
 
-        return loss  # + area_loss.mean()
+        This method calculates the Euclidean distance between the predictions and targets for each sample in the batch.
+        It then computes the mean distance over the last dimension (individual points) and finally calculates the mean
+        distance over the batch dimension.
+        The resulting batch mean distance is returned as a scalar tensor.
+        """
+        assert predictions.shape == targets.shape and predictions.shape[1:] == (2, self.length_out)
+
+        # compute the Euclidean distances
+        distances = torch.sqrt(torch.sum((predictions - targets) ** 2, dim=1))
+        # compute the mean over the last dimension (individual points)
+        mean_distances = torch.mean(distances, dim=1)
+        # compute the mean over the batch dimension
+        batch_mean_distance = torch.mean(mean_distances)
+
+        return batch_mean_distance
 
     def configure_optimizers(self):
         optimizer = Adam(self.model.parameters(), lr=self.lr, weight_decay=0.01)
