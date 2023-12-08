@@ -1,26 +1,20 @@
-import os
-from datetime import datetime
 from pathlib import Path
-from pprint import pprint
 
-import numpy as np
 import requests
 import torch
 import wandb
-import yaml
 from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.loggers import WandbLogger
 
 from e2e.autogit.autogit import git_add_commit_with
-from e2e.callbacks.metrics import FootprintAvgAbsValErrorLogger, ModHausdorffLogger
+from e2e.callbacks.plotting import PredictionPlotting
 from e2e.data.datamodule import ShapePredictionDataModule
 from e2e.data.loader import EXPERIMENT as EXP
 from e2e.data.loader import SampleLoader
-from e2e.data.resampled import ResampledShapeDataset
-from e2e.mcpredict import McUncertainty
+from e2e.data.resampled import ResampledShapePointsDataset
 from e2e.models.modelV2 import ModelPoints
-from e2e.models.recurrent import LSTM
+from e2e.models.recurrent import ShapePointsModel
 
 # os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 
@@ -32,13 +26,13 @@ VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 DATASET = MAC_DATA_DIR_DEV
 
 SEED = 2345078
-BATCH_SIZE = 4
-MAX_EPOCHS = 10
+BATCH_SIZE = 16
+MAX_EPOCHS = 30
 N_WORKERS = 1
-DEVICE = "cpu"
+DEVICE = "mps"
 
-INPUT_LENGTH = 90
-TARGET_LENGTH = 90
+INPUT_LENGTH = 100
+TARGET_LENGTH = 100
 
 LR = 0.001
 P = 0.6
@@ -49,32 +43,42 @@ LOGGING = True
 AUTOCOMMIT = False
 AUTOCOMMIT_IP = "172.31.1.8"
 
-PROJECT = "waam-e2e-pre"
+PROJECT = "waam-e2e-shape-points"
 
 if torch.cuda.is_available():
     torch.set_float32_matmul_precision("medium")
+
+
+def auto_commit(run_name: str, AUTOCOMMIT_IP: str, note: str):
+    if Path("/home/magnus").exists():
+        message = f"""{run_name}: {note}"""
+        response = requests.post(f"http://{AUTOCOMMIT_IP}:3000/execute", json={"message": message})
+        commit_hash = response.json()["result"]
+    else:
+        commit_hash = git_add_commit_with(message=f"{run_name}")
+    print(f"Commit hash:, {commit_hash}")
+    return commit_hash
 
 
 def main(note: str = ""):
     wandb.init(project=PROJECT)
     config = wandb.config
 
-    config.update({"n_lstm_hidden": 90, "n_lstm_layers": 1})
-    print("Config: \n")
-    pprint(config)
+    # add global params to config
+    config["seed"] = SEED
+    config["input_length"] = INPUT_LENGTH
+    config["target_length"] = TARGET_LENGTH
+    config["batch_size"] = BATCH_SIZE
 
-    lstm = LSTM(
+    points = ShapePointsModel(
         p=P,
         n_input_features=INPUT_LENGTH,
         n_output_features=TARGET_LENGTH,
-        n_outputs=2,
-        n_hidden=config["n_lstm_hidden"],
-        n_layers=config["n_lstm_layers"],
     )
-    lstm.to(DEVICE)
+    points.to(DEVICE)
 
     model = ModelPoints(
-        model=lstm,
+        model=points,
         batch_size=BATCH_SIZE,
         lr=LR,
         in_len=INPUT_LENGTH,
@@ -96,7 +100,7 @@ def main(note: str = ""):
 
     if LOGGING:
         logger = WandbLogger(project=PROJECT, log_model="all")
-        logger.watch(model.model)
+        # logger.watch(model.model)
         run_name = logger.experiment.name
         logger.experiment.notes = note
 
@@ -105,17 +109,7 @@ def main(note: str = ""):
         run_name = None
 
     if AUTOCOMMIT and LOGGING and not DEV_RUN:
-        # TODO: wrap everything in its own class
-        # check whether remote or local machine
-        if Path("/home/magnus").exists():
-            message = f"""{run_name}: {note}"""
-            response = requests.post(f"http://{AUTOCOMMIT_IP}:3000/execute", json={"message": message})
-            commit_hash = response.json()["result"]
-
-        else:
-            commit_hash = git_add_commit_with(message=f"{run_name}")
-
-        print(f"Commit hash:, {commit_hash}")
+        commit_hash = auto_commit(run_name, AUTOCOMMIT_IP, note)
         logger.experiment.config.update({"commit": commit_hash})
 
     loader = SampleLoader(sample_dir=DATASET)
@@ -124,7 +118,7 @@ def main(note: str = ""):
         batch_size=BATCH_SIZE,
         data_dir=DATASET,
         workers=N_WORKERS,
-        dataset=ResampledShapeDataset(mirror=MIRROR, segment_length=TARGET_LENGTH),
+        dataset=ResampledShapePointsDataset(mirror=MIRROR, segment_length=TARGET_LENGTH),
         split=split,
         data_fraction=1.0,
         train_val_sets=train_val_sets,
@@ -146,9 +140,9 @@ def main(note: str = ""):
                 save_on_train_epoch_end=False,
             )
         )
-        # callbacks.append(PredictionPlotting(epochs=[]))
-        callbacks.append(FootprintAvgAbsValErrorLogger(footprint_is_absolute=True))
-        callbacks.append(ModHausdorffLogger())
+        callbacks.append(PredictionPlotting(epochs=[0, 10, 20]))
+        # callbacks.append(FootprintAvgAbsValErrorLogger(footprint_is_absolute=True))
+        # callbacks.append(ModHausdorffLogger())
         # callbacks.append(LogModelParametersAndGradients())
 
     trainer = Trainer(
@@ -161,49 +155,50 @@ def main(note: str = ""):
     )
     trainer.fit(model=model, datamodule=datamodule)
 
-    val_data_loader = datamodule.val_dataloader()
-    train_data_loader = datamodule.train_dataloader()
-    test_data_loader = datamodule.test_dataloader()
-
-    # get best model path
-    model_path = trainer.checkpoint_callback.best_model_path
-    print(model_path)
-    best_model = ModelPoints.load_from_checkpoint(model=lstm, checkpoint_path=model_path)
-    best_model.to("cpu")
-
-    mc = McUncertainty(best_model, train_data_loader, val_data_loader, test_dataloader=test_data_loader, logger=logger)
-    mc.predict()
-    mc.calibrate(strategy="temperature_scaling")
-    # mc.plot_predictions("train", log=LOGGING, take=20)
-    mc.plot_predictions("val", log=LOGGING, take=20)
-    mc.plot_predictions("test", log=LOGGING, take=None)
+    # val_data_loader = datamodule.val_dataloader()
+    # train_data_loader = datamodule.train_dataloader()
+    # test_data_loader = datamodule.test_dataloader()
     #
-    names = ["mean_predictions", "uncertainties_calib", "xs", "ys", "ids", "temperatures"]
-    # date and time up to seconds
-    now = datetime.now().strftime("%Y%m%d-%H%M%S")
-    os.mkdir(Path(f"outputs/mc/{now}-{run_name}"))
-
-    # create directory
-    for name in names:
-        items = np.array(mc._uncertainty_preds["test"][name])
-        if name == "ids":
-            np.savetxt(f"outputs/mc/{now}-{run_name}/{name}.csv", items, delimiter=",", fmt="%s")
-        else:
-            np.savetxt(f"outputs/mc/{now}-{run_name}/{name}.csv", items, delimiter=",")
-
-    logger.experiment.finish()
+    # # get best model path
+    # model_path = trainer.checkpoint_callback.best_model_path
+    # print(model_path)
+    # best_model = ModelPoints.load_from_checkpoint(model=lstm, checkpoint_path=model_path)
+    # best_model.to("cpu")
+    #
+    # mc = McUncertainty(best_model, train_data_loader, val_data_loader, test_dataloader=test_data_
+    # loader, logger=logger)
+    # mc.predict()
+    # mc.calibrate(strategy="temperature_scaling")
+    # # mc.plot_predictions("train", log=LOGGING, take=20)
+    # mc.plot_predictions("val", log=LOGGING, take=20)
+    # mc.plot_predictions("test", log=LOGGING, take=None)
+    # #
+    # names = ["mean_predictions", "uncertainties_calib", "xs", "ys", "ids", "temperatures"]
+    # # date and time up to seconds
+    # now = datetime.now().strftime("%Y%m%d-%H%M%S")
+    # os.mkdir(Path(f"outputs/mc/{now}-{run_name}"))
+    #
+    # # create directory
+    # for name in names:
+    #     items = np.array(mc._uncertainty_preds["test"][name])
+    #     if name == "ids":
+    #         np.savetxt(f"outputs/mc/{now}-{run_name}/{name}.csv", items, delimiter=",", fmt="%s")
+    #     else:
+    #         np.savetxt(f"outputs/mc/{now}-{run_name}/{name}.csv", items, delimiter=",")
+    #
+    # logger.experiment.finish()
 
     # run_e2e_prediction(best_model, DEVICE)
 
 
 if __name__ == "__main__":
-    # if LOGGING:
-    #     note = input("Enter run note: ")
-    # else:
-    #     note = ""
-    #
-    # main(note=note)
+    if LOGGING:
+        note = input("Enter run note: ")
+    else:
+        note = ""
 
-    sweep_config = yaml.safe_load((open("sweep-config.yaml", "r")))
-    sweep_id = wandb.sweep(sweep_config, project=PROJECT)
-    wandb.agent(sweep_id, function=main, project=PROJECT)
+    main(note=note)
+
+    # sweep_config = yaml.safe_load((open("sweep-config.yaml", "r")))
+    # sweep_id = wandb.sweep(sweep_config, project=PROJECT)
+    # wandb.agent(sweep_id, function=main, project=PROJECT)
