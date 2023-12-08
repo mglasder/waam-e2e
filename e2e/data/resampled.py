@@ -182,12 +182,12 @@ class ResampledShapePointsDataset(WaamDataset):
             footprint_idx_h.append(fp_idx.flipud())
             sample_ids_h.append(id_ + "_hflip")
 
-        return (
-            inputs_h.extend(inputs),
-            targets_h.extend(targets),
-            sample_ids_h.extend(sample_ids),
-            footprint_idx_h.extend(fp_indices),
-        )
+        inputs_h.extend(inputs)
+        targets_h.extend(targets)
+        sample_ids_h.extend(sample_ids)
+        footprint_idx_h.extend(fp_indices)
+
+        return inputs_h, targets_h, sample_ids_h, footprint_idx_h
 
     @staticmethod
     def _flip_points_tensor(data: torch.tensor) -> torch.tensor:
@@ -203,8 +203,7 @@ class ResampledShapePointsDataset(WaamDataset):
 
     def _get_resampled_segment_heights(self, points, fp_idx: torch.tensor) -> torch.Tensor:
         """resamples the segment between footprint edges to be of length self._seg_len"""
-        left = fp_idx[0]
-        right = fp_idx[1]
+        left, right = fp_idx[0], fp_idx[1]
 
         zs = np.array([p.y[0] for p in points])[left:right]
         xs = np.arange(0, len(zs)) / 10
@@ -214,7 +213,8 @@ class ResampledShapePointsDataset(WaamDataset):
         xs_new = np.linspace(0, (len(zs) - 1) / 10, self._seg_len)
         zs_new = f(xs_new)
 
-        return torch.stack([zs_new, xs_new], dtype=torch.float32)
+        f32 = torch.float32
+        return torch.stack([torch.tensor(zs_new, dtype=f32), torch.tensor(xs_new, dtype=f32)])
 
 
 class ResampledE2EDataset(ResampledShapeDataset):
