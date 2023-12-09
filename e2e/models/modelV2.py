@@ -35,7 +35,6 @@ class ModelPoints(LightningModule):
 
         match mode:
             case "pure":
-                assert self.n_outputs == self.length_out
                 self._step = self._step_pure
             case _:
                 raise NotImplementedError
@@ -48,9 +47,8 @@ class ModelPoints(LightningModule):
                 m.bias.data.fill_(0.01)
 
     def forward(self, x):
-        x = x.view(-1, 2, self.length_in)
         x = self.model(x)
-        return x.view(-1, 2, self.out_len)
+        return x
 
     def _step_pure(self, inputs, targets, fp):
         """
