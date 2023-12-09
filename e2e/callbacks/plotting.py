@@ -15,17 +15,17 @@ class PredictionPlotting(Callback):
     def on_train_batch_end(self, trainer: Trainer, pl_module: LightningModule, outputs, batch, batch_idx: int):
         final_epoch = trainer.max_epochs - 1
         if self._should_log_predictions(trainer.current_epoch, final_epoch):
-            self._log_predictions(trainer, outputs)
+            self._log_predictions(trainer, outputs, stage="train")
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx=0):
         final_epoch = trainer.max_epochs - 1
         if self._should_log_predictions(trainer.current_epoch, final_epoch):
-            self._log_predictions(trainer, outputs)
+            self._log_predictions(trainer, outputs, stage="val")
 
     def _should_log_predictions(self, current_epoch: int, final_epoch: int) -> bool:
         return (current_epoch == final_epoch) or (current_epoch in self.epochs)
 
-    def _log_predictions(self, trainer: Trainer, outputs: Any, stage="train"):
+    def _log_predictions(self, trainer: Trainer, outputs: Any, stage: str) -> None:
         images, captions = [], []
         loss = self._convert_to_numpy(outputs["loss"])
 

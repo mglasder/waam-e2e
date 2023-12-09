@@ -27,8 +27,8 @@ DATASET = MAC_DATA_DIR_DEV
 
 SEED = 2345078
 BATCH_SIZE = 16
-MAX_EPOCHS = 30
-N_WORKERS = 1
+MAX_EPOCHS = 50
+N_WORKERS = 2
 DEVICE = "mps"
 
 INPUT_LENGTH = 100
@@ -140,7 +140,7 @@ def main(note: str = ""):
                 save_on_train_epoch_end=False,
             )
         )
-        callbacks.append(PredictionPlotting(epochs=[0, 10, 20]))
+        callbacks.append(PredictionPlotting(epochs=[0, 10, 20, 30, 40]))
         # callbacks.append(FootprintAvgAbsValErrorLogger(footprint_is_absolute=True))
         # callbacks.append(ModHausdorffLogger())
         # callbacks.append(LogModelParametersAndGradients())

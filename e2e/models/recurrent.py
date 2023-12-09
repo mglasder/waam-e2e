@@ -70,10 +70,22 @@ class ShapePointsModel(nn.Module):
     ):
         super().__init__()
 
-        self.fc1 = nn.Linear(2 * n_input_features, 2 * n_output_features)
+        self.fc1 = nn.Linear(2 * n_input_features, 4 * n_output_features, bias=True)
+        self.fc2 = nn.Linear(4 * n_input_features, 2 * n_output_features, bias=True)
+
+        self.apply(self._init_weights)
+
+    def _init_weights(self, m):
+        if isinstance(m, nn.Linear):
+            nn.init.xavier_uniform_(m.weight)
+            if m.bias is not None:
+                m.bias.data.fill_(3.0)
 
     def forward(self, x):
         batch_sz = x.shape[0]
+        r = x
         x = x.reshape(batch_sz, -1)
-        x = F.relu(self.fc1(x))
+        x = self.fc1(x)
+        x = F.tanh(F.dropout(x, p=self.p, training=self.training)) + r
+        x = self.fc2(x)
         return x.reshape(batch_sz, 2, -1)
