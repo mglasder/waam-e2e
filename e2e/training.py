@@ -23,13 +23,13 @@ MAC_DATA_DIR_DEV = Path("/Users/magnus/datasets/WAAM/TrainingDev")
 VM_DATA_DIR = Path("/home/magnus/datasets/waam/30_processing_results/ImageGenerator")
 VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 
-DATASET = MAC_DATA_DIR_DEV
+DATASET = VM_DATA_DIR
 
 SEED = 2345078
-BATCH_SIZE = 16
-MAX_EPOCHS = 50
-N_WORKERS = 2
-DEVICE = "mps"
+BATCH_SIZE = 64
+MAX_EPOCHS = 100
+N_WORKERS = 4
+DEVICE = "cuda"
 
 INPUT_LENGTH = 100
 TARGET_LENGTH = 100
@@ -40,7 +40,7 @@ P = 0.6
 MIRROR = True
 DEV_RUN = False
 LOGGING = True
-AUTOCOMMIT = False
+AUTOCOMMIT = True
 AUTOCOMMIT_IP = "172.31.1.8"
 
 PROJECT = "waam-e2e-shape-points"
