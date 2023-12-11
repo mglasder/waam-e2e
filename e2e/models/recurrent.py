@@ -69,6 +69,7 @@ class ShapePointsModel(nn.Module):
         n_output_features=100,
     ):
         super().__init__()
+        self.p = p
 
         self.fc1 = nn.Linear(2 * n_input_features, 4 * n_output_features, bias=True)
         self.fc2 = nn.Linear(4 * n_input_features, 2 * n_output_features, bias=True)
