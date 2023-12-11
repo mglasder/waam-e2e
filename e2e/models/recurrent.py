@@ -85,8 +85,8 @@ class ShapePointsModel(nn.Module):
     def forward(self, x):
         batch_sz = x.shape[0]
         x = x.reshape(batch_sz, -1)
-        r = x
+        # r = x
         x = self.fc1(x)
-        x = F.tanh(F.dropout(x, p=self.p, training=self.training)) + r
+        x = F.tanh(F.dropout(x, p=self.p, training=self.training))  # + r
         x = self.fc2(x)
         return x.reshape(batch_sz, 2, -1)
