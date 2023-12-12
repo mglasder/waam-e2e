@@ -206,10 +206,7 @@ class ResampledShapePointsDataset(WaamDataset):
     def _get_resampled_segment_heights(self, points: Mesh2D, fp_idx: torch.tensor) -> torch.Tensor:
         """resamples the segment between footprint edges to be of length self._seg_len"""
         left, right = fp_idx[0], fp_idx[1]
-        (
-            xs,
-            zs,
-        ) = (
+        (xs, zs,) = (
             points.xs[left:right],
             points.ys[left:right],
         )
