@@ -81,9 +81,7 @@ class ShapePointsModel(nn.Module):
         if isinstance(m, nn.Linear):
             nn.init.xavier_uniform_(m.weight)
             if m.bias is not None:
-                # m.bias.data.fill_(1.5)
-                with torch.no_grad():
-                    m.bias.copy_(torch.linspace(0.1, 8.0, steps=m.bias.size(0)))
+                m.bias.data.fill_(3.0)
 
     def forward(self, x):
         batch_sz = x.shape[0]
