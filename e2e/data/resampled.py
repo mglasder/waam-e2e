@@ -5,6 +5,8 @@ import torch
 from scipy.interpolate import interp1d
 
 from e2e.data.dataset import IDs, LineSegmentZ, Samples, WaamDataset
+from e2e.data.sample import Mesh2D
+from e2e.helpers.resample import interp_equidistant
 
 
 class ResampledShapeDataset(WaamDataset):
@@ -201,17 +203,18 @@ class ResampledShapePointsDataset(WaamDataset):
             ids.append(id_)
         return ids
 
-    def _get_resampled_segment_heights(self, points, fp_idx: torch.tensor) -> torch.Tensor:
+    def _get_resampled_segment_heights(self, points: Mesh2D, fp_idx: torch.tensor) -> torch.Tensor:
         """resamples the segment between footprint edges to be of length self._seg_len"""
         left, right = fp_idx[0], fp_idx[1]
+        (
+            xs,
+            zs,
+        ) = (
+            points.xs[left:right],
+            points.ys[left:right],
+        )
 
-        zs = np.array([p.y[0] for p in points])[left:right]
-        xs = np.arange(0, len(zs)) / 10
-
-        # resample
-        f = interp1d(xs, zs, kind="linear")
-        xs_new = np.linspace(0, (len(zs) - 1) / 10, self._seg_len)
-        zs_new = f(xs_new)
+        xs_new, zs_new = interp_equidistant(xs, zs, num_points=100)
 
         f32 = torch.float32
         return torch.stack([torch.tensor(zs_new, dtype=f32), torch.tensor(xs_new, dtype=f32)])
