@@ -42,6 +42,7 @@ DEV_RUN = False
 LOGGING = True
 AUTOCOMMIT = True
 AUTOCOMMIT_IP = "172.31.1.8"
+CHECKPOINTING_ENABLED = False
 
 PROJECT = "waam-e2e-shape-points"
 
@@ -100,7 +101,7 @@ def main(note: str = ""):
 
     if LOGGING:
         logger = WandbLogger(project=PROJECT, log_model="all")
-        # logger.watch(model.model)
+        logger.watch(model.model, log="all")  # log gradients and params
         run_name = logger.experiment.name
         logger.experiment.notes = note
 
@@ -131,15 +132,16 @@ def main(note: str = ""):
     if logger is not None:
         # callbacks.append(EarlyStopping(monitor="val_loss", patience=10, min_delta=0.001, mode="min"))
         # callbacks.append(PredictionPlotting(epochs=[]))
-        callbacks.append(
-            ModelCheckpoint(
-                every_n_epochs=5,
-                monitor="val_loss",
-                mode="min",
-                auto_insert_metric_name=True,
-                save_on_train_epoch_end=False,
+        if CHECKPOINTING_ENABLED:
+            callbacks.append(
+                ModelCheckpoint(
+                    every_n_epochs=5,
+                    monitor="val_loss",
+                    mode="min",
+                    auto_insert_metric_name=True,
+                    save_on_train_epoch_end=False,
+                )
             )
-        )
         callbacks.append(PredictionPlotting(epochs=[0, 10, 20, 30, 40]))
         # callbacks.append(FootprintAvgAbsValErrorLogger(footprint_is_absolute=True))
         # callbacks.append(ModHausdorffLogger())
@@ -148,7 +150,7 @@ def main(note: str = ""):
     trainer = Trainer(
         max_epochs=MAX_EPOCHS,
         logger=logger,
-        enable_checkpointing=True,
+        enable_checkpointing=CHECKPOINTING_ENABLED,
         accelerator=DEVICE,
         callbacks=callbacks,
         log_every_n_steps=5,

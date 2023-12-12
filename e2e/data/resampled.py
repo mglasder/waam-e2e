@@ -159,7 +159,7 @@ class ResampledShapePointsDataset(WaamDataset):
     def _extract_targets(self, samples: Samples, fp_indices: list[torch.tensor]) -> list[LineSegmentZ]:
         targets = []
         for s, fp_idx in zip(samples, fp_indices):
-            zs = self._get_resampled_segment_heights(s.slice_based_after.points, fp_idx)
+            zs = self._get_resampled_segment_heights(s.slice_based_after, fp_idx)
             targets.append(zs)
 
         return targets
