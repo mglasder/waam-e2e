@@ -59,9 +59,9 @@ class PredictionPlotting(Callback):
         pred_np, trgt_np, inpt_np = map(self._convert_to_numpy, [pred, trgt, inpt])
 
         fig, ax = plt.subplots()
-        ax.plot(trgt_np[1, :], trgt_np[0, :], marker="s", s=2, color="blue", label="target (after)")
-        ax.plot(pred_np[1, :], pred_np[0, :], marker="*", s=2, color="red", label="pred")
-        ax.plot(inpt_np[1, :], inpt_np[0, :], marker=".", s=2, color="black", label="input (before)")
+        ax.plot(trgt_np[1, :], trgt_np[0, :], marker="s", markersize=2, color="blue", label="target (after)")
+        ax.plot(pred_np[1, :], pred_np[0, :], marker="*", markersize=2, color="red", label="pred")
+        ax.plot(inpt_np[1, :], inpt_np[0, :], marker=".", markersize=2, color="black", label="input (before)")
 
         caption = f"{stage} sample: {id_} - epoch: {epoch} \n batch_loss: {batch_loss:.4f}"
         ax.set_title(caption)
