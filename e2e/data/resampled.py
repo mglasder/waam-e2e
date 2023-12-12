@@ -151,16 +151,16 @@ class ResampledShapePointsDataset(WaamDataset):
     def _extract_inputs(self, samples: Samples, fp_indices: list[torch.tensor]) -> list[LineSegmentZ]:
         inputs = []
         for s, fp_idx in zip(samples, fp_indices):
-            zs = self._get_resampled_segment_heights(s.slice_based_before, fp_idx)
-            inputs.append(zs)
+            ps = self._get_resampled_segment_points(s.slice_based_before, fp_idx)
+            inputs.append(ps)
 
         return inputs
 
     def _extract_targets(self, samples: Samples, fp_indices: list[torch.tensor]) -> list[LineSegmentZ]:
         targets = []
         for s, fp_idx in zip(samples, fp_indices):
-            zs = self._get_resampled_segment_heights(s.slice_based_after, fp_idx)
-            targets.append(zs)
+            ps = self._get_resampled_segment_points(s.slice_based_after, fp_idx)
+            targets.append(ps)
 
         return targets
 
@@ -203,13 +203,14 @@ class ResampledShapePointsDataset(WaamDataset):
             ids.append(id_)
         return ids
 
-    def _get_resampled_segment_heights(self, points: Mesh2D, fp_idx: torch.tensor) -> torch.Tensor:
+    @staticmethod
+    def _get_resampled_segment_points(points: Mesh2D, fp_idx: torch.tensor) -> torch.Tensor:
         """resamples the segment between footprint edges to be of length self._seg_len"""
         left, right = fp_idx[0], fp_idx[1]
-        (xs, zs,) = (
-            points.xs[left:right],
-            points.ys[left:right],
-        )
+        zs = points.ys[left:right]
+        # xs_ = points.xs[left:right]
+        # TODO: manage to get correct xs here from sample alsoe for new (fake) data
+        xs = np.arange(0, len(zs)) / 10
 
         xs_new, zs_new = interp_equidistant(xs, zs, num_points=100)
 

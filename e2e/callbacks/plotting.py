@@ -65,7 +65,9 @@ class PredictionPlotting(Callback):
 
         caption = f"{stage} sample: {id_} - epoch: {epoch} \n batch_loss: {batch_loss:.4f}"
         ax.set_title(caption)
+        # ax.aspect("equal")
         ax.legend()
+
         return fig, caption
 
     @staticmethod
