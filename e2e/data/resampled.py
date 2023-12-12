@@ -151,7 +151,7 @@ class ResampledShapePointsDataset(WaamDataset):
     def _extract_inputs(self, samples: Samples, fp_indices: list[torch.tensor]) -> list[LineSegmentZ]:
         inputs = []
         for s, fp_idx in zip(samples, fp_indices):
-            zs = self._get_resampled_segment_heights(s.slice_based_before.points, fp_idx)
+            zs = self._get_resampled_segment_heights(s.slice_based_before, fp_idx)
             inputs.append(zs)
 
         return inputs
