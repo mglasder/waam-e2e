@@ -27,14 +27,14 @@ DATASET = VM_DATA_DIR_DEV
 
 SEED = 2345078
 BATCH_SIZE = 64
-MAX_EPOCHS = 50
+MAX_EPOCHS = 80
 N_WORKERS = 2
 DEVICE = "cuda"
 
 INPUT_LENGTH = 100
 TARGET_LENGTH = 100
 
-LR = 0.001
+LR = 0.003
 P = 0.0
 
 MIRROR = True
@@ -70,6 +70,8 @@ def main(note: str = ""):
     config["input_length"] = INPUT_LENGTH
     config["target_length"] = TARGET_LENGTH
     config["batch_size"] = BATCH_SIZE
+    config["p"] = P
+    config["mirror"] = MIRROR
 
     points = ShapePointsModel(
         p=P,
@@ -142,7 +144,7 @@ def main(note: str = ""):
                     save_on_train_epoch_end=False,
                 )
             )
-        callbacks.append(PredictionPlotting(epochs=[0, 10, 20, 30, 40]))
+        callbacks.append(PredictionPlotting(epochs=[0, 20, 40]))
         # callbacks.append(FootprintAvgAbsValErrorLogger(footprint_is_absolute=True))
         # callbacks.append(ModHausdorffLogger())
         # callbacks.append(LogModelParametersAndGradients())
