@@ -77,6 +77,7 @@ class CrossSectionSample(Aggregate):
 
     footprint: Optional[FootprintEdge]
     footprint_based: Optional[FootprintEdge]
+    footprint_after: Optional[FootprintEdge]
 
     area: Optional[float]
     torchposition: Optional[TorchPosition]

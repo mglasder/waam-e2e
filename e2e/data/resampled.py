@@ -136,8 +136,10 @@ class ResampledShapePointsDataset(WaamDataset):
 
     def create(self, samples: Samples) -> WaamDataset:
         fp_indices = self._extract_footprint_idx(samples)
+        # TODO: Get rid of hack: using different fp index for after in case of simulated data
+        fp_indices_after = self._extract_footprint_idx_after(samples)
         inputs = self._extract_inputs(samples, fp_indices)
-        targets = self._extract_targets(samples, fp_indices)
+        targets = self._extract_targets(samples, fp_indices, fp_indices_after)
         ids = self._get_ids(samples)
 
         if self.mirror:
@@ -148,18 +150,28 @@ class ResampledShapePointsDataset(WaamDataset):
 
         return self
 
+    # TODO: unify the two below functions
     def _extract_inputs(self, samples: Samples, fp_indices: list[torch.tensor]) -> list[LineSegmentZ]:
         inputs = []
         for s, fp_idx in zip(samples, fp_indices):
-            ps = self._get_resampled_segment_points(s.slice_based_before, fp_idx)
+            if "Simulation" in s.experiment:
+                ps = self._get_resampled_segment_points_sim_data(s.slice_based_before, fp_idx)
+            else:
+                ps = self._get_resampled_segment_points(s.slice_based_before, fp_idx)
             inputs.append(ps)
 
         return inputs
 
-    def _extract_targets(self, samples: Samples, fp_indices: list[torch.tensor]) -> list[LineSegmentZ]:
+    def _extract_targets(
+        self, samples: Samples, fp_indices_before: list[torch.tensor], fp_indices_after: list[torch.tensor]
+    ) -> list[LineSegmentZ]:
         targets = []
-        for s, fp_idx in zip(samples, fp_indices):
-            ps = self._get_resampled_segment_points(s.slice_based_after, fp_idx)
+        for s, fp_idx_b, fp_idx_a in zip(samples, fp_indices_before, fp_indices_after):
+            if "Simulation" in s.experiment:
+                # using footprint index of after because they are not the same index anymore
+                ps = self._get_resampled_segment_points_sim_data(s.slice_based_after, fp_idx_a)
+            else:
+                ps = self._get_resampled_segment_points(s.slice_based_after, fp_idx_b)
             targets.append(ps)
 
         return targets
@@ -169,6 +181,20 @@ class ResampledShapePointsDataset(WaamDataset):
         footprint_idx = []
         for s in samples:
             footprint = s.footprint_based
+            left = footprint.left_idx
+            right = footprint.right_idx
+            footprint_idx.append(torch.tensor([left, right]))
+        return footprint_idx
+
+    @staticmethod
+    def _extract_footprint_idx_after(samples: Samples) -> list[torch.tensor]:
+        footprint_idx = []
+        for s in samples:
+            if "Simulation" in s.experiment:
+                footprint = s.footprint_after
+            else:
+                footprint = s.footprint_based
+
             left = footprint.left_idx
             right = footprint.right_idx
             footprint_idx.append(torch.tensor([left, right]))
@@ -203,16 +229,44 @@ class ResampledShapePointsDataset(WaamDataset):
             ids.append(id_)
         return ids
 
-    @staticmethod
-    def _get_resampled_segment_points(points: Mesh2D, fp_idx: torch.tensor) -> torch.Tensor:
-        """resamples the segment between footprint edges to be of length self._seg_len"""
+    def _get_resampled_segment_points(self, points: Mesh2D, fp_idx: torch.tensor) -> torch.Tensor:
+        """
+        Get and resamples a segment of points on the Mesh2D object.
+
+        :param points: The Mesh2D object containing the points.
+        :type points: Mesh2D
+        :param fp_idx: The indices of the first and last point of the segment to resample as a torch.Tensor of size (2,).
+        :type fp_idx: torch.Tensor
+        :return: The resampled segment points as a torch.Tensor of size (2, num_points).
+        :rtype: torch.Tensor
+        """
         left, right = fp_idx[0], fp_idx[1]
         zs = points.ys[left:right]
-        # xs_ = points.xs[left:right]
-        # TODO: manage to get correct xs here from sample alsoe for new (fake) data
+        # TODO: manage to get correct xs here from sample
         xs = np.arange(0, len(zs)) / 10
+        xs_new, zs_new = interp_equidistant(xs, zs, num_points=self._seg_len)
 
-        xs_new, zs_new = interp_equidistant(xs, zs, num_points=100)
+        f32 = torch.float32
+        return torch.stack([torch.tensor(zs_new, dtype=f32), torch.tensor(xs_new, dtype=f32)])
+
+    def _get_resampled_segment_points_sim_data(self, points: Mesh2D, fp_idx: torch.tensor) -> torch.Tensor:
+        # TODO: unify this function and the one above
+        """
+        Get and resamples a segment of points on the Mesh2D object for simulation data.
+
+        :param points: The Mesh2D object containing the points.
+        :type points: Mesh2D
+        :param fp_idx: The indices of the first and last point of the segment to resample as a torch.Tensor of size (2,).
+        :type fp_idx: torch.Tensor
+        :return: The resampled segment points as a torch.Tensor of size (2, num_points).
+        :rtype: torch.Tensor
+        """
+
+        left, right = fp_idx[0], fp_idx[1]
+        zs = points.ys[left:right]
+        xs = points.xs[left:right]
+        xs0 = xs[0]
+        xs_new, zs_new = interp_equidistant(xs - xs0, zs, num_points=self._seg_len)
 
         f32 = torch.float32
         return torch.stack([torch.tensor(zs_new, dtype=f32), torch.tensor(xs_new, dtype=f32)])

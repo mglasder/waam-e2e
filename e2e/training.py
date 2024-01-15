@@ -13,26 +13,26 @@ from e2e.data.datamodule import ShapePredictionDataModule
 from e2e.data.loader import EXPERIMENT as EXP
 from e2e.data.loader import SampleLoader
 from e2e.data.resampled import ResampledShapePointsDataset
-from e2e.models.modelV2 import ModelPoints
 from e2e.models.recurrent import ShapePointsModel
 
 # os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 
 # NAS_DATA_DIR_DEV = Path("/Volumes/hornets/homes/mglasder/datasets/TrainingDev")
 MAC_DATA_DIR_DEV = Path("/Users/magnus/datasets/WAAM/TrainingDev")
+MAC_DATA_DIR_DEV_SIM = Path("/Users/magnus/datasets/WAAM/TrainingDev+Sim")
 VM_DATA_DIR = Path("/home/magnus/datasets/waam/30_processing_results/ImageGenerator")
 VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 
-DATASET = VM_DATA_DIR_DEV
+DATASET = MAC_DATA_DIR_DEV_SIM
 
 SEED = 2345078
-BATCH_SIZE = 64
-MAX_EPOCHS = 100
+BATCH_SIZE = 16
+MAX_EPOCHS = 50
 N_WORKERS = 2
-DEVICE = "cuda"
+DEVICE = "mps"
 
-INPUT_LENGTH = 100
-TARGET_LENGTH = 100
+INPUT_LENGTH = 50
+TARGET_LENGTH = 50
 
 LR = 0.005
 P = 0.0
@@ -40,7 +40,7 @@ P = 0.0
 MIRROR = True
 DEV_RUN = False
 LOGGING = True
-AUTOCOMMIT = True
+AUTOCOMMIT = False
 AUTOCOMMIT_IP = "172.31.1.8"
 CHECKPOINTING_ENABLED = False
 
@@ -80,7 +80,7 @@ def main(note: str = ""):
     )
     points.to(DEVICE)
 
-    model = ModelPoints(
+    model = ModelPxoints(
         model=points,
         batch_size=BATCH_SIZE,
         lr=LR,
@@ -98,12 +98,12 @@ def main(note: str = ""):
 
     else:
         split = [0.7, 0.3, 0]
-        train_val_sets = [EXP.CONSTANT_EX3, EXP.CONSTANT_EX4, EXP.RANDOM_EX3, EXP.RANDOM_EX5]
+        train_val_sets = [EXP.CONSTANT_EX3, EXP.CONSTANT_EX4, EXP.RANDOM_EX3, EXP.RANDOM_EX5, EXP.SIMULATION_CUBE01]
         separate_test_set = EXP.RANDOM_EX6
 
     if LOGGING:
         logger = WandbLogger(project=PROJECT, log_model="all")
-        logger.watch(model.model, log="all")  # log gradients and params
+        # logger.watch(model.model, log="all")  # log gradients and params
         run_name = logger.experiment.name
         logger.experiment.notes = note
 

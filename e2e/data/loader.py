@@ -16,6 +16,7 @@ class EXPERIMENT(Enum):
     RANDOM_EX3 = "Random_Ex3_02032022"
     RANDOM_EX5 = "Random_EX5_08032022"
     RANDOM_EX6 = "Random_Ex6_09032022"
+    SIMULATION_CUBE01 = "Simulation_Cube01"
 
 
 class SampleLoader:
