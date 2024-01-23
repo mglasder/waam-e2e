@@ -48,20 +48,21 @@ class Plotter:
     def plot_e2e(predictions, labels, ground_truth, title: str):
         fig, ax = plt.subplots(figsize=(15, 5), dpi=600)
         for i in range(len(predictions)):
-            pred = predictions[i][200:901]
+            pred = predictions[i]
             y = pred  # - np.mean(pred[130:150])
             xa = np.arange(0, len(y)) / 10
+            xa = xa - xa.max() / 2
             color = "red" if labels[i] == 1 else "blue"
             ax.plot(xa, y, color=color, alpha=1, ls="-", linewidth=1)
 
             if ground_truth:
-                t = ground_truth[i][200:901]
+                t = ground_truth[i]
                 y_true = t - np.mean(t[:40])
                 xb = np.arange(0, len(y_true)) / 10
                 ax.plot(xb, y_true, color="black", alpha=1, ls="-", linewidth=0.8)
 
-        ax.set_ylim(0, 22)
-        ax.set_xlim(0, 70)
+        # ax.set_ylim(0, 25)
+        # ax.set_xlim(-2, 50)
         ax.set_title(title)
         ax.set_aspect("equal")
 

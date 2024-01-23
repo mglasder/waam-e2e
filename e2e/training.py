@@ -13,6 +13,7 @@ from e2e.data.datamodule import ShapePredictionDataModule
 from e2e.data.loader import EXPERIMENT as EXP
 from e2e.data.loader import SampleLoader
 from e2e.data.resampled import ResampledShapePointsDataset
+from e2e.models.modelV2 import ModelPoints
 from e2e.models.recurrent import ShapePointsModel
 
 # os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
@@ -23,13 +24,13 @@ MAC_DATA_DIR_DEV_SIM = Path("/Users/magnus/datasets/WAAM/TrainingDev+Sim")
 VM_DATA_DIR = Path("/home/magnus/datasets/waam/30_processing_results/ImageGenerator")
 VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 
-DATASET = MAC_DATA_DIR_DEV_SIM
+DATASET = VM_DATA_DIR
 
 SEED = 2345078
-BATCH_SIZE = 16
-MAX_EPOCHS = 50
+BATCH_SIZE = 32
+MAX_EPOCHS = 100
 N_WORKERS = 2
-DEVICE = "mps"
+DEVICE = "cuda"
 
 INPUT_LENGTH = 50
 TARGET_LENGTH = 50
@@ -42,7 +43,7 @@ DEV_RUN = False
 LOGGING = True
 AUTOCOMMIT = False
 AUTOCOMMIT_IP = "172.31.1.8"
-CHECKPOINTING_ENABLED = False
+CHECKPOINTING_ENABLED = True
 
 PROJECT = "waam-e2e-shape-points"
 
@@ -80,7 +81,7 @@ def main(note: str = ""):
     )
     points.to(DEVICE)
 
-    model = ModelPxoints(
+    model = ModelPoints(
         model=points,
         batch_size=BATCH_SIZE,
         lr=LR,
@@ -137,14 +138,14 @@ def main(note: str = ""):
         if CHECKPOINTING_ENABLED:
             callbacks.append(
                 ModelCheckpoint(
-                    every_n_epochs=5,
+                    every_n_epochs=20,
                     monitor="val_loss",
                     mode="min",
                     auto_insert_metric_name=True,
                     save_on_train_epoch_end=False,
                 )
             )
-        callbacks.append(PredictionPlotting(epochs=[0, 20, 40]))
+        callbacks.append(PredictionPlotting(epochs=[]))
         # callbacks.append(FootprintAvgAbsValErrorLogger(footprint_is_absolute=True))
         # callbacks.append(ModHausdorffLogger())
         # callbacks.append(LogModelParametersAndGradients())
@@ -164,10 +165,13 @@ def main(note: str = ""):
     # test_data_loader = datamodule.test_dataloader()
     #
     # # get best model path
-    # model_path = trainer.checkpoint_callback.best_model_path
-    # print(model_path)
+    model_path = trainer.checkpoint_callback.best_model_path
+    print(model_path)
     # best_model = ModelPoints.load_from_checkpoint(model=lstm, checkpoint_path=model_path)
     # best_model.to("cpu")
+
+    # TODO: save best_model as pickle ?
+
     #
     # mc = McUncertainty(best_model, train_data_loader, val_data_loader, test_dataloader=test_data_
     # loader, logger=logger)
