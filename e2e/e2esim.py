@@ -64,13 +64,17 @@ def run_e2e_prediction(DEVICE="cpu"):
         "/Users/magnus/repos/WAAM-process-model/v-seam-substrate-resampled.txt", delimiter=","
     )
 
-    dataset.torchpositions = v_seam_toolpath.astype("int")
+    torchpositions = v_seam_toolpath.astype("int")
+    # torchpositions[1] += 13
+    # torchpositions[2] -= 8
+    dataset.torchpositions = torchpositions
     dataset.ids = list(range(len(v_seam_toolpath)))
 
     base_input = v_seam_substrate[:, 1]
     mid_idx = 224 // 2
     curr_base = torch.tensor(base_input)
 
+    # TODO: make sure x resample is consistent and accurate
     dataset.labels.append(0)
     xs_sample_footprint = np.linspace(0, (224 - 1) / 10, 224)
     xs_sample_shape = np.linspace(0, (50 - 1) / 10, 50)
