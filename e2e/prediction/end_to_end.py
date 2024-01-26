@@ -78,6 +78,33 @@ class Plotter:
         return fig
 
     @staticmethod
+    def plot_e2e_points(predictions, labels, ground_truth=None, title=""):
+        fig, ax = plt.subplots(figsize=(15, 5), dpi=600)
+        for i in range(len(predictions)):
+            pred = predictions[i]
+            y = pred[0, :]
+            x = pred[1, :]
+            color = "red" if labels[i] == 1 else "blue"
+            ax.plot(x, y, color=color, alpha=1, ls="-", linewidth=1)
+
+            if ground_truth:
+                raise NotImplementedError("ground truth plotting is not implemented for plotting from points.")
+
+        ax.set_title(title)
+        ax.set_aspect("equal")
+
+        # add legend below graph
+        ax.plot([], [], color="blue", alpha=1, linewidth=1, label="prediction")
+        ax.plot([], [], color="black", alpha=1, linewidth=1, ls="-", label="measurement")
+        handles, labels = ax.get_legend_handles_labels()
+        fig.legend(handles, labels, loc="lower center", ncol=2, bbox_to_anchor=(0.5, -0.05))
+        ax.set_xlabel("x [mm]")
+        ax.set_ylabel("z [mm]")
+        plt.show()
+
+        return fig
+
+    @staticmethod
     def plot_outline(outline_pred, outline_true):
         fig, ax = plt.subplots(figsize=(15, 5), dpi=600)
 
