@@ -8,6 +8,8 @@ from scipy.interpolate import interp1d
 
 from e2e.data.resampled import ResampledE2EDataset
 from e2e.helpers import timing
+from e2e.helpers.geometry import find_nearest_point
+from e2e.helpers.resample import interp_equidistant
 from e2e.models.modelV2 import ModelPoints
 from fp.models.mlp import ResMLPpoints
 from fp.models.model import Model
@@ -64,78 +66,90 @@ def run_e2e_prediction(DEVICE="cpu"):
         "/Users/magnus/repos/WAAM-process-model/v-seam-substrate-resampled.txt", delimiter=","
     )
 
+    # rect_block_substrate = np.loadtxt("/Users/magnus/repos/WAAM-process-model/rect-block-substrate.txt", delimiter=",")
+    #
+    # rect_block_toolpath = np.loadtxt(
+    #     "/Users/magnus/repos/WAAM-process-model/rect-block-toolpath-x-idx.txt", delimiter=","
+    # )
+
     torchpositions = v_seam_toolpath.astype("int")
-    # torchpositions[1] += 13
-    # torchpositions[2] -= 8
     dataset.torchpositions = torchpositions
-    dataset.ids = list(range(len(v_seam_toolpath)))
+    dataset.ids = list(range(len(dataset.torchpositions)))
 
     base_input = v_seam_substrate[:, 1]
     mid_idx = 224 // 2
-    curr_base = torch.tensor(base_input)
+    len_base = len(base_input)
 
     # TODO: make sure x resample is consistent and accurate
     dataset.labels.append(0)
-    xs_sample_footprint = np.linspace(0, (224 - 1) / 10, 224)
-    xs_sample_shape = np.linspace(0, (50 - 1) / 10, 50)
+    xs_sample_substrate = np.linspace(0, (len_base - 1) / 10, len_base)
+
+    curr_base = torch.tensor(np.array([base_input.flatten(), xs_sample_substrate]), dtype=torch.float32)
+    curr_base[1, :] -= curr_base[1, 0].clone()
 
     with torch.no_grad():
         for STEP in range(len(dataset)):
+            tic = time.time()
             dataset.predictions.append(curr_base.numpy())
 
             curr_torch = dataset.torchpositions[STEP]
-            curr_input = curr_base[curr_torch - 112 : curr_torch + 112].unsqueeze(0).clone()
+            curr_W = curr_base[:, curr_torch - 112 : curr_torch + 112].clone()
+
+            shift_x = curr_W[1, 0].clone()
+            shift_z = curr_W[0, 112].clone()
+
+            curr_W[1, :] -= shift_x
+            curr_W[0, :] -= shift_z
+
             # predict footprint
-            curr_input_points = torch.tensor(
-                np.array([curr_input.numpy().flatten(), xs_sample_footprint]), dtype=torch.float32
-            )
-
-            tic = time.time()
-
-            footprint = footprint_predictor.forward(curr_input_points)
+            footprint = footprint_predictor.forward(curr_W)
             left_fp = footprint[0, 0, 0].int().item()
             right_fp = footprint[0, 0, 1].int().item()
             dataset.fp_predictions.append(np.array([left_fp, right_fp]))
-
-            z_offset = curr_input[:, 112].clone().item()
-            curr_input -= z_offset
+            print(f"pred. footprint @ {STEP}: {left_fp}, {right_fp}")
 
             # predict shape
-            segment = curr_input[:, left_fp:right_fp]
-            len_segment = segment.size(1)
-            xs_original = np.arange(0, len_segment) / 10
-            f = interp1d(xs_original, segment, kind="linear")
-            xs_90 = np.linspace(0, (len_segment - 1) / 10, 50)
-            curr_input_segment = f(xs_90)
+            F_hat = curr_W[:, left_fp:right_fp]
+            len_F = F_hat.size(1)
 
-            curr_input_segment_points = torch.tensor(
-                np.array([curr_input_segment.flatten(), xs_sample_shape]), dtype=torch.float32
-            )
+            x_re, z_re = interp_equidistant(x=F_hat[1, :], y=F_hat[0, :], num_points=50)
+            F_hat_re = torch.tensor(np.array([z_re, x_re]), dtype=torch.float32)
 
-            pred = shape_predictor.forward(curr_input_segment_points.view(-1, 1, 100))
+            S_hat = shape_predictor.forward(F_hat_re.view(-1, 1, 100)).squeeze()
+
+            pred_x_re, pred_z_re = interp_equidistant(x=S_hat[1, :], y=S_hat[0, :], num_points=len_F)
+            S_hat_re = torch.tensor(np.array([pred_z_re, pred_x_re]), dtype=torch.float32)
+
+            S_hat_re[1, :] += shift_x
+            S_hat_re[0, :] += shift_z
+
+            next_base = curr_base.clone()
+
+            # F_left = S_hat_re[:, 0].numpy()
+            # F_right = S_hat_re[:, -1].numpy()
+            #
+            # F_left_base, left_idx_base, _ = find_nearest_point(F_left, next_base.numpy().reshape(-1, 2))
+            # F_right_base, right_idx_base, _ = find_nearest_point(F_right, next_base.numpy().reshape(-1, 2))
+
+            next_base[:, curr_torch - (mid_idx - left_fp) : curr_torch + (right_fp - mid_idx)] = S_hat_re
+
+            # resample equidistant
+            next_x_re, next_z_re = interp_equidistant(x=next_base[1, :], y=next_base[0, :], num_points=len_base)
+            next_base_re = torch.tensor(
+                np.array([next_z_re, next_x_re]),
+                dtype=torch.float32,
+            ).squeeze()
+
+            curr_base = next_base_re.clone()
+
             toc = time.time()
-            pred = pred.detach().cpu().squeeze().numpy()
-            print(f"prediction-time@{STEP}: {toc - tic}")
-
+            print(f"prediction-time @ {STEP}: {(toc - tic)*1000:.4f} ms")
             dataset.prediction_times.append(toc - tic)
             dataset.labels.append(0)
 
-            pred_z = pred[0, :]
-            pred_x = pred[1, :]
-            f = interp1d(pred_x, pred_z, kind="linear")
-            xs_resample = np.linspace(pred[1, 0], pred[1, -1], len_segment)
-            shape_prediction = f(xs_resample)
-            shape_prediction += z_offset
-
-            next_base = curr_base.clone()
-            next_base[curr_torch - (mid_idx - left_fp) : curr_torch + (right_fp - mid_idx)] = torch.tensor(
-                shape_prediction.copy(), dtype=torch.float32
-            )
-            curr_base = next_base.clone()
-
         dataset.predictions.append(curr_base.numpy())
 
-        print(f"total time: {sum(dataset.prediction_times)*1000:.27} ms")
+        print(f"total time: {sum(dataset.prediction_times)*1000:.3f} ms")
         return dataset
 
 
@@ -143,4 +157,4 @@ if __name__ == "__main__":
     dataset = run_e2e_prediction(DEVICE="cpu")
 
     now = datetime.now().strftime("%Y-%m-%d_%H-%M")
-    Plotter.plot_e2e(dataset.predictions, dataset.labels, None, title=f"E2E v-groove, {now}")
+    Plotter.plot_e2e_points(dataset.predictions, dataset.labels, None, title=f"E2E v-groove, {now}")
