@@ -154,10 +154,23 @@ class ResampledShapePointsDataset(WaamDataset):
     def _extract_inputs(self, samples: Samples, fp_indices: list[torch.tensor]) -> list[LineSegmentZ]:
         inputs = []
         for s, fp_idx in zip(samples, fp_indices):
+            tp = s.torchposition.global_y_idx
+            z_shift = s.slice_based_before.ys[tp]
+
             if "Simulation" in s.experiment:
-                ps = self._get_resampled_segment_points_sim_data(s.slice_based_before, fp_idx)
+                ps = self._get_resampled_segment_points_sim_data(
+                    s.slice_based_before,
+                    fp_idx,
+                    tp,
+                    z_shift,
+                )
             else:
-                ps = self._get_resampled_segment_points(s.slice_based_before, fp_idx)
+                ps = self._get_resampled_segment_points(
+                    s.slice_based_before,
+                    fp_idx,
+                    tp,
+                    z_shift,
+                )
             inputs.append(ps)
 
         return inputs
@@ -167,11 +180,24 @@ class ResampledShapePointsDataset(WaamDataset):
     ) -> list[LineSegmentZ]:
         targets = []
         for s, fp_idx_b, fp_idx_a in zip(samples, fp_indices_before, fp_indices_after):
+            tp = s.torchposition.global_y_idx
+            z_shift = s.slice_based_before.ys[tp]
+
             if "Simulation" in s.experiment:
                 # using footprint index of after because they are not the same index anymore
-                ps = self._get_resampled_segment_points_sim_data(s.slice_based_after, fp_idx_a)
+                ps = self._get_resampled_segment_points_sim_data(
+                    s.slice_based_after,
+                    fp_idx_a,
+                    tp,
+                    z_shift,
+                )
             else:
-                ps = self._get_resampled_segment_points(s.slice_based_after, fp_idx_b)
+                ps = self._get_resampled_segment_points(
+                    s.slice_based_after,
+                    fp_idx_b,
+                    tp,
+                    z_shift,
+                )
             targets.append(ps)
 
         return targets
@@ -229,7 +255,13 @@ class ResampledShapePointsDataset(WaamDataset):
             ids.append(id_)
         return ids
 
-    def _get_resampled_segment_points(self, points: Mesh2D, fp_idx: torch.tensor) -> torch.Tensor:
+    def _get_resampled_segment_points(
+        self,
+        points: Mesh2D,
+        fp_idx: torch.tensor,
+        tp: int,
+        z_shift: float,
+    ) -> torch.Tensor:
         """
         Get and resamples a segment of points on the Mesh2D object.
 
@@ -241,15 +273,25 @@ class ResampledShapePointsDataset(WaamDataset):
         :rtype: torch.Tensor
         """
         left, right = fp_idx[0], fp_idx[1]
+
         zs = points.ys[left:right]
-        # TODO: manage to get correct xs here from sample
         xs = np.arange(0, len(zs)) / 10
+
+        xs = xs - xs[tp - left]
+        zs = zs - z_shift
+
         xs_new, zs_new = interp_equidistant(xs, zs, num_points=self._seg_len)
 
         f32 = torch.float32
         return torch.stack([torch.tensor(zs_new, dtype=f32), torch.tensor(xs_new, dtype=f32)])
 
-    def _get_resampled_segment_points_sim_data(self, points: Mesh2D, fp_idx: torch.tensor) -> torch.Tensor:
+    def _get_resampled_segment_points_sim_data(
+        self,
+        points: Mesh2D,
+        fp_idx: torch.tensor,
+        tp: int,
+        z_shift: float,
+    ) -> torch.Tensor:
         # TODO: unify this function and the one above
         """
         Get and resamples a segment of points on the Mesh2D object for simulation data.
@@ -265,8 +307,11 @@ class ResampledShapePointsDataset(WaamDataset):
         left, right = fp_idx[0], fp_idx[1]
         zs = points.ys[left:right]
         xs = points.xs[left:right]
-        xs0 = xs[0]
-        xs_new, zs_new = interp_equidistant(xs - xs0, zs, num_points=self._seg_len)
+
+        xs = xs - xs[tp - left]
+        zs = zs - z_shift
+
+        xs_new, zs_new = interp_equidistant(xs, zs, num_points=self._seg_len)
 
         f32 = torch.float32
         return torch.stack([torch.tensor(zs_new, dtype=f32), torch.tensor(xs_new, dtype=f32)])

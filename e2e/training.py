@@ -24,11 +24,11 @@ MAC_DATA_DIR_DEV_SIM = Path("/Users/magnus/datasets/WAAM/TrainingDev+Sim")
 VM_DATA_DIR = Path("/home/magnus/datasets/waam/30_processing_results/ImageGenerator")
 VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 
-DATASET = VM_DATA_DIR
+DATASET = VM_DATA_DIR_DEV
 
 SEED = 2345078
 BATCH_SIZE = 32
-MAX_EPOCHS = 100
+MAX_EPOCHS = 200
 N_WORKERS = 2
 DEVICE = "cuda"
 
@@ -200,7 +200,7 @@ def main(note: str = ""):
 
 
 if __name__ == "__main__":
-    if LOGGING:
+    if LOGGING and AUTOCOMMIT:
         note = input("Enter run note: ")
     else:
         note = ""

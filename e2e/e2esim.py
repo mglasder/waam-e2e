@@ -23,8 +23,6 @@ def run_e2e_prediction(DEVICE="cpu"):
     # VM_DATA_DIR = Path("/home/magnus/datasets/waam/30_processing_results/ImageGenerator")
     MAC_DATA_DIR = Path("/Users/magnus/datasets/WAAM/test")
 
-    N_PREDICTIONS = 30
-
     footprint_points_model = ResMLPpoints(
         p=0.0,
         n_input_features=224,
@@ -38,29 +36,29 @@ def run_e2e_prediction(DEVICE="cpu"):
     )
 
     # instantiate models
-    # TODO: wandb id: zany-dragon-29
+    # TODO: always add wandb id
     repos = Path("/Users/magnus/repos/")
-    footprint_path = repos / Path("waam-footprint/fp/waam-footprint-ps-idx/byl1e1dk/checkpoints/epoch=84-step=425.ckpt")
+    footprint_path = repos / Path(
+        "waam-footprint/fp/waam-footprint-ps-idx/byl1e1dk/checkpoints/epoch=84-step=425.ckpt",  # zany-dragon-29
+    )
 
     footprint_predictor = Model.load_from_checkpoint(
         model=footprint_points_model, checkpoint_path=footprint_path, map_location=torch.device(DEVICE)
     )
 
     # shape
-    # TODO: wandb id: spring-haze-73
+    # TODO: always add wandb id
     shape_points_model_path = repos / Path(
-        "waam-e2e/e2e/waam-e2e-shape-points/5ty9skjv/checkpoints/epoch=99-step=900.ckpt"
+        # "waam-e2e/e2e/waam-e2e-shape-points/5ty9skjv/checkpoints/epoch=99-step=900.ckpt" # spring-haze-73
+        "waam-e2e/e2e/waam-e2e-shape-points/2egmfpd6/checkpoints/epoch=179-step=360.ckpt"  # swept-flower-88
     )
     shape_predictor = ModelPoints.load_from_checkpoint(
         model=shape_points_model, checkpoint_path=shape_points_model_path, map_location=torch.device(DEVICE)
     )
     shape_predictor.to("cpu")
 
-    # load dataset
-    # data_loader = SampleLoader(sample_dir=MAC_DATA_DIR)
-    # cross_section_samples = data_loader.load(which=[EXP.RANDOM_EX6])
+    # get data
     dataset = ResampledE2EDataset(mirror=False, segment_length=224)
-
     v_seam_toolpath = np.loadtxt("/Users/magnus/repos/WAAM-process-model/v-seam-toolpath-x-idx.txt", delimiter=",")
     v_seam_substrate = np.loadtxt(
         "/Users/magnus/repos/WAAM-process-model/v-seam-substrate-resampled.txt", delimiter=","
@@ -72,11 +70,13 @@ def run_e2e_prediction(DEVICE="cpu"):
     #     "/Users/magnus/repos/WAAM-process-model/rect-block-toolpath-x-idx.txt", delimiter=","
     # )
 
+    # set input
     torchpositions = v_seam_toolpath.astype("int")
+    base_input = v_seam_substrate[:, 1]
+
+    # some setup
     dataset.torchpositions = torchpositions
     dataset.ids = list(range(len(dataset.torchpositions)))
-
-    base_input = v_seam_substrate[:, 1]
     mid_idx = 224 // 2
     len_base = len(base_input)
 
@@ -86,6 +86,8 @@ def run_e2e_prediction(DEVICE="cpu"):
 
     curr_base = torch.tensor(np.array([base_input.flatten(), xs_sample_substrate]), dtype=torch.float32)
     curr_base[1, :] -= curr_base[1, 0].clone()
+
+    f32 = torch.float32
 
     with torch.no_grad():
         for STEP in range(len(dataset)):
@@ -103,34 +105,38 @@ def run_e2e_prediction(DEVICE="cpu"):
 
             # predict footprint
             footprint = footprint_predictor.forward(curr_W)
-            left_fp = footprint[0, 0, 0].int().item()
-            right_fp = footprint[0, 0, 1].int().item()
+            left_fp = np.abs(footprint[0, 0, 0].int().item())
+            right_fp = np.abs(footprint[0, 0, 1].int().item())
             dataset.fp_predictions.append(np.array([left_fp, right_fp]))
             print(f"pred. footprint @ {STEP}: {left_fp}, {right_fp}")
 
+            curr_W[1, :] += shift_x
+            curr_W[0, :] += shift_z
+
             # predict shape
-            F_hat = curr_W[:, left_fp:right_fp]
+            F_hat = curr_W[:, left_fp:right_fp].clone()
+
+            shift_x = curr_W[1, curr_torch - left_fp].clone()
+            shift_z = curr_W[0, curr_torch - left_fp].clone()
+
+            F_hat[1, :] -= shift_x
+            F_hat[0, :] -= shift_z
+
             len_F = F_hat.size(1)
 
             x_re, z_re = interp_equidistant(x=F_hat[1, :], y=F_hat[0, :], num_points=50)
-            F_hat_re = torch.tensor(np.array([z_re, x_re]), dtype=torch.float32)
+            F_hat_re = torch.stack([torch.tensor(z_re, dtype=f32), torch.tensor(x_re, dtype=f32)])
 
             S_hat = shape_predictor.forward(F_hat_re.view(-1, 1, 100)).squeeze()
 
             pred_x_re, pred_z_re = interp_equidistant(x=S_hat[1, :], y=S_hat[0, :], num_points=len_F)
-            S_hat_re = torch.tensor(np.array([pred_z_re, pred_x_re]), dtype=torch.float32)
+            S_hat_re = torch.stack([torch.tensor(pred_z_re, dtype=f32), torch.tensor(pred_x_re, dtype=f32)])
 
             S_hat_re[1, :] += shift_x
             S_hat_re[0, :] += shift_z
 
+            # update workpiece
             next_base = curr_base.clone()
-
-            # F_left = S_hat_re[:, 0].numpy()
-            # F_right = S_hat_re[:, -1].numpy()
-            #
-            # F_left_base, left_idx_base, _ = find_nearest_point(F_left, next_base.numpy().reshape(-1, 2))
-            # F_right_base, right_idx_base, _ = find_nearest_point(F_right, next_base.numpy().reshape(-1, 2))
-
             next_base[:, curr_torch - (mid_idx - left_fp) : curr_torch + (right_fp - mid_idx)] = S_hat_re
 
             # resample equidistant
