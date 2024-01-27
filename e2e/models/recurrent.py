@@ -66,14 +66,22 @@ class ShapePointsModel(nn.Module):
         p=0.5,
         n_input_features=100,
         n_hidden=200,
-        n_output_features=100,
+        n_output_features=4,
+        device="cpu",
     ):
         super().__init__()
         self.p = p
 
-        self.fc1 = nn.Linear(2 * n_input_features, 4 * n_output_features, bias=True)
-        self.fc2 = nn.Linear(4 * n_input_features, 2 * n_output_features, bias=True)
-        self.fc_out = nn.Linear(2 * n_output_features, 2 * n_output_features, bias=True)
+        self.fc1 = nn.Linear(2 * n_input_features, 4 * n_input_features, bias=True)
+        self.fc2 = nn.Linear(4 * n_input_features, 2 * n_input_features, bias=True)
+        self.fc_out = nn.Linear(2 * n_input_features, 4, bias=True)
+
+        self.t = torch.linspace(0.0, 1.0, n_input_features, device=device)
+        self.t2 = self.t * self.t
+        self.t3 = self.t2 * self.t
+        self.mt = 1 - self.t
+        self.mt2 = self.mt * self.mt
+        self.mt3 = self.mt2 * self.mt
 
         self.apply(self._init_weights)
 
@@ -86,11 +94,32 @@ class ShapePointsModel(nn.Module):
 
     def forward(self, x):
         batch_sz = x.shape[0]
+
+        p0 = x[:, :, 0]
+        p3 = x[:, :, -1]
+
         x = x.reshape(batch_sz, -1)
         r = x
         x = self.fc1(x)
         x = F.tanh(F.dropout(x, p=self.p, training=self.training))  # + r
         x = self.fc2(x)
         x = F.relu(F.dropout(x, p=self.p, training=self.training))
-        x = self.fc_out(x + r)
-        return x.reshape(batch_sz, 2, -1)
+
+        p12 = self.fc_out(x + r).reshape(batch_sz, 2, 2)
+
+        pp = torch.stack([p0, p12[:, :, 0], p12[:, :, 1], p3], dim=2)
+
+        px = pp[:, 1, :]
+        pz = pp[:, 0, :]
+
+        x_out = self._bezier3_torch(px)
+        z_out = self._bezier3_torch(pz)
+
+        return torch.stack([z_out, x_out], dim=1)
+
+    def _bezier3_torch(self, w: torch.Tensor) -> torch.Tensor:
+        r0 = w[:, 0].unsqueeze(1) * self.mt3
+        r1 = 3 * w[:, 1].unsqueeze(1) * self.mt2 * self.t
+        r2 = 3 * w[:, 2].unsqueeze(1) * self.mt * self.t2
+        r3 = w[:, 3].unsqueeze(1) * self.t3
+        return r0 + r1 + r2 + r3
