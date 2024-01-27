@@ -1,6 +1,7 @@
 import time
 from datetime import datetime
 from pathlib import Path
+from typing import Callable, Union
 
 import numpy as np
 import torch
@@ -9,7 +10,7 @@ from scipy.interpolate import interp1d
 from e2e.data.resampled import ResampledE2EDataset
 from e2e.helpers import timing
 from e2e.helpers.geometry import find_nearest_point
-from e2e.helpers.resample import interp_equidistant
+from e2e.helpers.resample import interp_equidistant, interp_xsampling
 from e2e.models.modelV2 import ModelPoints
 from fp.models.mlp import ResMLPpoints
 from fp.models.model import Model
@@ -17,6 +18,20 @@ from fp.models.model import Model
 timing.ENABLE_TIMING = False
 from e2e.models.recurrent import ShapePointsModel
 from e2e.prediction.end_to_end import Plotter
+
+f32 = torch.float32
+
+
+def interp_and_torch_stack(
+    interp_func: Callable,
+    curve: Union[np.ndarray, torch.tensor],
+    num_points: int,
+) -> torch.tensor:
+
+    x_re, z_re = interp_func(x=curve[1, :], y=curve[0, :], num_points=num_points)
+    curve_re = torch.stack([torch.tensor(z_re, dtype=f32), torch.tensor(x_re, dtype=f32)])
+
+    return curve_re
 
 
 def run_e2e_prediction(DEVICE="cpu"):
@@ -50,7 +65,9 @@ def run_e2e_prediction(DEVICE="cpu"):
     # TODO: always add wandb id
     shape_points_model_path = repos / Path(
         # "waam-e2e/e2e/waam-e2e-shape-points/5ty9skjv/checkpoints/epoch=99-step=900.ckpt" # spring-haze-73
-        "waam-e2e/e2e/waam-e2e-shape-points/2egmfpd6/checkpoints/epoch=179-step=360.ckpt"  # swept-flower-88
+        # "waam-e2e/e2e/waam-e2e-shape-points/3wum6bz5/checkpoints/epoch=199-step=1000.ckpt"  # sage-darkness-97
+        # "waam-e2e/e2e/waam-e2e-shape-points/lroch2o3/checkpoints/epoch=179-step=900.ckpt"  # pretty-salad-110 (bezier)
+        "waam-e2e/e2e//waam-e2e-shape-points/6n68e5w6/checkpoints/epoch=139-step=700.ckpt",  # silver-wood-120 (bezier+area)
     )
     shape_predictor = ModelPoints.load_from_checkpoint(
         model=shape_points_model, checkpoint_path=shape_points_model_path, map_location=torch.device(DEVICE)
@@ -64,11 +81,11 @@ def run_e2e_prediction(DEVICE="cpu"):
         "/Users/magnus/repos/WAAM-process-model/v-seam-substrate-resampled.txt", delimiter=","
     )
 
-    # rect_block_substrate = np.loadtxt("/Users/magnus/repos/WAAM-process-model/rect-block-substrate.txt", delimiter=",")
-    #
-    # rect_block_toolpath = np.loadtxt(
-    #     "/Users/magnus/repos/WAAM-process-model/rect-block-toolpath-x-idx.txt", delimiter=","
-    # )
+    rect_block_substrate = np.loadtxt("/Users/magnus/repos/WAAM-process-model/rect-block-substrate.txt", delimiter=",")
+
+    rect_block_toolpath = np.loadtxt(
+        "/Users/magnus/repos/WAAM-process-model/rect-block-toolpath-x-idx.txt", delimiter=","
+    )
 
     # set input
     torchpositions = v_seam_toolpath.astype("int")
@@ -99,14 +116,13 @@ def run_e2e_prediction(DEVICE="cpu"):
 
             shift_x = curr_W[1, 0].clone()
             shift_z = curr_W[0, 112].clone()
-
             curr_W[1, :] -= shift_x
             curr_W[0, :] -= shift_z
 
             # predict footprint
             footprint = footprint_predictor.forward(curr_W)
-            left_fp = np.abs(footprint[0, 0, 0].int().item())
-            right_fp = np.abs(footprint[0, 0, 1].int().item())
+            left_fp = footprint[0, 0, 0].int().item()
+            right_fp = footprint[0, 0, 1].int().item()
             dataset.fp_predictions.append(np.array([left_fp, right_fp]))
             print(f"pred. footprint @ {STEP}: {left_fp}, {right_fp}")
 
@@ -115,22 +131,14 @@ def run_e2e_prediction(DEVICE="cpu"):
 
             # predict shape
             F_hat = curr_W[:, left_fp:right_fp].clone()
-
-            shift_x = curr_W[1, curr_torch - left_fp].clone()
-            shift_z = curr_W[0, curr_torch - left_fp].clone()
-
+            shift_x = curr_W[1, 112].clone()
+            shift_z = curr_W[0, 112].clone()
             F_hat[1, :] -= shift_x
             F_hat[0, :] -= shift_z
 
-            len_F = F_hat.size(1)
-
-            x_re, z_re = interp_equidistant(x=F_hat[1, :], y=F_hat[0, :], num_points=50)
-            F_hat_re = torch.stack([torch.tensor(z_re, dtype=f32), torch.tensor(x_re, dtype=f32)])
-
-            S_hat = shape_predictor.forward(F_hat_re.view(-1, 1, 100)).squeeze()
-
-            pred_x_re, pred_z_re = interp_equidistant(x=S_hat[1, :], y=S_hat[0, :], num_points=len_F)
-            S_hat_re = torch.stack([torch.tensor(pred_z_re, dtype=f32), torch.tensor(pred_x_re, dtype=f32)])
+            F_hat_re = interp_and_torch_stack(interp_equidistant, F_hat, num_points=50)
+            S_hat = shape_predictor.forward(F_hat_re.unsqueeze(0)).squeeze()
+            S_hat_re = interp_and_torch_stack(interp_equidistant, S_hat, num_points=F_hat.size(1))
 
             S_hat_re[1, :] += shift_x
             S_hat_re[0, :] += shift_z
@@ -140,12 +148,7 @@ def run_e2e_prediction(DEVICE="cpu"):
             next_base[:, curr_torch - (mid_idx - left_fp) : curr_torch + (right_fp - mid_idx)] = S_hat_re
 
             # resample equidistant
-            next_x_re, next_z_re = interp_equidistant(x=next_base[1, :], y=next_base[0, :], num_points=len_base)
-            next_base_re = torch.tensor(
-                np.array([next_z_re, next_x_re]),
-                dtype=torch.float32,
-            ).squeeze()
-
+            next_base_re = interp_and_torch_stack(interp_xsampling, next_base, num_points=len_base).squeeze()
             curr_base = next_base_re.clone()
 
             toc = time.time()
