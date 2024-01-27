@@ -24,18 +24,19 @@ MAC_DATA_DIR_DEV_SIM = Path("/Users/magnus/datasets/WAAM/TrainingDev+Sim")
 VM_DATA_DIR = Path("/home/magnus/datasets/waam/30_processing_results/ImageGenerator")
 VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 
-DATASET = VM_DATA_DIR
+DATASET = MAC_DATA_DIR_DEV_SIM
 
 SEED = 2345078
 BATCH_SIZE = 32
-MAX_EPOCHS = 200
+MAX_EPOCHS = 5
 N_WORKERS = 2
-DEVICE = "cuda"
+DEVICE = "cpu"
 
 INPUT_LENGTH = 50
+N_BEZIER_PARAMS = 4
 TARGET_LENGTH = 50
 
-LR = 0.005
+LR = 0.001
 P = 0.0
 GAMMA = 0.1
 TARGET_AREA = 11.4
@@ -79,7 +80,7 @@ def main(note: str = ""):
     points = ShapePointsModel(
         p=P,
         n_input_features=INPUT_LENGTH,
-        n_output_features=TARGET_LENGTH,
+        n_output_features=N_BEZIER_PARAMS,
         device=DEVICE,
     )
     points.to(DEVICE)
