@@ -158,10 +158,11 @@ class ResampledShapePointsDataset(WaamDataset):
             z_shift = s.slice_based_before.ys[tp]
 
             if "Simulation" in s.experiment:
+                x_shift = s.slice_based_before.xs[tp]
                 ps = self._get_resampled_segment_points_sim_data(
                     s.slice_based_before,
                     fp_idx,
-                    tp,
+                    x_shift,
                     z_shift,
                 )
             else:
@@ -185,11 +186,11 @@ class ResampledShapePointsDataset(WaamDataset):
 
             if "Simulation" in s.experiment:
                 # using footprint index of after because they are not the same index anymore
-                tp = s.torchposition
+                x_shift = s.slice_based_before.xs[tp]
                 ps = self._get_resampled_segment_points_sim_data(
                     s.slice_based_after,
                     fp_idx_a,
-                    tp,
+                    x_shift,
                     z_shift,
                 )
             else:
@@ -290,7 +291,7 @@ class ResampledShapePointsDataset(WaamDataset):
         self,
         points: Mesh2D,
         fp_idx: torch.tensor,
-        tp: int,
+        x_shift: float,
         z_shift: float,
     ) -> torch.Tensor:
         # TODO: unify this function and the one above
@@ -310,7 +311,7 @@ class ResampledShapePointsDataset(WaamDataset):
         zs = points.ys[left:right]
         xs = points.xs[left:right]
 
-        xs = xs - xs[tp - left]
+        xs = xs - x_shift
         zs = zs - z_shift
 
         xs_new, zs_new = interp_equidistant(xs, zs, num_points=self._seg_len)
