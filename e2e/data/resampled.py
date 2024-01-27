@@ -185,6 +185,7 @@ class ResampledShapePointsDataset(WaamDataset):
 
             if "Simulation" in s.experiment:
                 # using footprint index of after because they are not the same index anymore
+                tp = s.torchposition
                 ps = self._get_resampled_segment_points_sim_data(
                     s.slice_based_after,
                     fp_idx_a,
@@ -305,6 +306,7 @@ class ResampledShapePointsDataset(WaamDataset):
         """
 
         left, right = fp_idx[0], fp_idx[1]
+
         zs = points.ys[left:right]
         xs = points.xs[left:right]
 
