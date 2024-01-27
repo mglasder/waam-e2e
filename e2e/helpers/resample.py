@@ -38,21 +38,52 @@ def interp_equidistant(x: np.ndarray, y: np.ndarray, num_points: int) -> tuple[n
     return x_points, y_points
 
 
+def interp_xsampling(x: np.ndarray, y: np.ndarray, num_points: int) -> tuple[np.ndarray, np.ndarray]:
+    """
+    :param x: 1D array-like object containing the x-coordinates of the input curve points.
+    :param y: 1D array-like object containing the y-coordinates of the input curve points.
+    :param num_points: The number of equally spaced points to be recalculated along the x-coordinate.
+    :return: A tuple of two 1D arrays representing the x-coordinates and y-coordinates of the equally spaced points.
+
+    This function performs interpolation based on equally spaced points along the x-coordinate.
+    With these x-coordinates, we calculate corresponding y-coordinates by using interpolation.
+    The result will be new arrays of x-coordinates and y-coordinates.
+
+    Example usage:
+        x = np.array([0, 1, 3, 6, 10])
+        y = np.array([0, 2, 4, 6, 10])
+        num_points = 10
+        interpolated_x, interpolated_y = interp_xsampling(x, y, num_points)
+    """
+    # Create an interpolation function based on the original data
+    f = interp1d(x, y)
+
+    # Generate equally spaced points along x
+    x_points = np.linspace(start=x[0], stop=x[-1], num=num_points)
+
+    # Calculate corresponding y-coordinates
+    y_points = f(x_points)
+
+    return x_points, y_points
+
+
 def use():
     x = np.linspace(-1, 1, 100)
     y = np.sqrt(1 - x**2)
-    y2 = np.concatenate([y, -y[::-1]])
+    y2 = y
 
-    x2 = np.concatenate([x, x[::-1]])
+    x2 = x
 
     num_points = 100
 
     x_points, y_points = interp_equidistant(x2, y2, num_points)
+    x_points2, y_points2 = interp_xsampling(x2, y2, num_points)
 
     # Plotting
     plt.figure(figsize=(8, 6))
     plt.plot(x2, y2, "-o", label="Original points", alpha=0.5)
-    plt.plot(x_points, y_points, "r*", label="Interpolated points")
+    plt.plot(x_points, y_points, "r*", label="Interpolated points (equidistant)")
+    plt.plot(x_points2, y_points2, "x", c="black", label="Interpolated points (euqal x)")
     plt.legend()
     plt.grid(True)
     plt.show()
