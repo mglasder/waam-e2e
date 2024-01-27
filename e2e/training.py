@@ -24,7 +24,7 @@ MAC_DATA_DIR_DEV_SIM = Path("/Users/magnus/datasets/WAAM/TrainingDev+Sim")
 VM_DATA_DIR = Path("/home/magnus/datasets/waam/30_processing_results/ImageGenerator")
 VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 
-DATASET = VM_DATA_DIR_DEV
+DATASET = VM_DATA_DIR
 
 SEED = 2345078
 BATCH_SIZE = 32
@@ -37,8 +37,10 @@ TARGET_LENGTH = 50
 
 LR = 0.005
 P = 0.0
+GAMMA = 0.1
+TARGET_AREA = 11.4
 
-MIRROR = True
+MIRROR = False
 DEV_RUN = False
 LOGGING = True
 AUTOCOMMIT = False
@@ -78,6 +80,7 @@ def main(note: str = ""):
         p=P,
         n_input_features=INPUT_LENGTH,
         n_output_features=TARGET_LENGTH,
+        device=DEVICE,
     )
     points.to(DEVICE)
 
@@ -87,7 +90,8 @@ def main(note: str = ""):
         lr=LR,
         in_len=INPUT_LENGTH,
         out_len=TARGET_LENGTH,
-        mode="pure",
+        gamma=GAMMA,
+        target_area=TARGET_AREA,
     )
     model.to(DEVICE)
 
@@ -165,8 +169,9 @@ def main(note: str = ""):
     # test_data_loader = datamodule.test_dataloader()
     #
     # # get best model path
-    model_path = trainer.checkpoint_callback.best_model_path
-    print(model_path)
+    if CHECKPOINTING_ENABLED:
+        model_path = trainer.checkpoint_callback.best_model_path
+        print(model_path)
     # best_model = ModelPoints.load_from_checkpoint(model=lstm, checkpoint_path=model_path)
     # best_model.to("cpu")
 
