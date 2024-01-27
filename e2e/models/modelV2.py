@@ -17,7 +17,8 @@ class ModelPoints(LightningModule):
         out_len=90,
         batch_size=64,
         lr=0.001,
-        mode="pure",
+        gamma=0.25,
+        target_area=11.4,
     ):
         super().__init__()
         self.save_hyperparameters(ignore=["model"])
@@ -27,17 +28,14 @@ class ModelPoints(LightningModule):
         self.loss = loss
         self.lr = lr
 
+        self.target_area = target_area
+        self.gamma = gamma
+
         self.length_in = in_len
         self.length_out = out_len
 
         self.model = model
         # self.model.apply(self._init_weights)
-
-        match mode:
-            case "pure":
-                self._step = self._step_pure
-            case _:
-                raise NotImplementedError
 
     @staticmethod
     def _init_weights(m):
@@ -50,30 +48,24 @@ class ModelPoints(LightningModule):
         x = self.model(x)
         return x
 
-    def _step_pure(self, inputs, targets, fp):
+    def _step(self, inputs, targets, fp):
         """
         Defines pre- and post processing of model input for train, val, test and predict steps,
         and for predict_with_uncertainty.
         """
-        # left = inputs[:, 0][:, None]
-        # right = inputs[:, -1][:, None]
-        # m = right - left
-        # y_corr = self.xs.flipud().to(self.device) * m - right
-        # inputs_ = inputs + y_corr
-        #
-        # width = torch.abs(fp[:, 1] - fp[:, 0]).unsqueeze(1) * 0.1
-
-        # x = torch.concatenate((inputs_, m / width), dim=1)
         pred = self(inputs)
-        # out = pred - y_corr
         return pred
 
     def training_step(self, batch, batch_idx):
         inputs, targets, ids, fp = batch
 
         predictions = self._step(inputs, targets, fp)
-        train_loss = self._loss(predictions, targets)
+        area = self._calculate_area(inputs, predictions)
+        train_loss = (1 - self.gamma) * self._loss(predictions, targets) + self.gamma * (
+            (area - self.target_area) ** 2
+        ).mean()
 
+        self.log("train_area", area.mean(), prog_bar=False, on_epoch=True, on_step=False, batch_size=self.batch_sz)
         self.log("train_loss", train_loss, prog_bar=True, on_epoch=True, on_step=False, batch_size=self.batch_sz)
         return {
             "loss": train_loss,
@@ -84,12 +76,53 @@ class ModelPoints(LightningModule):
             "footprint": fp,
         }
 
+    def _calculate_area(self, inpt_batch: torch.tensor, trgt_batch: torch.tensor) -> torch.tensor:
+        """
+        :param inpt_batch: torch.tensor of shape (batch_size, 2, length_out) representing the input batch.
+        :param trgt_batch: torch.tensor of shape (batch_size, 2, length_out) representing the target batch.
+        :return: torch.tensor of shape (batch_size,) representing the calculated area for each sample in the batch.
+
+        This method calculates the area of a closed curve defined by the input and target batches using Green's theorem.
+        The input batch and target batch should have the same shape. The shape of the input and target
+        batch should be (batch_size, 2, length_out), where length_out is the length of the curve.
+
+        The method first concatenates the input and target batches along the last dimension to obtain a closed curve
+        tensor. Then, it extracts the X and Z coordinates of the curve. The X_next and Z_next coordinates are obtained
+        by rolling the X and Z tensors along the second dimension. The integral is then calculated using the formula:
+        X_next * Z - Z_next * X. The area is obtained by taking the absolute value of the integral and multiplying it
+        by 0.5.
+
+        The resulting area tensor has a shape of (batch_size,) and represents the calculated area for each sample in the batch.
+
+        Example usage:
+
+        inpt = torch.tensor([[[1, 2, 3], [4, 5, 6]]])
+        trgt = torch.tensor([[[7, 8, 9], [10, 11, 12]]])
+        area = _calculate_area(inpt, trgt)
+        print(area)  # Output: tensor([ 4., 15.])
+
+        """
+        assert inpt_batch.shape == trgt_batch.shape and trgt_batch.shape[1:] == (2, self.length_out)
+
+        closed_curve = torch.cat([inpt_batch, torch.flip(trgt_batch, dims=(2,))], dim=2)
+        X = closed_curve[:, 1, :]
+        Z = closed_curve[:, 0, :]
+        X_next = torch.roll(X, shifts=(0, -1), dims=(0, 1))
+        Z_next = torch.roll(Z, shifts=(0, -1), dims=(0, 1))
+        integral = torch.sum(X_next * Z - Z_next * X, dim=1)
+        area = 0.5 * torch.abs(integral)
+        return area
+
     def validation_step(self, batch, batch_idx):
         inputs, targets, ids, fp = batch
 
         predictions = self._step(inputs, targets, fp)
-        val_loss = self._loss(predictions, targets)
+        area = self._calculate_area(inputs, predictions)
+        val_loss = (1 - self.gamma) * self._loss(predictions, targets) + self.gamma * (
+            (area - self.target_area) ** 2
+        ).mean()
 
+        self.log("val_area", area.mean(), prog_bar=False, on_epoch=True, on_step=False, batch_size=self.batch_sz)
         self.log("val_loss", val_loss, prog_bar=True, on_epoch=True, on_step=False, batch_size=self.batch_sz)
         return {
             "loss": val_loss,
