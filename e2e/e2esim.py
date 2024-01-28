@@ -99,10 +99,14 @@ def run_e2e_prediction(DEVICE="cpu"):
     mid_idx = 224 // 2
     len_base = len(base_input)
 
+    # TODO: make sure x resample is consistent and accurate
     dataset.labels.append(0)
     xs_sample_substrate = np.linspace(0, (len_base - 1) / 10, len_base)
+
     curr_base = torch.tensor(np.array([base_input.flatten(), xs_sample_substrate]), dtype=torch.float32)
     curr_base[1, :] -= curr_base[1, 0].clone()
+
+    f32 = torch.float32
 
     with torch.no_grad():
         for STEP in range(len(dataset)):
