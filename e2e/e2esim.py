@@ -47,7 +47,7 @@ def run_e2e_prediction(DEVICE="cpu"):
     shape_points_model = ShapePointsModel(
         p=0.0,
         n_input_features=50,
-        n_output_features=50,
+        n_output_features=4,
     )
 
     # instantiate models
@@ -55,6 +55,7 @@ def run_e2e_prediction(DEVICE="cpu"):
     repos = Path("/Users/magnus/repos/")
     footprint_path = repos / Path(
         "waam-footprint/fp/waam-footprint-ps-idx/byl1e1dk/checkpoints/epoch=84-step=425.ckpt",  # zany-dragon-29
+        # "waam-footprint/fp/waam-footprint-ps-idx/ykaeuujz/checkpoints/epoch=12-step=39.ckpt",  # devout-eon-46 (resampled points input)
     )
 
     footprint_predictor = Model.load_from_checkpoint(
@@ -67,12 +68,13 @@ def run_e2e_prediction(DEVICE="cpu"):
         # "waam-e2e/e2e/waam-e2e-shape-points/5ty9skjv/checkpoints/epoch=99-step=900.ckpt" # spring-haze-73
         # "waam-e2e/e2e/waam-e2e-shape-points/3wum6bz5/checkpoints/epoch=199-step=1000.ckpt"  # sage-darkness-97
         # "waam-e2e/e2e/waam-e2e-shape-points/lroch2o3/checkpoints/epoch=179-step=900.ckpt"  # pretty-salad-110 (bezier)
-        "waam-e2e/e2e//waam-e2e-shape-points/6n68e5w6/checkpoints/epoch=139-step=700.ckpt",  # silver-wood-120 (bezier+area)
+        "waam-e2e/e2e/waam-e2e-shape-points/oghf9rs9/checkpoints/epoch=179-step=900.ckpt",  # ... (bezier+area)
     )
     shape_predictor = ModelPoints.load_from_checkpoint(
-        model=shape_points_model, checkpoint_path=shape_points_model_path, map_location=torch.device(DEVICE)
+        model=shape_points_model,
+        checkpoint_path=shape_points_model_path,
+        map_location=torch.device(DEVICE),
     )
-    shape_predictor.to("cpu")
 
     # get data
     dataset = ResampledE2EDataset(mirror=False, segment_length=224)
