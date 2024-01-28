@@ -24,19 +24,19 @@ MAC_DATA_DIR_DEV_SIM = Path("/Users/magnus/datasets/WAAM/TrainingDev+Sim")
 VM_DATA_DIR = Path("/home/magnus/datasets/waam/30_processing_results/ImageGenerator")
 VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
 
-DATASET = MAC_DATA_DIR_DEV_SIM
+DATASET = VM_DATA_DIR
 
 SEED = 2345078
 BATCH_SIZE = 32
-MAX_EPOCHS = 5
+MAX_EPOCHS = 200
 N_WORKERS = 2
-DEVICE = "cpu"
+DEVICE = "cuda"
 
 INPUT_LENGTH = 50
 N_BEZIER_PARAMS = 4
 TARGET_LENGTH = 50
 
-LR = 0.001
+LR = 0.005
 P = 0.0
 GAMMA = 0.1
 TARGET_AREA = 11.4
