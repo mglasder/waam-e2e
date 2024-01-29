@@ -176,8 +176,6 @@ def main(note: str = ""):
     # best_model = ModelPoints.load_from_checkpoint(model=lstm, checkpoint_path=model_path)
     # best_model.to("cpu")
 
-    # TODO: save best_model as pickle ?
-
     #
     # mc = McUncertainty(best_model, train_data_loader, val_data_loader, test_dataloader=test_data_
     # loader, logger=logger)
