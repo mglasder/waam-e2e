@@ -29,17 +29,17 @@ class Model(LightningModule):
         self.length_out = 2
 
         self.model = model
-        self.model.apply(self._init_weights)
+        # self.model.apply(self._init_weights)
 
-    @staticmethod
-    def _init_weights(m):
-        if type(m) == nn.Linear:
-            torch.nn.init.xavier_uniform_(m.weight)
-            if m.bias is not None:
-                m.bias.data.fill_(0.1)
+    # @staticmethod
+    # def _init_weights(m):
+    #     if type(m) == nn.Linear:
+    #         torch.nn.init.xavier_uniform_(m.weight)
+    #         if m.bias is not None:
+    #             m.bias.data.fill_(0.1)
 
     def forward(self, x):
-        x = x.view(-1, 1, self.length_in)
+        # x = x.view(-1, 1, self.length_in)
         x = self.model(x)
         return x.view(-1, 1, self.length_out)
 
