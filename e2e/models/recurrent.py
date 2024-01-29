@@ -72,10 +72,10 @@ class ShapePointsModel(nn.Module):
         self.p = p
 
         self.fc1 = nn.Linear(2 * n_input_features, 4 * n_input_features, bias=True)
-        self.ln1 = nn.LayerNorm(4 * n_input_features)
+        # self.ln1 = nn.LayerNorm(4 * n_input_features)
 
         self.fc2 = nn.Linear(4 * n_input_features, 2 * n_input_features, bias=True)
-        self.ln2 = nn.LayerNorm(2 * n_input_features)
+        # self.ln2 = nn.LayerNorm(2 * n_input_features)
 
         self.fc_out = nn.Linear(2 * n_input_features, n_output_features, bias=True)
 
@@ -104,10 +104,12 @@ class ShapePointsModel(nn.Module):
         x = x.reshape(batch_sz, -1)
         r = x
 
-        x = self.ln1(self.fc1(x))
+        # x = self.ln1(self.fc1(x))
+        x = self.fc1(x)
         x = F.tanh(F.dropout(x, p=self.p, training=self.training))  # + r
 
-        x = self.ln2(self.fc2(x))
+        # x = self.ln2(self.fc2(x))
+        x = self.fc2(x)
         x = F.tanh(F.dropout(x, p=self.p, training=self.training))
 
         p12 = self.fc_out(x + r).reshape(batch_sz, 2, 2)
