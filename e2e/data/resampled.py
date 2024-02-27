@@ -327,6 +327,7 @@ class ResampledE2EDataset(ResampledShapeDataset):
         self.x_sections = []
 
         self.torchpositions = []
+        self.torchpositions_idx = []
         self.ground_truth = []
         self.true_footprints = []
 

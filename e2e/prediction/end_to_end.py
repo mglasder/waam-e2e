@@ -78,14 +78,24 @@ class Plotter:
         return fig
 
     @staticmethod
-    def plot_e2e_points(predictions, labels, ground_truth=None, title=""):
-        fig, ax = plt.subplots(figsize=(15, 5), dpi=600)
+    def plot_e2e_points(predictions, labels, torchpositions_idx, torchpositions, ground_truth=None, title=""):
+        plt.rcParams.update({"font.size": 22})
+        fig, ax = plt.subplots(figsize=(20, 10))
         for i in range(len(predictions)):
             pred = predictions[i]
             y = pred[0, :]
             x = pred[1, :]
             color = "red" if labels[i] == 1 else "blue"
+
             ax.plot(x, y, color=color, alpha=1, ls="-", linewidth=1)
+
+            if i < len(torchpositions_idx):
+                idx = torchpositions_idx[i]
+                ax.scatter(x[idx], y[idx], marker="v", color="red")
+
+            if i < len(torchpositions):
+                point = torchpositions[i]
+                ax.scatter(point[0], point[1], marker="v", color="blue")
 
             if ground_truth:
                 raise NotImplementedError("ground truth plotting is not implemented for plotting from points.")

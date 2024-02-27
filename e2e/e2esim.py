@@ -2,6 +2,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 from typing import Callable, Union
+import pickle
 
 import numpy as np
 import torch
@@ -19,6 +20,7 @@ from fp.models.model import Model
 timing.ENABLE_TIMING = False
 from e2e.models.recurrent import ShapePointsModel
 from e2e.prediction.end_to_end import Plotter
+from scipy.spatial.distance import cdist
 
 f32 = torch.float32
 
@@ -33,6 +35,30 @@ def interp_and_torch_stack(
     curve_re = torch.stack([torch.tensor(z_re, dtype=f32), torch.tensor(x_re, dtype=f32)])
 
     return curve_re
+
+
+def get_index_euclidean(point: np.ndarray, list_of_points: np.ndarray) -> int:
+    distances = cdist(point, list_of_points, "euclidean")
+    idx = np.argmin(distances, axis=1)
+    return idx[0]
+
+
+def get_index_vertical_intersection(torch_x: float, list_of_points: np.ndarray) -> int:
+    """
+    Find the intersection of a series of points and a vertical line.
+
+    :param list_of_points: numpy array representing points on the curve
+    :param torch_x: x-coordinate of the vertical line
+    :return: index of the intersection point in the curve
+    """
+
+    # Extract x-coordinates from points
+    x_coords = list_of_points[:, 0]
+
+    # Find the index of the point closest to the vertical line
+    idx = np.abs(x_coords - torch_x).argmin()
+
+    return idx
 
 
 def get_footprint_index_from(radii, substrate_points):
@@ -86,6 +112,14 @@ def run_e2e_prediction(DEVICE="cpu"):
         model=footprint_points_model, checkpoint_path=footprint_path, map_location=torch.device(DEVICE)
     )
 
+    # shave footprint predictor as pickle
+    with open("../../waam-rl/footprint_predictor.pickle", "wb") as f:
+        pickle.dump(footprint_predictor, f)
+
+    # load again
+    with open("../../waam-rl/footprint_predictor.pickle", "rb") as f:
+        footprint_predictor = pickle.load(f)
+
     # shape
     # TODO: always add wandb id
     shape_points_model_path = repos / Path(
@@ -98,22 +132,29 @@ def run_e2e_prediction(DEVICE="cpu"):
         map_location=torch.device(DEVICE),
     )
 
+    with open("../../waam-rl/shape_predictor.pickle", "wb") as f:
+        pickle.dump(shape_predictor, f)
+
+    # load again
+    with open("../../waam-rl/shape_predictor.pickle", "rb") as f:
+        shape_predictor = pickle.load(f)
+
     # get data
     dataset = ResampledE2EDataset(mirror=False, segment_length=224)
-    v_seam_toolpath = np.loadtxt("/Users/magnus/repos/WAAM-process-model/v-seam-toolpath-x-idx.txt", delimiter=",")
-    v_seam_substrate = np.loadtxt(
-        "/Users/magnus/repos/WAAM-process-model/v-seam-substrate-resampled.txt", delimiter=","
-    )
+    v_seam_toolpath = np.loadtxt("/Users/magnus/repos/waam-eval/v-45-4.48-A-toolpath-real-z-coords.txt", delimiter=",")
+    v_seam_substrate = np.loadtxt("/Users/magnus/repos/waam-eval/v-45-substrate.txt", delimiter=",")
 
-    rect_block_substrate = np.loadtxt("/Users/magnus/repos/WAAM-process-model/rect-block-substrate.txt", delimiter=",")
-
-    rect_block_toolpath = np.loadtxt(
-        "/Users/magnus/repos/WAAM-process-model/rect-block-toolpath-x-idx.txt", delimiter=","
-    )
+    # rect_block_substrate = np.loadtxt("/Users/magnus/repos/WAAM-process-model/rect-block-substrate.txt", delimiter=",")
+    #
+    # rect_block_toolpath = np.loadtxt(
+    #     "/Users/magnus/repos/WAAM-process-model/rect-block-toolpath-x-idx.txt", delimiter=","
+    # )
 
     # set input
-    torchpositions = v_seam_toolpath.astype("int")  # np.repeat(500, 10).astype("int")
+    torchpositions = v_seam_toolpath  # np.repeat(500, 10).astype("int")
     base_input = v_seam_substrate[:, 1]
+
+    print(torchpositions)
 
     # some setup
     dataset.torchpositions = torchpositions
@@ -122,9 +163,9 @@ def run_e2e_prediction(DEVICE="cpu"):
     len_base = len(base_input)
 
     dataset.labels.append(0)
-    xs_sample_substrate = np.linspace(0, (len_base - 1) / 10, len_base)
+    # xs_sample_substrate = np.linspace(0, (len_base - 1) / 10, len_base)
 
-    curr_base = torch.tensor(np.array([base_input.flatten(), xs_sample_substrate]), dtype=torch.float32)
+    curr_base = torch.tensor(np.array([v_seam_substrate[:, 1], v_seam_substrate[:, 0]]), dtype=torch.float32)
 
     with torch.no_grad():
         for STEP in range(len(dataset)):
@@ -132,7 +173,13 @@ def run_e2e_prediction(DEVICE="cpu"):
             dataset.predictions.append(curr_base.numpy())
 
             curr_torch = dataset.torchpositions[STEP]
-            curr_W = curr_base[:, curr_torch - 112 : curr_torch + 112].clone()
+            curr_torch_idx = get_index_vertical_intersection(
+                curr_torch[0], curr_base.T.flip(dims=(1,)).clone().cpu().numpy()
+            )
+            dataset.torchpositions_idx.append(curr_torch_idx)
+            curr_W = curr_base[:, curr_torch_idx - 112 : curr_torch_idx + 112].clone()
+
+            # curr_W = interp_and_torch_stack(interp_xsampling, curr_W, 224)
 
             # shift curr_W to torch position at (0,0)
             shift_x, shift_z = get_xz_correction(curr_W)
@@ -158,7 +205,7 @@ def run_e2e_prediction(DEVICE="cpu"):
 
             # update workpiece
             next_base = curr_base.clone()
-            next_base[:, curr_torch - (mid_idx - left_fp) : curr_torch + (right_fp - mid_idx)] = S_hat_re
+            next_base[:, curr_torch_idx - (mid_idx - left_fp) : curr_torch_idx + (right_fp - mid_idx)] = S_hat_re
 
             # resample equidistant
             next_base_re = interp_and_torch_stack(interp_xsampling, next_base, num_points=len_base).squeeze()
@@ -178,4 +225,10 @@ if __name__ == "__main__":
     dataset = run_e2e_prediction(DEVICE="cpu")
 
     now = datetime.now().strftime("%Y-%m-%d_%H-%M")
-    Plotter.plot_e2e_points(dataset.predictions, dataset.labels, None, title=f"E2E v-groove, {now}")
+    Plotter.plot_e2e_points(
+        dataset.predictions,
+        dataset.labels,
+        dataset.torchpositions_idx,
+        dataset.torchpositions,
+        title=f"E2E v-groove, {now}",
+    )
