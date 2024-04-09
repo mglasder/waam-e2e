@@ -55,8 +55,8 @@ class ShapePointsEquidistant(WaamDataset):
 
             shape = torch.stack(
                 (
-                    x_coords,
                     y_coords,
+                    x_coords,
                 ),
             )
             shape_re = interp_and_torch_stack(interp_equidistant, shape, self._seg_len)
@@ -105,8 +105,8 @@ class ShapePointsEquidistant(WaamDataset):
 
             shape = torch.stack(
                 (
-                    x_coords,
                     y_coords,
+                    x_coords,
                 ),
             )
             shape_re = interp_and_torch_stack(interp_equidistant, shape, self._seg_len)

@@ -71,8 +71,8 @@ class ShapePointsModel(nn.Module):
         super().__init__()
         self.p = p
 
+        # self.ln1 = nn.LayerNorm(2 * n_input_features)
         self.fc1 = nn.Linear(2 * n_input_features, 4 * n_input_features, bias=True)
-        # self.ln1 = nn.LayerNorm(4 * n_input_features)
 
         self.fc2 = nn.Linear(4 * n_input_features, 2 * n_input_features, bias=True)
         # self.ln2 = nn.LayerNorm(2 * n_input_features)
@@ -86,7 +86,7 @@ class ShapePointsModel(nn.Module):
         self.mt2 = self.mt * self.mt
         self.mt3 = self.mt2 * self.mt
 
-        self.apply(self._init_weights)
+        # self.apply(self._init_weights)
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
@@ -96,15 +96,18 @@ class ShapePointsModel(nn.Module):
                 # m.bias.data.fill_(1.5)
 
     def forward(self, x):
+
+        x_in = x.clone()
+
         batch_sz = x.shape[0]
 
-        p0 = x[:, :, 0]
-        p3 = x[:, :, -1]
+        p0 = x[:, :, 0].clone()
+        p3 = x[:, :, -1].clone()
 
         x = x.reshape(batch_sz, -1)
-        r = x
+        r = x.clone()
 
-        # x = self.ln1(self.fc1(x))
+        # x = self.ln1(x)
         x = self.fc1(x)
         x = F.tanh(F.dropout(x, p=self.p, training=self.training))  # + r
 
@@ -122,7 +125,8 @@ class ShapePointsModel(nn.Module):
         x_out = self._bezier3_torch(px)
         z_out = self._bezier3_torch(pz)
 
-        return torch.stack([z_out, x_out], dim=1)
+        stack = torch.stack([z_out, x_out], dim=1)
+        return stack
 
     def _bezier3_torch(self, w: torch.Tensor) -> torch.Tensor:
         r0 = w[:, 0].unsqueeze(1) * self.mt3
