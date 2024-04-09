@@ -148,3 +148,4 @@ dmypy.json
 /paper/data
 *.csv
 *.ckpt
+*.pickel
