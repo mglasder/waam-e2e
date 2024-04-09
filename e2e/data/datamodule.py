@@ -20,7 +20,7 @@ class ShapePredictionDataModule(LightningDataModule):
         split=[0.5, 0.5, 0],
         data_fraction=1,
         train_val_sets: Union[str, list[EXPERIMENT]] = "all",
-        separate_test_set: Optional[EXPERIMENT] = None,
+        separate_test_set: Optional[list[EXPERIMENT]] = None,
         seed=42,
         sample_loader: SampleLoader = None,
     ):
@@ -65,7 +65,7 @@ class ShapePredictionDataModule(LightningDataModule):
             dataset = deepcopy(self.dataset)
             dataset.mirror = False
 
-            test_cross_sections = self._loader.load(which=[self._sep_ts_set])
+            test_cross_sections = self._loader.load(which=self._sep_ts_set)
             self._dataset_ts = dataset.create(test_cross_sections)
 
         self._print_stats()
@@ -89,7 +89,7 @@ class ShapePredictionDataModule(LightningDataModule):
         return DataLoader(self._dataset_vl, batch_size=self._batch_sz, num_workers=self._num_workers, shuffle=False)
 
     def test_dataloader(self) -> DataLoader:
-        return DataLoader(self._dataset_ts, batch_size=self._batch_sz, num_workers=self._num_workers, shuffle=False)
+        return DataLoader(self._dataset_ts, batch_size=999, num_workers=self._num_workers, shuffle=False)
 
     def predict_dataloader(self):
         return [
