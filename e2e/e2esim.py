@@ -21,6 +21,7 @@ timing.ENABLE_TIMING = False
 from e2e.models.recurrent import ShapePointsModel
 from e2e.prediction.end_to_end import Plotter
 from scipy.spatial.distance import cdist
+from e2e.data.sample import CrossSectionSample
 
 f32 = torch.float32
 
@@ -83,9 +84,11 @@ def get_xz_correction(substrate_points):
     return shift_x, shift_z
 
 
-def run_e2e_prediction(DEVICE="cpu"):
+def run_e2e_prediction(experiment, DEVICE="cpu"):
     # VM_DATA_DIR = Path("/home/magnus/datasets/waam/30_processing_results/ImageGenerator")
-    MAC_DATA_DIR = Path("/Users/magnus/datasets/WAAM/test")
+    # MAC_DATA_DIR = Path("/Users/magnus/datasets/WAAM/test")
+
+    print(f"Simulating experiment: {experiment} end-to-end.")
 
     footprint_points_model = MlpRelativeDistance(
         p=0.0,
@@ -101,11 +104,21 @@ def run_e2e_prediction(DEVICE="cpu"):
 
     # instantiate models
     # TODO: always add wandb id
-    repos = Path("/Users/magnus/repos/")
-    footprint_path = repos / Path(
-        # "waam-footprint/fp/waam-footprint-ps-idx/byl1e1dk/checkpoints/epoch=84-step=425.ckpt",  # zany-dragon-29
-        # "waam-footprint/fp/waam-footprint-ps-idx/ykaeuujz/checkpoints/epoch=12-step=39.ckpt",  # devout-eon-46 (resampled points input)
-        "waam-footprint/fp/waam-footprint-ps-idx/52rebqh8/checkpoints/epoch=55-step=168.ckpt"  # likely-shape-78 (xsampling, torch=(0,0), radius)
+
+    FOOTPRINT_MODEL_ID = "iiy649xa"
+
+    repos = Path("/Users/magnus/repos/waam-footprint/fp/")
+    footprint_path = (
+        repos
+        # / "waam-footprint/fp/waam-footprint-ps-idx"
+        / (
+            # "waam-footprint/fp/waam-footprint-ps-idx/byl1e1dk/checkpoints/epoch=84-step=425.ckpt",  # zany-dragon-29
+            # "waam-footprint/fp/waam-footprint-ps-idx/ykaeuujz/checkpoints/epoch=12-step=39.ckpt",  # devout-eon-46 (resampled points input)
+            # "waam-footprint/fp/waam-footprint-ps-idx/52rebqh8/checkpoints/epoch=55-step=168.ckpt"  # likely-shape-78 (xsampling, torch=(0,0), radius)
+            # "5cqux5la/checkpoints/epoch=53-step=216.ckpt"  # dazzling-sponge-107 (xsamplig, ", finetuneing v-groove)
+            # "2b1grw9n/checkpoints/epoch=74-step=300.ckpt"  # vital-universe-108 (same as above, but works better for some reason)
+            f"waam-footprint-radii-equidistant/{FOOTPRINT_MODEL_ID}/checkpoints/epoch=75-step=304.ckpt"  # astral-dragon-39, finetuned on cubes sim
+        )
     )
 
     footprint_predictor = Model.load_from_checkpoint(
@@ -113,18 +126,25 @@ def run_e2e_prediction(DEVICE="cpu"):
     )
 
     # shave footprint predictor as pickle
-    with open("../../waam-rl/footprint_predictor.pickle", "wb") as f:
+    with open(f"../../waam-rl/footprint_predictor_{FOOTPRINT_MODEL_ID}.pickle", "wb") as f:
         pickle.dump(footprint_predictor, f)
 
     # load again
-    with open("../../waam-rl/footprint_predictor.pickle", "rb") as f:
+    with open(f"../../waam-rl/footprint_predictor_{FOOTPRINT_MODEL_ID}.pickle", "rb") as f:
         footprint_predictor = pickle.load(f)
 
     # shape
     # TODO: always add wandb id
-    shape_points_model_path = repos / Path(
-        # "waam-e2e/e2e/waam-e2e-shape-points/lroch2o3/checkpoints/epoch=179-step=900.ckpt"  # pretty-salad-110 (bezier)
-        "waam-e2e/e2e/waam-e2e-shape-points/l2973txr/checkpoints/epoch=139-step=700.ckpt"  # royal-thunder-140 (bezier+area)
+    shape_points_model_path = (
+        repos
+        / "waam-e2e/e2e"
+        / Path(
+            # "waam-e2e/e2e/waam-e2e-shape-points/lroch2o3/checkpoints/epoch=179-step=900.ckpt"  # pretty-salad-110 (bezier)
+            # "waam-e2e-shape-points/l2973txr/checkpoints/epoch=139-step=700.ckpt"  # royal-thunder-140 (bezier+area)
+            # "waam-e2e/e2e/waam-e2e-shape-points/wxoyse1p/checkpoints/epoch=199-step=1400.ckpt"  # dauntless-cherry-146 (bezier+area, finetuned v-groove)
+            "waam-e2e-shape-points/pzxni5gu/checkpoints/epoch=159-step=1120.ckpt"  # pretty-spaceship-147 (", area: 11.4)
+            # "waam-e2e-shape-points/wm0fngvp/checkpoints/epoch=199-step=1400.ckpt"  # dandy-frost-148 (", 11.2
+        )
     )
     shape_predictor = ModelPoints.load_from_checkpoint(
         model=shape_points_model,
@@ -132,17 +152,23 @@ def run_e2e_prediction(DEVICE="cpu"):
         map_location=torch.device(DEVICE),
     )
 
-    with open("../../waam-rl/shape_predictor.pickle", "wb") as f:
+    with open("../../waam-rl/shape_predictor_finetuned_114.pickle", "wb") as f:
         pickle.dump(shape_predictor, f)
 
     # load again
-    with open("../../waam-rl/shape_predictor.pickle", "rb") as f:
+    with open("../../waam-rl/shape_predictor_finetuned_114.pickle", "rb") as f:
         shape_predictor = pickle.load(f)
 
     # get data
     dataset = ResampledE2EDataset(mirror=False, segment_length=224)
-    v_seam_toolpath = np.loadtxt("/Users/magnus/repos/waam-eval/v-45-4.48-A-toolpath-real-z-coords.txt", delimiter=",")
-    v_seam_substrate = np.loadtxt("/Users/magnus/repos/waam-eval/v-45-substrate.txt", delimiter=",")
+    v_seam_toolpath = np.loadtxt(
+        f"/Users/magnus/repos/waam-eval/toolpaths/for_e2e/{experiment}-toolpath-real-coords.txt", delimiter=","
+    )
+
+    substrate_type = ("-").join(experiment.split("-")[:-1])
+    v_seam_substrate = np.loadtxt(
+        f"/Users/magnus/repos/waam-eval/substrates/{substrate_type}-substrate.txt", delimiter=","
+    )
 
     # rect_block_substrate = np.loadtxt("/Users/magnus/repos/WAAM-process-model/rect-block-substrate.txt", delimiter=",")
     #
@@ -150,14 +176,25 @@ def run_e2e_prediction(DEVICE="cpu"):
     #     "/Users/magnus/repos/WAAM-process-model/rect-block-toolpath-x-idx.txt", delimiter=","
     # )
 
+    # load first measurement after
+    folder = Path("/Users/magnus/datasets/WAAM/v-groove-results/CrossSectionTorchHeightBasing")
+    files = list(folder.glob("*.pickle"))
+
+    samples = [CrossSectionSample.read_file(f) for f in files]
+    samples = sorted(samples, key=lambda sample: sample.bead_id)
+    # first = np.array(samples[0].slice_aligned_after.points).reshape(-1, 2)
+    # first[:, 0] -= 100 - 1.45
+    # first[:, 1] += 1.61
+    # first_input = np.array([first[:, 1], first[:, 0]])
+
     # set input
     torchpositions = v_seam_toolpath  # np.repeat(500, 10).astype("int")
     base_input = v_seam_substrate[:, 1]
 
-    print(torchpositions)
+    # print(torchpositions)
 
     # some setup
-    dataset.torchpositions = torchpositions
+    dataset.torchpositions = torchpositions[:]
     dataset.ids = list(range(len(dataset.torchpositions)))
     mid_idx = 224 // 2
     len_base = len(base_input)
@@ -166,6 +203,23 @@ def run_e2e_prediction(DEVICE="cpu"):
     # xs_sample_substrate = np.linspace(0, (len_base - 1) / 10, len_base)
 
     curr_base = torch.tensor(np.array([v_seam_substrate[:, 1], v_seam_substrate[:, 0]]), dtype=torch.float32)
+
+    # left_edge_idx = get_index_vertical_intersection(first[0, 0], curr_base.T.flip(dims=(1,)).clone().cpu().numpy())
+    # right_edge_idx = get_index_vertical_intersection(first[-1, 0], curr_base.T.flip(dims=(1,)).clone().cpu().numpy())
+
+    # curr_base_new = torch.tensor(
+    #     np.concatenate(
+    #         [
+    #             curr_base[:, :left_edge_idx],
+    #             first_input,
+    #             curr_base[:, right_edge_idx:],
+    #         ],
+    #         axis=1,
+    #     ),
+    #     dtype=torch.float32,
+    # ).clone()
+    #
+    # curr_base = interp_and_torch_stack(interp_xsampling, curr_base_new, num_points=len_base).squeeze().clone()
 
     with torch.no_grad():
         for STEP in range(len(dataset)):
@@ -191,7 +245,15 @@ def run_e2e_prediction(DEVICE="cpu"):
             left_fp, right_fp = get_footprint_index_from(radii, curr_W)
             F_hat = curr_W[:, left_fp:right_fp].clone()
 
-            dataset.fp_predictions.append(np.array([left_fp, right_fp]))
+            fpl, fpr = curr_W[:, left_fp].cpu().numpy(), curr_W[:, right_fp].cpu().numpy()
+
+            fpl[1] += shift_x
+            fpl[0] += shift_z
+
+            fpr[1] += shift_x
+            fpr[0] += shift_z
+
+            dataset.fp_predictions.append([fpl, fpr])
             print(f"pred. footprint @ {STEP}: {left_fp}, {right_fp}")
 
             # predict shape
@@ -222,7 +284,13 @@ def run_e2e_prediction(DEVICE="cpu"):
 
 
 if __name__ == "__main__":
-    dataset = run_e2e_prediction(DEVICE="cpu")
+    EXPERIMENT = "v-45-A"
+
+    dataset = run_e2e_prediction(experiment=EXPERIMENT, DEVICE="cpu")
+
+    # with open(f"{EXPERIMENT}-sim.pickle", "wb") as f:
+    #     pickle.dump(dataset, f)
+    #     print(f"saved dataset to {f.name}")
 
     now = datetime.now().strftime("%Y-%m-%d_%H-%M")
     Plotter.plot_e2e_points(
@@ -230,5 +298,5 @@ if __name__ == "__main__":
         dataset.labels,
         dataset.torchpositions_idx,
         dataset.torchpositions,
-        title=f"E2E v-groove, {now}",
+        title=f"E2E {EXPERIMENT}, {now}",
     )
