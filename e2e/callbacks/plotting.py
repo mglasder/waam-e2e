@@ -22,6 +22,11 @@ class PredictionPlotting(Callback):
         if self._should_log_predictions(trainer.current_epoch, final_epoch):
             self._log_predictions(trainer, outputs, stage="val")
 
+    def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx=0):
+        final_epoch = trainer.max_epochs - 1
+        # if self._should_log_predictions(trainer.current_epoch, final_epoch):
+        self._log_predictions(trainer, outputs, stage="test")
+
     def _should_log_predictions(self, current_epoch: int, final_epoch: int) -> bool:
         return (current_epoch == final_epoch) or (current_epoch in self.epochs)
 
