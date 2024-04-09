@@ -1,3 +1,4 @@
+import pickle
 from pathlib import Path
 
 import requests
@@ -13,6 +14,7 @@ from e2e.data.datamodule import ShapePredictionDataModule
 from e2e.data.loader import EXPERIMENT as EXP
 from e2e.data.loader import SampleLoader
 from e2e.data.resampled import ResampledShapePointsDataset
+from e2e.data.equidistant import ShapePointsEquidistant
 from e2e.models.modelV2 import ModelPoints
 from e2e.models.recurrent import ShapePointsModel
 
@@ -23,14 +25,17 @@ MAC_DATA_DIR_DEV = Path("/Users/magnus/datasets/WAAM/TrainingDev")
 MAC_DATA_DIR_DEV_SIM = Path("/Users/magnus/datasets/WAAM/TrainingDev+Sim")
 VM_DATA_DIR = Path("/home/magnus/datasets/waam/30_processing_results/ImageGenerator")
 VM_DATA_DIR_DEV = Path("/home/magnus/datasets/waam/TrainingDev")
+VM_DATA_DIR_V_GROOVE = Path("/home/magnus/datasets/waam/30_processing_results/WithVgroove")
 
-DATASET = VM_DATA_DIR
+DATASET = MAC_DATA_DIR_DEV_SIM
 
-SEED = 2345078
-BATCH_SIZE = 32
-MAX_EPOCHS = 200
-N_WORKERS = 2
-DEVICE = "cuda"
+# use waam310 (4) on remote
+
+SEED = 123
+BATCH_SIZE = 1
+MAX_EPOCHS = 5
+N_WORKERS = 1
+DEVICE = "cpu"
 
 INPUT_LENGTH = 50
 N_BEZIER_PARAMS = 4
@@ -42,13 +47,13 @@ GAMMA = 0.1
 TARGET_AREA = 11.4
 
 MIRROR = False
-DEV_RUN = False
+DEV_RUN = True
 LOGGING = True
 AUTOCOMMIT = False
 AUTOCOMMIT_IP = "172.31.1.8"
 CHECKPOINTING_ENABLED = True
 
-PROJECT = "waam-e2e-shape-points"
+PROJECT = "waam-shape-bezier-equidistant"
 
 if torch.cuda.is_available():
     torch.set_float32_matmul_precision("medium")
@@ -83,7 +88,7 @@ def main(note: str = ""):
         n_output_features=N_BEZIER_PARAMS,
         device=DEVICE,
     )
-    points.to(DEVICE)
+    # points.to(DEVICE)
 
     model = ModelPoints(
         model=points,
@@ -99,13 +104,23 @@ def main(note: str = ""):
     if DEV_RUN:
         print("THIS IS A DEV RUN! Used dataset and split are adjusted accordingly.")
         split = [0.5, 0.5, 0]
-        train_val_sets = "all"
-        separate_test_set = None
+        train_val_sets = [
+            EXP.CONSTANT_EX3,
+            EXP.CONSTANT_EX4,
+            EXP.RANDOM_EX3,
+            EXP.RANDOM_EX5,
+            # EXP.SIM_CUBE02,
+            # EXP.SIM_CUBE04,
+        ]
+        separate_test_set = [EXP.SIM_CUBE03]
 
     else:
         split = [0.7, 0.3, 0]
-        train_val_sets = [EXP.CONSTANT_EX3, EXP.CONSTANT_EX4, EXP.RANDOM_EX3, EXP.RANDOM_EX5, EXP.SIMULATION_CUBE01]
-        separate_test_set = EXP.RANDOM_EX6
+        train_val_sets = [
+            EXP.SIM_CUBE02,
+            EXP.SIM_CUBE04,
+        ]
+        separate_test_set = [EXP.SIM_CUBE03]  # [EXP.V_45_A, EXP.V_35_B, EXP.SIM_CUBE03]
 
     if LOGGING:
         logger = WandbLogger(project=PROJECT, log_model="all")
@@ -127,7 +142,7 @@ def main(note: str = ""):
         batch_size=BATCH_SIZE,
         data_dir=DATASET,
         workers=N_WORKERS,
-        dataset=ResampledShapePointsDataset(mirror=MIRROR, segment_length=TARGET_LENGTH),
+        dataset=ShapePointsEquidistant(segment_length=TARGET_LENGTH),
         split=split,
         data_fraction=1.0,
         train_val_sets=train_val_sets,
@@ -162,8 +177,15 @@ def main(note: str = ""):
         accelerator=DEVICE,
         callbacks=callbacks,
         log_every_n_steps=5,
+        # gradient_clip_val=0.5,
     )
     trainer.fit(model=model, datamodule=datamodule)
+    trainer.test(model=model, datamodule=datamodule)
+
+    test_predictions = trainer.predict(model=model, dataloaders=datamodule.test_dataloader())
+
+    # with open("test_predictions.pickle", "wb") as f:
+    #     pickle.dump(test_predictions, f)
 
     # val_data_loader = datamodule.val_dataloader()
     # train_data_loader = datamodule.train_dataloader()
