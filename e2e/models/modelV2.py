@@ -140,7 +140,9 @@ class ModelPoints(LightningModule):
         inputs, targets, ids, fp = batch
 
         predictions = self._step(inputs, targets, fp)
-        pred_loss = self._loss(predictions, targets)
+        pred_loss = (1 - self.gamma) * self._loss(predictions, targets) + self.gamma * (
+            (area - self.target_area) ** 2
+        ).mean()
 
         return {"loss": pred_loss, "preds": predictions, "targets": targets}
 
@@ -186,7 +188,7 @@ class ModelPoints(LightningModule):
         return batch_mean_distance
 
     def configure_optimizers(self):
-        optimizer = Adam(self.model.parameters(), lr=self.lr, weight_decay=0.01)
+        optimizer = Adam(self.model.parameters(), lr=self.lr, weight_decay=0)
 
         scheduler = ReduceLROnPlateau(optimizer, mode="min", patience=10, factor=0.5, verbose=True)
         if scheduler:
